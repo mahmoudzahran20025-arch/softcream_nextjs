@@ -5,6 +5,11 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://softcream-api.mahmoud-zahran20025.workers.dev'
 
+// Log API URL on module load (for debugging)
+if (typeof window !== 'undefined') {
+  console.log('🌐 API URL configured:', API_URL)
+}
+
 // ================================================================
 // Types
 // ================================================================
@@ -80,15 +85,23 @@ async function httpRequest<T>(
 ): Promise<T> {
   const url = `${API_URL}?path=${encodeURIComponent(endpoint)}`
 
+  // ✅ Only add Content-Type for requests with body (POST, PUT, DELETE)
+  // GET requests don't need Content-Type header, which avoids unnecessary CORS preflight
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
     'Accept': 'application/json',
+    ...(data && method !== 'GET' ? { 'Content-Type': 'application/json' } : {}),
     ...options.headers,
   }
+
+  // Add timeout using AbortController (15 seconds default)
+  const timeout = 15000
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
 
   const config: RequestInit = {
     method,
     headers,
+    signal: controller.signal,
     ...options,
   }
 
@@ -96,12 +109,13 @@ async function httpRequest<T>(
     config.body = JSON.stringify(data)
   }
 
-  console.log(`📡 API Request [${method}]:`, endpoint)
+  console.log(`📡 API Request [${method}]:`, endpoint, '→', url)
   if (data && method !== 'GET') console.log('📦 Body:', data)
 
   try {
     const response = await fetch(url, config)
-    console.log(`📥 Response Status: ${response.status}`)
+    clearTimeout(timeoutId)
+    console.log(`📥 Response Status: ${response.status} for ${endpoint}`)
 
     if (response.status === 204) {
       return { success: true, data: null } as any
@@ -131,8 +145,30 @@ async function httpRequest<T>(
 
     console.log('✅ Response:', result)
     return result.data || result
-  } catch (error) {
-    console.error('❌ API Request failed:', error)
+  } catch (error: any) {
+    clearTimeout(timeoutId)
+    console.error(`❌ API Request failed [${method} ${endpoint}]:`, error)
+    console.error('   URL:', url)
+    console.error('   Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n')
+    })
+    
+    // Enhance error message for timeout/connection issues
+    if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+      const timeoutError = new Error('Request timeout. Please check your connection and try again.')
+      ;(timeoutError as any).isTimeout = true
+      throw timeoutError
+    }
+    
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
+      const networkError = new Error('Network error. Please check your connection.')
+      ;(networkError as any).isNetworkError = true
+      ;(networkError as any).originalError = error
+      throw networkError
+    }
+    
     throw error
   }
 }
@@ -191,7 +227,21 @@ export async function trackOrder(orderId: string): Promise<any> {
 }
 
 export async function cancelOrder(orderId: string): Promise<any> {
-  return httpRequest<any>('POST', '/orders/cancel', { orderId })
+  return httpRequest<any>('DELETE', `/orders/${orderId}/cancel`)
+}
+
+export async function updateOrderStatus(orderId: string, status: string, processedBy?: string, estimatedMinutes?: number): Promise<any> {
+  return httpRequest<any>('POST', `/orders/${orderId}/update`, {
+    status,
+    processedBy,
+    estimatedMinutes
+  })
+}
+
+export async function editOrder(orderId: string, items: OrderItem[]): Promise<any> {
+  return httpRequest<any>('PUT', `/orders/${orderId}`, {
+    items
+  })
 }
 
 export async function calculateOrderPrices(

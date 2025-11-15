@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import PageContent from '@/components/client/PageContent'
+import { getProducts } from '@/lib/api'
 
 export const metadata = {
   title: 'Home - Soft Cream',
@@ -7,48 +9,33 @@ export const metadata = {
 
 export const revalidate = 60 // ISR: revalidate every 60 seconds
 
-// Mock products for now - will be replaced with API call
-const mockProducts = [
-  {
-    id: '1',
-    name: 'سوفت كريم الفراولة',
-    price: 25,
-    category: 'فواكه',
-    description: 'طعم الفراولة الطازجة',
-    calories: 150,
-    protein: 3,
-    carbs: 20,
-    sugar: 15,
-    fat: 5,
-  },
-  {
-    id: '2',
-    name: 'سوفت كريم الشوكولاتة',
-    price: 25,
-    category: 'شوكولاتة',
-    description: 'شوكولاتة بلجيكية غنية',
-    calories: 180,
-    protein: 4,
-    carbs: 22,
-    sugar: 18,
-    fat: 8,
-  },
-  {
-    id: '3',
-    name: 'سوفت كريم الفانيليا',
-    price: 20,
-    category: 'كلاسيكي',
-    description: 'الفانيليا الكلاسيكية',
-    calories: 140,
-    protein: 2,
-    carbs: 18,
-    sugar: 14,
-    fat: 4,
-  },
-]
+// ✅ Separate data fetching component for better error handling and loading states
+async function ProductsData() {
+  try {
+    // Add timeout to prevent hanging requests
+    const products = await Promise.race([
+      getProducts(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      )
+    ]) as any[]
 
-export default function HomePage() {
+    return <PageContent initialProducts={products || []} />
+  } catch (error) {
+    console.error('Failed to fetch products:', error)
+    // Return empty state instead of crashing
+    return <PageContent initialProducts={[]} />
+  }
+}
+
+export default async function HomePage() {
   return (
-    <PageContent initialProducts={mockProducts} />
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    }>
+      <ProductsData />
+    </Suspense>
   )
 }

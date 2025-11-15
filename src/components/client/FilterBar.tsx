@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Search, Filter, X, Brain, Activity, Zap, IceCream, Apple, Star, Crown, Heart, Grid } from 'lucide-react'
+import { useProductsData } from '@/providers/ProductsProvider'
 
 const CATEGORIES = [
   { value: null, label: 'الكل', icon: Grid, color: '#FF6B9D' },
@@ -42,6 +43,7 @@ interface FilterBarProps {
  * - Practical & clean design
  */
 export default function FilterBar({ onFiltersChange }: FilterBarProps) {
+  const { applyFilters } = useProductsData()
   const [searchQuery, setSearchQuery] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [localFilters, setLocalFilters] = useState({
@@ -70,15 +72,18 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
     const finalFilters = {
       category: filters.category,
       energyType: filters.energyType,
-      minCalories: calorieRange.min,
-      maxCalories: calorieRange.max,
+      // تحويل undefined إلى null لتتوافق مع نوع ProductsFilters
+      minCalories: calorieRange.min ?? null,
+      maxCalories: calorieRange.max ?? null,
       searchQuery: filters.searchQuery || searchQuery
     }
     
+    applyFilters(finalFilters)
+
     if (onFiltersChange) {
       onFiltersChange(finalFilters)
     }
-  }, [onFiltersChange, searchQuery])
+  }, [onFiltersChange, searchQuery, applyFilters])
 
   // Handle search with debounce
   const handleSearch = (query: string) => {

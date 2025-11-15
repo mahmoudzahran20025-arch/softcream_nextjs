@@ -3,6 +3,7 @@ import Hero from '@/components/server/Hero'
 import ProductsGrid from '@/components/client/ProductsGrid'
 import Footer from '@/components/server/Footer'
 import PageContentClient from '@/components/client/PageContentClient'
+import ProductsProvider from '@/providers/ProductsProvider'
 
 interface Product {
   id: string
@@ -32,8 +33,8 @@ interface PageContentProps {
 
 export default function PageContent({ initialProducts }: PageContentProps) {
   return (
-    <>
-      <PageContentClient initialProducts={initialProducts} />
+    <ProductsProvider initialProducts={initialProducts}>
+      <PageContentClient />
       <main className="min-h-screen bg-white dark:bg-slate-950">
         {/* Hero Section */}
         <Suspense fallback={<div className="h-96 bg-gradient-to-b from-purple-100 to-white dark:from-purple-900 dark:to-slate-950 animate-pulse" />}>
@@ -48,7 +49,7 @@ export default function PageContent({ initialProducts }: PageContentProps) {
             ))}
           </div>
         </div>}>
-          <ProductsGrid products={initialProducts} />
+          <ProductsGrid />
         </Suspense>
 
         {/* Footer */}
@@ -56,6 +57,6 @@ export default function PageContent({ initialProducts }: PageContentProps) {
           <Footer />
         </Suspense>
       </main>
-    </>
+    </ProductsProvider>
   )
 }

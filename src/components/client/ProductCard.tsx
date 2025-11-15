@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useCart } from '@/providers/CartProvider'
+import { useProductsData } from '@/providers/ProductsProvider'
 import { ShoppingCart, Plus, Minus } from 'lucide-react'
 
 interface Product {
@@ -36,7 +37,14 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
 
-  const handleAddToCart = async () => {
+  const { openProduct } = useProductsData()
+
+  const handleCardClick = () => {
+    openProduct(product)
+  }
+
+  const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
     setIsAdding(true)
     try {
       if (onAddToCart) {
@@ -51,7 +59,10 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
   }
 
   return (
-    <div className="card p-3 hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+    <div
+      className="card p-3 hover:shadow-xl transition-all duration-300 h-full flex flex-col"
+      onClick={handleCardClick}
+    >
       {/* Image Container */}
       <div className="relative w-full aspect-square bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg mb-3 overflow-hidden group">
         {product.image ? (
@@ -109,7 +120,10 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         {/* Quantity Controls */}
         <div className="flex items-center gap-1 mb-2">
           <button
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            onClick={(e) => {
+              e.stopPropagation()
+              setQuantity(Math.max(1, quantity - 1))
+            }}
             className="flex-1 p-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
             disabled={quantity <= 1}
             aria-label="تقليل الكمية"
@@ -120,7 +134,10 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
             {quantity}
           </span>
           <button
-            onClick={() => setQuantity(quantity + 1)}
+            onClick={(e) => {
+              e.stopPropagation()
+              setQuantity(quantity + 1)
+            }}
             className="flex-1 p-1 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 rounded transition-colors"
             aria-label="زيادة الكمية"
           >

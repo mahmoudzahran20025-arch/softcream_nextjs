@@ -11,14 +11,24 @@ import { storage } from '@/lib/storage.client'
  * ✅ Uses storage.client.ts for persistence
  */
 
-// Import translation data
-import { translationsData } from '@/data/translations-data'
-import { translationsDataAdditions } from '@/data/translations-data-additions'
+// ✅ Lazy load translation data to reduce initial bundle size
+// Translations are loaded on-demand when first accessed
+let translationsCache: any = null
 
-// Merge translation data
-const translations = {
-  ar: { ...translationsData.ar, ...translationsDataAdditions.ar },
-  en: { ...translationsData.en, ...translationsDataAdditions.en }
+async function loadTranslations() {
+  if (translationsCache) return translationsCache
+  
+  const [translationsData, translationsDataAdditions] = await Promise.all([
+    import('@/data/translations-data'),
+    import('@/data/translations-data-additions')
+  ])
+  
+  translationsCache = {
+    ar: { ...translationsData.translationsData.ar, ...translationsDataAdditions.translationsDataAdditions.ar },
+    en: { ...translationsData.translationsData.en, ...translationsDataAdditions.translationsDataAdditions.en }
+  }
+  
+  return translationsCache
 }
 
 interface Toast {
@@ -74,21 +84,21 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   // State
   // ========================================
   
-  // Language State
-  const [language, setLanguageState] = useState<'ar' | 'en'>(() => {
-    if (typeof window !== 'undefined') {
-      return (storage.getLang() as 'ar' | 'en') || 'ar'
-    }
-    return 'ar'
-  })
+  // Language State - Default to 'en' during SSR/Hydration
+  const [language, setLanguageState] = useState<'ar' | 'en'>('en')
+  // تم الاحتفاظ بهذه الحالة للاستخدام المستقبلي - قد تُستخدم للتحقق من حالة hydration
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isLanguageHydrated, setIsLanguageHydrated] = useState(false)
 
-  // Theme State
-  const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
-    if (typeof window !== 'undefined') {
-      return (storage.getTheme() as 'light' | 'dark') || 'light'
-    }
-    return 'light'
-  })
+  // Theme State - Default to 'light' during SSR/Hydration
+  const [theme, setThemeState] = useState<'light' | 'dark'>('light')
+  // تم الاحتفاظ بهذه الحالة للاستخدام المستقبلي - قد تُستخدم للتحقق من حالة hydration
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isThemeHydrated, setIsThemeHydrated] = useState(false)
+  
+  // استخدام void لإخماد تحذير TypeScript
+  void isLanguageHydrated
+  void isThemeHydrated
 
   // Toast State
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -201,10 +211,22 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   }, [])
 
   // ========================================
-  // Translation Function
+  // Translation Function - with lazy loading
   // ========================================
   
+  const [translations, setTranslations] = useState<any>(null)
+  
+  // Load translations on mount
+  useEffect(() => {
+    loadTranslations().then(setTranslations)
+  }, [])
+  
   const t = useCallback((key: string, params: Record<string, any> = {}) => {
+    // Fallback to key if translations not loaded yet
+    if (!translations) {
+      return key
+    }
+    
     const translation = (translations[language] as any)?.[key]
     
     if (!translation) {
@@ -219,11 +241,33 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     })
     
     return result
-  }, [language])
+  }, [language, translations])
 
   // ========================================
   // Effects
   // ========================================
+  
+  // Hydrate language from localStorage after client-side mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedLang = (storage.getLang() as 'ar' | 'en') || 'en'
+      if (savedLang !== language) {
+        setLanguageState(savedLang)
+      }
+      setIsLanguageHydrated(true)
+    }
+  }, [])
+  
+  // Hydrate theme from localStorage after client-side mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = (storage.getTheme() as 'light' | 'dark') || 'light'
+      if (savedTheme !== theme) {
+        setThemeState(savedTheme)
+      }
+      setIsThemeHydrated(true)
+    }
+  }, [])
   
   // Apply language on mount and change
   useEffect(() => {

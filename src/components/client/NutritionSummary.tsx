@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Plus, Minus, Trash2, Flame, Droplets, Wheat, Activity, ShoppingCart } from 'lucide-react'
 import { useCart } from '@/providers/CartProvider'
+import { useProductsData } from '@/providers/ProductsProvider'
 
 interface NutritionData {
   totalCalories: number
@@ -20,6 +21,7 @@ interface NutritionSummaryProps {
 
 export default function NutritionSummary({ isOpen, onClose, onCheckout }: NutritionSummaryProps) {
   const { cart, updateCartQuantity, removeFromCart } = useCart()
+  const { productsMap } = useProductsData()
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
 
   // Calculate nutrition summary
@@ -31,31 +33,43 @@ export default function NutritionSummary({ isOpen, onClose, onCheckout }: Nutrit
 
     const calculateNutrition = () => {
       const totals = cart.reduce(
-        (acc, item: any) => ({
-          totalCalories: acc.totalCalories + ((item.calories || 0) * item.quantity),
-          totalProtein: acc.totalProtein + ((item.protein || 0) * item.quantity),
-          totalCarbs: acc.totalCarbs + ((item.carbs || 0) * item.quantity),
-          totalFat: acc.totalFat + ((item.fat || 0) * item.quantity),
-          totalSugar: acc.totalSugar + ((item.sugar || 0) * item.quantity),
-        }),
+        (acc, item: any) => {
+          const product = productsMap[item.productId]
+          const calories = product?.calories || 0
+          const protein = product?.protein || 0
+          const carbs = product?.carbs || 0
+          const fat = product?.fat || 0
+          const sugar = product?.sugar || 0
+
+          return {
+            totalCalories: acc.totalCalories + calories * item.quantity,
+            totalProtein: acc.totalProtein + protein * item.quantity,
+            totalCarbs: acc.totalCarbs + carbs * item.quantity,
+            totalFat: acc.totalFat + fat * item.quantity,
+            totalSugar: acc.totalSugar + sugar * item.quantity,
+          }
+        },
         {
           totalCalories: 0,
           totalProtein: 0,
           totalCarbs: 0,
           totalFat: 0,
           totalSugar: 0,
-        }
+        },
       )
 
       setNutritionData(totals)
     }
 
     calculateNutrition()
-  }, [cart])
+  }, [cart, productsMap])
 
   if (!isOpen) return null
 
-  const subtotal = cart.reduce((sum, item: any) => sum + item.price * item.quantity, 0)
+  const subtotal = cart.reduce((sum, item: any) => {
+    const product = productsMap[item.productId]
+    return sum + ((product?.price || 0) * item.quantity)
+  }, 0)
   const totalItems = cart.reduce((sum, item: any) => sum + item.quantity, 0)
 
   const nutritionItems = [
@@ -115,47 +129,52 @@ export default function NutritionSummary({ isOpen, onClose, onCheckout }: Nutrit
           <div className="space-y-3">
             <h3 className="font-bold text-slate-900 dark:text-white">المنتجات ({totalItems})</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {cart.map((item: any) => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900 dark:text-white">{item.name}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {item.price} ج.م × {item.quantity}
-                    </p>
+              {cart.map((item: any) => {
+                const product = productsMap[item.productId]
+                if (!product) return null
+
+                return (
+                  <div key={item.productId} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900 dark:text-white">{product.name}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        {product.price} ج.م × {item.quantity}
+                      </p>
+                    </div>
+
+                    {/* Quantity Controls */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
+                        className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 hover:bg-red-500 text-slate-700 dark:text-white hover:text-white flex items-center justify-center transition-colors"
+                        aria-label="تقليل"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+
+                      <span className="w-6 text-center font-bold text-slate-900 dark:text-white">
+                        {item.quantity}
+                      </span>
+
+                      <button
+                        onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
+                        className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 hover:bg-green-500 text-slate-700 dark:text-white hover:text-white flex items-center justify-center transition-colors"
+                        aria-label="إضافة"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => removeFromCart(item.productId)}
+                        className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 hover:bg-red-500 text-slate-700 dark:text-white hover:text-white flex items-center justify-center transition-colors"
+                        aria-label="حذف"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Quantity Controls */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
-                      className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 hover:bg-red-500 text-slate-700 dark:text-white hover:text-white flex items-center justify-center transition-colors"
-                      aria-label="تقليل"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-
-                    <span className="w-6 text-center font-bold text-slate-900 dark:text-white">
-                      {item.quantity}
-                    </span>
-
-                    <button
-                      onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
-                      className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 hover:bg-green-500 text-slate-700 dark:text-white hover:text-white flex items-center justify-center transition-colors"
-                      aria-label="إضافة"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      onClick={() => removeFromCart(item.productId)}
-                      className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 hover:bg-red-500 text-slate-700 dark:text-white hover:text-white flex items-center justify-center transition-colors"
-                      aria-label="حذف"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 

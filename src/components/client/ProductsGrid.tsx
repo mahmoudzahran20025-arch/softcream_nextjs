@@ -1,13 +1,26 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { FreeMode, Pagination } from 'swiper/modules'
-import ProductCard from '@/components/client/ProductCard'
+import dynamic from 'next/dynamic'
+// تم إزالة ProductCard لأنه تم نقله إلى ProductsSwiperWrapper
+// import ProductCard from '@/components/client/ProductCard'
+import { useProductsData } from '@/providers/ProductsProvider'
 
-import 'swiper/css'
-import 'swiper/css/free-mode'
-import 'swiper/css/pagination'
+// ✅ Lazy load Swiper (heavy library ~50KB) - only load when products are displayed
+// Create a wrapper component that handles Swiper loading
+const ProductsSwiper = dynamic(
+  () => import('./ProductsSwiperWrapper'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-64 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+        ))}
+      </div>
+    ),
+  }
+)
 
 interface Product {
   id: string
@@ -31,11 +44,10 @@ interface Product {
   badge?: string
 }
 
-interface ProductsGridProps {
-  products: Product[]
-}
+export default function ProductsGrid() {
+  const { filteredProducts } = useProductsData()
+  const products = filteredProducts
 
-export default function ProductsGrid({ products }: ProductsGridProps) {
   // Group products by category (memoized for performance)
   const groupedProducts = useMemo(() => {
     if (!products || products.length === 0) return []
@@ -82,33 +94,8 @@ export default function ProductsGrid({ products }: ProductsGridProps) {
             </span>
           </div>
 
-          {/* Products Swiper */}
-          <Swiper
-            modules={[FreeMode, Pagination]}
-            spaceBetween={16}
-            slidesPerView="auto"
-            freeMode={{
-              enabled: true,
-              sticky: false,
-              momentum: true,
-              momentumRatio: 0.5
-            }}
-            pagination={{
-              clickable: true,
-              dynamicBullets: true
-            }}
-            dir="rtl"
-            className="!pb-12"
-          >
-            {categoryProducts.map(product => (
-              <SwiperSlide
-                key={product.id}
-                className="!w-[160px] md:!w-[200px]"
-              >
-                <ProductCard product={product} />
-              </SwiperSlide>
-            ))}
-          </Swiper>
+          {/* Products Swiper - Lazy loaded */}
+          <ProductsSwiper products={categoryProducts} category={category} />
         </div>
       ))}
     </section>

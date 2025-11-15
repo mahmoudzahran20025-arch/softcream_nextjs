@@ -12,9 +12,11 @@ import {
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
+  onOpenCart?: () => void
+  onOpenMyOrders?: () => void
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }: SidebarProps) {
   const { getCartCount } = useCart()
   const { language, toggleLanguage, theme, toggleTheme, t } = useTheme()
   
@@ -59,34 +61,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   }
 
   const handleCartClick = () => {
-    onClose()
-    setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('open-react-cart'))
-      }
-    }, 300)
+    if (onOpenCart) {
+      onOpenCart()
+    }
   }
 
   const handleOrdersClick = () => {
-    onClose()
-    
-    setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        const allOrders = storage.getOrders()
-        
-        if (allOrders.length === 0) {
-          const toastEvent = new CustomEvent('show-toast', {
-            detail: {
-              message: language === 'ar' ? 'لا توجد طلبات سابقة' : 'No previous orders',
-              type: 'info'
-            }
-          })
-          window.dispatchEvent(toastEvent)
-        } else {
-          window.dispatchEvent(new Event('open-my-orders-modal'))
-        }
-      }
-    }, 300)
+    if (onOpenMyOrders) {
+      onOpenMyOrders()
+    }
   }
 
   // Lock scroll when sidebar is open

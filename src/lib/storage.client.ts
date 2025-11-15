@@ -326,6 +326,7 @@ export class StorageManager {
       if (success) {
         console.log('✅ Order saved successfully:', orderData.id)
         this.triggerOrdersBadgeUpdate()
+        this.triggerOrdersUpdate(orderData.id, existingIndex !== -1 ? 'updated' : 'added')
       }
       
       return success
@@ -360,6 +361,7 @@ export class StorageManager {
       if (success) {
         console.log('✅ Order status updated:', orderId, '→', newStatus)
         this.triggerOrdersBadgeUpdate()
+        this.triggerOrdersUpdate(orderId, 'updated')
       }
       
       return success
@@ -390,11 +392,45 @@ export class StorageManager {
       if (success) {
         console.log('✅ Order updated:', orderId)
         this.triggerOrdersBadgeUpdate()
+        this.triggerOrdersUpdate(orderId, 'updated')
       }
       
       return success
     } catch (e) {
       console.error('❌ Failed to update order:', e)
+      return false
+    }
+  }
+
+  updateOrderItems(orderId: string, items: any[], totals: any): boolean {
+    try {
+      const orders = this.getOrders()
+      const orderIndex = orders.findIndex((o: any) => o.id === orderId)
+      
+      if (orderIndex === -1) {
+        console.warn('⚠️ Order not found:', orderId)
+        return false
+      }
+      
+      orders[orderIndex] = {
+        ...orders[orderIndex],
+        items,
+        totals,
+        total: totals.total,
+        lastUpdated: new Date().toISOString()
+      }
+      
+      const success = this.local.set('userOrders', orders)
+      
+      if (success) {
+        console.log('✅ Order items updated:', orderId)
+        this.triggerOrdersBadgeUpdate()
+        this.triggerOrdersUpdate(orderId, 'edited')
+      }
+      
+      return success
+    } catch (e) {
+      console.error('❌ Failed to update order items:', e)
       return false
     }
   }
@@ -414,6 +450,7 @@ export class StorageManager {
       if (success) {
         console.log('🗑️ Order deleted:', orderId)
         this.triggerOrdersBadgeUpdate()
+        this.triggerOrdersUpdate(orderId, 'deleted')
       }
       
       return success
@@ -445,11 +482,63 @@ export class StorageManager {
     return orders.filter((o: any) => statusArray.includes(o.status))
   }
   
+  getActiveOrders(): any[] {
+    // Support both English and Arabic statuses
+    const activeStatuses = [
+      // English
+      'pending', 'confirmed', 'preparing', 'out_for_delivery', 'ready',
+      // Arabic equivalents
+      'جديد', 'مؤكد', 'قيد التحضير', 'في الطريق', 'جاهز',
+      // Common variations
+      'new', 'active', 'processing',
+      // Statuses from Telegram callbacks (with operator name)
+      'confirmed (', 'مقبول'
+    ]
+    
+    const allOrders = this.getOrders()
+    
+    // Debug: Log all orders with their statuses
+    console.log('🔍 All orders statuses:', allOrders.map((o: any) => ({ id: o.id, status: o.status })))
+    
+    // Filter active orders (support both English and Arabic)
+    const activeOrders = allOrders.filter((o: any) => {
+      // If no status, consider it as pending (for backward compatibility)
+      if (!o.status) {
+        console.warn('⚠️ Order without status found:', o.id, '- treating as pending')
+        return true // Include orders without status as active
+      }
+      
+      const orderStatus = o.status.toString().trim()
+      
+      // Check if status matches any active status (case-insensitive for English)
+      return activeStatuses.some(status => {
+        // For English statuses, compare case-insensitive
+        if (/^[a-zA-Z]+$/.test(status)) {
+          return orderStatus.toLowerCase() === status.toLowerCase() || 
+                 orderStatus.toLowerCase().startsWith(status.toLowerCase())
+        }
+        // For Arabic statuses, compare as-is or starts with
+        return orderStatus === status || orderStatus.startsWith(status)
+      })
+    })
+    
+    console.log('📊 Active orders count:', activeOrders.length, 'out of', allOrders.length)
+    console.log('📊 Active statuses filter:', activeStatuses)
+    
+    // Debug: Log which orders are active
+    if (activeOrders.length > 0) {
+      console.log('✅ Active orders:', activeOrders.map((o: any) => ({ id: o.id, status: o.status })))
+    } else {
+      console.warn('⚠️ No active orders found!')
+      console.warn('⚠️ Found statuses:', [...new Set(allOrders.map((o: any) => o.status))])
+      console.warn('⚠️ Expected one of:', activeStatuses)
+    }
+    
+    return activeOrders
+  }
+  
   getActiveOrdersCount(): number {
-    const activeStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'ready']
-    const activeOrders = this.getOrdersByStatus(activeStatuses)
-    console.log('📊 Active orders count:', activeOrders.length)
-    return activeOrders.length
+    return this.getActiveOrders().length
   }
   
   getCompletedOrders(): any[] {
@@ -460,13 +549,53 @@ export class StorageManager {
     return this.getOrdersByStatus('cancelled')
   }
   
+  canCancelOrder(orderId: string): boolean {
+    try {
+      const order = this.getOrder(orderId)
+      if (!order || !order.canCancelUntil) {
+        console.warn('⚠️ Order not found or no cancel deadline:', orderId)
+        return false
+      }
+      
+      const deadline = new Date(order.canCancelUntil)
+      const now = new Date()
+      
+      const canCancel = now < deadline && order.status === 'pending'
+      console.log('🔍 Can cancel order:', orderId, '→', canCancel)
+      
+      return canCancel
+    } catch (e) {
+      console.error('❌ Failed to check cancel eligibility:', e)
+      return false
+    }
+  }
+  
   private triggerOrdersBadgeUpdate(): void {
     if (typeof window !== 'undefined') {
+      const count = this.getActiveOrdersCount()
       const event = new CustomEvent('ordersUpdated', {
-        detail: { count: this.getActiveOrdersCount() }
+        detail: { 
+          count: count,
+          timestamp: new Date().toISOString()
+        }
       })
       window.dispatchEvent(event)
-      console.log('📢 Orders badge update triggered')
+      console.log('📢 Orders badge update triggered - count:', count)
+    }
+  }
+  
+  triggerOrdersUpdate(orderId: string, action: 'added' | 'updated' | 'cancelled' | 'deleted' | 'edited'): void {
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('ordersUpdated', {
+        detail: { 
+          orderId,
+          action,
+          count: this.getActiveOrdersCount(),
+          timestamp: new Date().toISOString()
+        }
+      })
+      window.dispatchEvent(event)
+      console.log('📢 Orders update triggered:', action, orderId)
     }
   }
   

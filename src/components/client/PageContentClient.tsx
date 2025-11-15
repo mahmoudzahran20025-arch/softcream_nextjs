@@ -1,57 +1,127 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
+import { useProductsData } from '@/providers/ProductsProvider'
 import Header from '@/components/client/Header'
-import ProductModal from '@/components/client/ProductModal'
-import CartModal from '@/components/client/CartModal'
 import FilterBar from '@/components/client/FilterBar'
-import MarqueeSwiper from '@/components/client/MarqueeSwiper'
 import TrustBanner from '@/components/client/TrustBanner'
-import CheckoutModal from '@/components/client/CheckoutModal'
-import TrackingModal from '@/components/client/TrackingModal'
-import Sidebar from '@/components/client/Sidebar'
-import NutritionSummary from '@/components/client/NutritionSummary'
+import ToastContainer from '@/components/client/ToastContainer'
 
-interface Product {
-  id: string
-  name: string
-  nameEn?: string
-  price: number
-  image?: string
-  category?: string
-  description?: string
-  tags?: string
-  ingredients?: string
-  allergens?: string
-  calories?: number
-  protein?: number
-  carbs?: number
-  sugar?: number
-  fat?: number
-  fiber?: number
-  energy_type?: string
-  energy_score?: number
-  badge?: string
-}
+// ✅ Lazy load heavy components - only load when needed
+// Modals are loaded on-demand to reduce initial bundle size
+const ProductModal = dynamic(() => import('@/components/client/ProductModal'), {
+  ssr: false,
+  loading: () => null, // Don't show loading state for modals
+})
 
-interface PageContentClientProps {
-  initialProducts: Product[]
-}
+const CartModal = dynamic(() => import('@/components/client/CartModal'), {
+  ssr: false,
+  loading: () => null,
+})
 
-export default function PageContentClient({ initialProducts }: PageContentClientProps) {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [showProductModal, setShowProductModal] = useState(false)
+const CheckoutModal = dynamic(() => import('@/components/client/CheckoutModal'), {
+  ssr: false,
+  loading: () => null,
+})
+
+const TrackingModal = dynamic(() => import('@/components/client/TrackingModal'), {
+  ssr: false,
+  loading: () => null,
+})
+
+const NutritionSummary = dynamic(() => import('@/components/client/NutritionSummary'), {
+  ssr: false,
+  loading: () => null,
+})
+
+const Sidebar = dynamic(() => import('@/components/client/Sidebar'), {
+  ssr: false,
+  loading: () => null,
+})
+
+const MyOrdersModal = dynamic(() => import('@/components/client/MyOrdersModal'), {
+  ssr: false,
+  loading: () => null,
+})
+
+const EditOrderModal = dynamic(() => import('@/components/client/EditOrderModal'), {
+  ssr: false,
+  loading: () => null,
+})
+
+const OrdersBadge = dynamic(() => import('@/components/client/OrdersBadge'), {
+  ssr: false,
+  loading: () => null,
+})
+
+const OrderSuccessModal = dynamic(() => import('@/components/client/OrderSuccessModal'), {
+  ssr: false,
+  loading: () => null,
+})
+
+// ✅ Lazy load Swiper component (heavy library ~50KB)
+const MarqueeSwiper = dynamic(() => import('@/components/client/MarqueeSwiper'), {
+  ssr: false,
+  loading: () => <div className="h-16 bg-slate-100 dark:bg-slate-800 animate-pulse" />,
+})
+
+export default function PageContentClient() {
+  const { products, selectedProduct, closeProduct } = useProductsData()
   const [showCartModal, setShowCartModal] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
   const [showTracking, setShowTracking] = useState(false)
   const [showNutrition, setShowNutrition] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [cartTotal] = useState(0)
-  const [selectedOrder] = useState<any>(null)
+  const [showMyOrders, setShowMyOrders] = useState(false)
+  const [showEditOrder, setShowEditOrder] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  const [orderToEdit, setOrderToEdit] = useState<any>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successOrder, setSuccessOrder] = useState<any>(null)
+
+  // Listen for open-my-orders-modal event
+  useEffect(() => {
+    const handleOpenMyOrders = () => {
+      setShowMyOrders(true)
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('open-my-orders-modal', handleOpenMyOrders)
+      return () => {
+        window.removeEventListener('open-my-orders-modal', handleOpenMyOrders)
+      }
+    }
+  }, [])
+
+  // ✅ Listen for order status updates from backend (via polling or webhook)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handleOrderStatusUpdate = async (event: any) => {
+      const { orderId, status } = event.detail || {}
+      if (!orderId || !status) return
+
+      console.log('🔄 Order status update received:', { orderId, status })
+
+      // Update local storage
+      const { storage } = await import('@/lib/storage.client')
+      storage.updateOrderStatus(orderId, status)
+
+      // Trigger ordersUpdated event to update UI
+      window.dispatchEvent(new CustomEvent('ordersUpdated', {
+        detail: { orderId, status, source: 'backend' }
+      }))
+    }
+
+    window.addEventListener('orderStatusUpdate', handleOrderStatusUpdate as EventListener)
+    return () => {
+      window.removeEventListener('orderStatusUpdate', handleOrderStatusUpdate as EventListener)
+    }
+  }, [])
 
   const handleCloseProductModal = () => {
-    setShowProductModal(false)
-    setSelectedProduct(null)
+    closeProduct()
   }
 
   const handleCheckout = () => {
@@ -61,7 +131,11 @@ export default function PageContentClient({ initialProducts }: PageContentClient
 
   return (
     <>
-      <Header />
+      <Header
+        onOpenSidebar={() => setSidebarOpen(true)}
+        isSidebarOpen={sidebarOpen}
+        onOpenCart={() => setShowCartModal(true)}
+      />
 
       {/* Marquee Swiper */}
       <MarqueeSwiper />
@@ -72,55 +146,151 @@ export default function PageContentClient({ initialProducts }: PageContentClient
       {/* Filter Bar */}
       <FilterBar />
 
-      {/* Product Modal */}
-      <ProductModal
-        product={selectedProduct}
-        isOpen={showProductModal}
-        onClose={handleCloseProductModal}
-        allProducts={initialProducts}
-      />
+      {/* Product Modal - Lazy loaded */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          isOpen={!!selectedProduct}
+          onClose={handleCloseProductModal}
+          allProducts={products}
+        />
+      )}
 
-      {/* Cart Modal */}
-      <CartModal
-        isOpen={showCartModal}
-        onClose={() => setShowCartModal(false)}
-        onCheckout={handleCheckout}
-        allProducts={initialProducts}
-      />
+      {/* Cart Modal - Lazy loaded */}
+      {showCartModal && (
+        <CartModal
+          isOpen={showCartModal}
+          onClose={() => setShowCartModal(false)}
+          onCheckout={handleCheckout}
+          allProducts={products}
+        />
+      )}
 
-      {/* Checkout Modal */}
-      <CheckoutModal
-        isOpen={showCheckout}
-        onClose={() => setShowCheckout(false)}
-        onSuccess={(orderId: string) => {
-          console.log('Order placed:', orderId)
-          setShowCheckout(false)
-        }}
-        total={cartTotal}
-      />
+      {/* Checkout Modal - Lazy loaded */}
+      {showCheckout && (
+        <CheckoutModal
+          isOpen={showCheckout}
+          onClose={() => setShowCheckout(false)}
+          onCheckoutSuccess={(orderId: string, orderData?: any) => {
+            console.log('🎉 Order placed successfully:', orderId, orderData)
+            setShowCheckout(false)
+            // Show success modal with order data
+            if (orderData) {
+              console.log('✅ Setting success order data:', orderData)
+              setSuccessOrder(orderData)
+              setShowSuccessModal(true)
+            }
+          }}
+          onOpenTracking={(order) => {
+            setSelectedOrder(order)
+            setShowTracking(true)
+          }}
+        />
+      )}
 
-      {/* Tracking Modal */}
-      <TrackingModal
-        isOpen={showTracking}
-        onClose={() => setShowTracking(false)}
-        order={selectedOrder}
-      />
+      {/* Order Success Modal - Managed independently in PageContentClient */}
+      {successOrder && (
+        <OrderSuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => {
+            console.log('🚪 Closing success modal')
+            setShowSuccessModal(false)
+            setSuccessOrder(null)
+          }}
+          order={successOrder}
+          onTrackOrder={() => {
+            console.log('📍 Opening tracking modal from success modal')
+            setShowSuccessModal(false)
+            setSelectedOrder(successOrder)
+            setSuccessOrder(null)
+            setShowTracking(true)
+          }}
+          onContactWhatsApp={() => {
+            console.log('📱 WhatsApp contact from success modal')
+          }}
+        />
+      )}
 
-      {/* Nutrition Summary */}
-      <NutritionSummary
-        isOpen={showNutrition}
-        onClose={() => setShowNutrition(false)}
-        onCheckout={() => {
-          setShowNutrition(false)
-          setShowCheckout(true)
-        }}
-      />
+      {/* Tracking Modal - Lazy loaded */}
+      {showTracking && (
+        <TrackingModal
+          isOpen={showTracking}
+          onClose={() => setShowTracking(false)}
+          order={selectedOrder}
+          onEditOrder={(order) => {
+            setOrderToEdit(order)
+            setShowEditOrder(true)
+          }}
+        />
+      )}
 
-      {/* Sidebar */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      {/* Nutrition Summary - Lazy loaded */}
+      {showNutrition && (
+        <NutritionSummary
+          isOpen={showNutrition}
+          onClose={() => setShowNutrition(false)}
+          onCheckout={() => {
+            setShowNutrition(false)
+            setShowCheckout(true)
+          }}
+        />
+      )}
+
+      {/* Sidebar - Lazy loaded */}
+      {sidebarOpen && (
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onOpenCart={() => {
+            setSidebarOpen(false)
+            setShowCartModal(true)
+          }}
+          onOpenMyOrders={() => {
+            setSidebarOpen(false)
+            setShowMyOrders(true)
+          }}
+        />
+      )}
+
+      {/* My Orders Modal - Lazy loaded */}
+      {showMyOrders && (
+        <MyOrdersModal
+          isOpen={showMyOrders}
+          onClose={() => setShowMyOrders(false)}
+          onEditOrder={(order) => {
+            setOrderToEdit(order)
+            setShowEditOrder(true)
+          }}
+        />
+      )}
+
+      {/* Edit Order Modal - Lazy loaded */}
+      {showEditOrder && orderToEdit && (
+        <EditOrderModal
+          isOpen={showEditOrder}
+          onClose={() => {
+            setShowEditOrder(false)
+            setOrderToEdit(null)
+          }}
+          order={orderToEdit}
+          onSuccess={() => {
+            setShowEditOrder(false)
+            setOrderToEdit(null)
+            // Reload orders in MyOrdersModal
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('ordersUpdated', {
+                detail: { orderId: orderToEdit?.id, action: 'edited' }
+              }))
+            }
+          }}
+        />
+      )}
+
+      {/* Toast Container */}
+      <ToastContainer />
+
+      {/* Orders Badge - Floating Button */}
+      <OrdersBadge onClick={() => setShowMyOrders(true)} />
     </>
   )
 }
