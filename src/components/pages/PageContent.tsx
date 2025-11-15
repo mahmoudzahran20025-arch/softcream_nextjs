@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
-import ProductsGrid from '@/components/client/ProductsGrid'
+import ProductsGrid from '@/components/pages/ProductsGrid'
 import Footer from '@/components/server/Footer'
-import PageContentClient from '@/components/client/PageContentClient'
+import PageContentClient from '@/components/pages/PageContentClient'
 import ProductsProvider from '@/providers/ProductsProvider'
 import StorytellingHero from '@/components/StorytellingHero'
 

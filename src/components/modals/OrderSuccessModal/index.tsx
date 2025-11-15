@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { X, CheckCircle, Copy, MessageCircle, MapPin, Clock, Package } from 'lucide-react'
-import TrackingModal from './TrackingModal'
+import TrackingModal from '@/components/modals/TrackingModal'
 
 interface OrderItem {
   productId: string

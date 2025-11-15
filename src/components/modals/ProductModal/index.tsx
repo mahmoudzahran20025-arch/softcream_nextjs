@@ -5,7 +5,7 @@ import { X, Plus, Minus, ShoppingCart, Flame, Droplets, Wheat, Candy } from 'luc
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode } from 'swiper/modules'
 import { useCart } from '@/providers/CartProvider'
-import ProductCard from './ProductCard'
+import ProductCard from '@/components/ui/ProductCard'
 
 import 'swiper/css'
 import 'swiper/css/free-mode'

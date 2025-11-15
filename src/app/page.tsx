@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import PageContent from '@/components/client/PageContent'
+import PageContent from '@/components/pages/PageContent'
 import { getProducts } from '@/lib/api'
 
 export const metadata = {

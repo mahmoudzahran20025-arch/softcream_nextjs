@@ -3,65 +3,65 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { useProductsData } from '@/providers/ProductsProvider'
-import Header from '@/components/client/Header'
-import FilterBar from '@/components/client/FilterBar'
-import TrustBanner from '@/components/client/TrustBanner'
-import ToastContainer from '@/components/client/ToastContainer'
+import Header from '@/components/ui/Header'
+import FilterBar from '@/components/ui/FilterBar'
+import TrustBanner from '@/components/ui/TrustBanner'
+import ToastContainer from '@/components/ui/ToastContainer'
 
 // ✅ Lazy load heavy components - only load when needed
 // Modals are loaded on-demand to reduce initial bundle size
-const ProductModal = dynamic(() => import('@/components/client/ProductModal'), {
+const ProductModal = dynamic(() => import('@/components/modals/ProductModal'), {
   ssr: false,
   loading: () => null, // Don't show loading state for modals
 })
 
-const CartModal = dynamic(() => import('@/components/client/CartModal'), {
+const CartModal = dynamic(() => import('@/components/modals/CartModal'), {
   ssr: false,
   loading: () => null,
 })
 
-const CheckoutModal = dynamic(() => import('@/components/client/CheckoutModal'), {
+const CheckoutModal = dynamic(() => import('@/components/modals/CheckoutModal'), {
   ssr: false,
   loading: () => null,
 })
 
-const TrackingModal = dynamic(() => import('@/components/client/TrackingModal'), {
+const TrackingModal = dynamic(() => import('@/components/modals/TrackingModal'), {
   ssr: false,
   loading: () => null,
 })
 
-const NutritionSummary = dynamic(() => import('@/components/client/NutritionSummary'), {
+const NutritionSummary = dynamic(() => import('@/components/ui/NutritionSummary'), {
   ssr: false,
   loading: () => null,
 })
 
-const Sidebar = dynamic(() => import('@/components/client/Sidebar'), {
+const Sidebar = dynamic(() => import('@/components/pages/Sidebar'), {
   ssr: false,
   loading: () => null,
 })
 
-const MyOrdersModal = dynamic(() => import('@/components/client/MyOrdersModal'), {
+const MyOrdersModal = dynamic(() => import('@/components/modals/MyOrdersModal'), {
   ssr: false,
   loading: () => null,
 })
 
-const EditOrderModal = dynamic(() => import('@/components/client/EditOrderModal'), {
+const EditOrderModal = dynamic(() => import('@/components/modals/EditOrderModal'), {
   ssr: false,
   loading: () => null,
 })
 
-const OrdersBadge = dynamic(() => import('@/components/client/OrdersBadge'), {
+const OrdersBadge = dynamic(() => import('@/components/ui/OrdersBadge'), {
   ssr: false,
   loading: () => null,
 })
 
-const OrderSuccessModal = dynamic(() => import('@/components/client/OrderSuccessModal'), {
+const OrderSuccessModal = dynamic(() => import('@/components/modals/OrderSuccessModal'), {
   ssr: false,
   loading: () => null,
 })
 
 // ✅ Lazy load Swiper component (heavy library ~50KB) - deferred until client hydration
-const MarqueeSwiper = dynamic(() => import('@/components/client/MarqueeSwiper'), {
+const MarqueeSwiper = dynamic(() => import('@/components/ui/MarqueeSwiper'), {
   ssr: false,
   loading: () => <div className="h-16 bg-slate-100 dark:bg-slate-800 animate-pulse" />,
 })

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { X, Phone, MessageCircle, XCircle, Store, MapPin, Package, Loader2, Edit, AlertCircle, RefreshCw } from 'lucide-react'
-import SimpleOrderTimer from './SimpleOrderTimer'
+import SimpleOrderTimer from '@/components/ui/SimpleOrderTimer'
 import { storage } from '@/lib/storage.client'
 import { useTheme } from '@/providers/ThemeProvider'
 

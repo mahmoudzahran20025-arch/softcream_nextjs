@@ -2,7 +2,7 @@
 
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode, Pagination } from 'swiper/modules'
-import ProductCard from '@/components/client/ProductCard'
+import ProductCard from '@/components/ui/ProductCard'
 
 import 'swiper/css'
 import 'swiper/css/free-mode'
