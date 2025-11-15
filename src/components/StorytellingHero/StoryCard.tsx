@@ -3,6 +3,7 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from '@/lib/motion-shared'
 import type { MotionValue } from '@/lib/motion-shared'
+import { useHydrated } from '@/hooks/useHydrated'
 import IconComponent from './IconComponent'
 import type { StoryData } from './data/stories'
 
@@ -14,6 +15,7 @@ interface StoryCardProps {
 }
 
 export default function StoryCard({ index, story, progress, targetScale }: StoryCardProps) {
+  const isHydrated = useHydrated()
   const containerRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -22,6 +24,17 @@ export default function StoryCard({ index, story, progress, targetScale }: Story
 
   const imageScale = useTransform(scrollYProgress, [0, 1], [1.5, 1])
   const scale = useTransform(progress, [index * 0.2, 1], [1, targetScale])
+
+  // Only render motion animations after hydration to prevent CLS
+  if (!isHydrated) {
+    return (
+      <div ref={containerRef} className="h-screen flex items-center justify-center sticky top-0 px-4 sm:px-6 md:px-8">
+        <div className={`flex flex-col relative -top-[10%] sm:-top-[15%] md:-top-[25%] h-auto min-h-[520px] min-[560px]:min-h-[450px] min-[560px]:h-[450px] lg:h-[450px] w-full sm:w-[92%] md:w-[85%] lg:w-[75%] xl:w-[70%] rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 md:p-6 lg:p-10 origin-top ${story.gradientClass} ${story.glowColor} hover:scale-[1.02] transition-all duration-300`}>
+          {/* Static content during SSR */}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div ref={containerRef} className="h-screen flex items-center justify-center sticky top-0 px-4 sm:px-6 md:px-8">
