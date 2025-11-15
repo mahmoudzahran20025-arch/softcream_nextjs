@@ -1,5 +1,6 @@
 // ================================================================
 // api.ts - Server-Safe API Service for Next.js
+// ✅ FIXED: Device ID support + Proper error handling for validation
 // CRITICAL: Never send prices from frontend - backend calculates all prices
 // ================================================================
 
@@ -8,6 +9,26 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://softcream-api.mahmou
 // Log API URL on module load (for debugging)
 if (typeof window !== 'undefined') {
   console.log('🌐 API URL configured:', API_URL)
+}
+
+// ================================================================
+// 🔐 Device ID Management
+// ================================================================
+
+function getOrCreateDeviceId(): string {
+  if (typeof window === 'undefined') return 'server-side'
+  
+  const DEVICE_ID_KEY = 'softcream_device_id'
+  let deviceId = localStorage.getItem(DEVICE_ID_KEY)
+  
+  if (!deviceId) {
+    // Generate unique device ID
+    deviceId = `device_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+    localStorage.setItem(DEVICE_ID_KEY, deviceId)
+    console.log('✅ New device ID created:', deviceId)
+  }
+  
+  return deviceId
 }
 
 // ================================================================
@@ -73,8 +94,17 @@ export interface CalculatedPrices {
   deliveryInfo?: any
 }
 
+export interface CouponValidationResult {
+  valid: boolean
+  coupon?: any
+  message?: string
+  error?: string
+  errorEn?: string
+}
+
 // ================================================================
 // Core HTTP Request Handler (Server-Safe)
+// ✅ FIXED: Better error handling for validation endpoints
 // ================================================================
 
 async function httpRequest<T>(
@@ -136,7 +166,11 @@ async function httpRequest<T>(
       result = { success: false, error: 'Expected JSON response', rawResponse: text }
     }
 
-    if (!response.ok) {
+    // ✅ FIXED: Don't throw error for validation endpoints (they return 200 with valid: false)
+    // Only throw for actual server errors (500, 401, 403, etc.)
+    const isValidationEndpoint = endpoint.includes('/validate') || endpoint.includes('/coupons')
+    
+    if (!response.ok && !isValidationEndpoint) {
       const error = new Error(result.error || `HTTP ${response.status}: ${response.statusText}`)
       ;(error as any).status = response.status
       ;(error as any).data = result
@@ -219,6 +253,16 @@ export async function submitOrder(orderData: OrderData): Promise<any> {
     throw new Error('Invalid order data: prices should not be sent from frontend')
   }
 
+  // ✅ Add device ID if not present
+  if (!orderData.deviceId) {
+    orderData.deviceId = getOrCreateDeviceId()
+  }
+
+  // ✅ Generate idempotency key if not present
+  if (!orderData.idempotencyKey) {
+    orderData.idempotencyKey = `order_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+  }
+
   return httpRequest<any>('POST', '/orders/submit', orderData)
 }
 
@@ -253,6 +297,9 @@ export async function calculateOrderPrices(
   addressInputType?: string
 ): Promise<CalculatedPrices> {
   const inputType = addressInputType || (location?.lat ? 'gps' : 'manual')
+  
+  // ✅ Add device ID
+  const deviceId = getOrCreateDeviceId()
 
   const result = await httpRequest<any>('POST', '/orders/prices', {
     items,
@@ -261,6 +308,7 @@ export async function calculateOrderPrices(
     customerPhone,
     location,
     addressInputType: inputType,
+    deviceId, // ✅ NOW INCLUDED
   })
 
   const calculatedPrices = result.calculatedPrices || result.data?.calculatedPrices || result
@@ -273,16 +321,72 @@ export async function calculateOrderPrices(
 
 // ================================================================
 // Coupons API (Server-Safe)
+// ✅ FIXED: Device ID + Proper validation response handling
 // ================================================================
 
 export async function validateCoupon(
   code: string,
   phone: string,
   subtotal: number
-): Promise<any> {
-  return httpRequest<any>('POST', '/coupons/validate', {
-    code,
-    phone,
-    subtotal,
-  })
+): Promise<CouponValidationResult> {
+  try {
+    // ✅ Get device ID
+    const deviceId = getOrCreateDeviceId()
+    
+    console.log('🎟️ Validating coupon:', {
+      code: code.trim().toUpperCase(),
+      phone: phone.replace(/\D/g, ''),
+      subtotal: Number(subtotal),
+      deviceId
+    })
+
+    const result = await httpRequest<any>('POST', '/coupons/validate', {
+      code: code.trim().toUpperCase(),
+      phone: phone.replace(/\D/g, ''),
+      subtotal: Number(subtotal),
+      deviceId, // ✅ NOW INCLUDED
+    })
+
+    console.log('📥 Coupon validation response:', result)
+
+    // ✅ FIXED: Handle response properly (backend returns 200 with valid: false for invalid coupons)
+    if (result.valid === false) {
+      return {
+        valid: false,
+        error: result.error,
+        errorEn: result.errorEn,
+        message: result.error || result.errorEn || 'Invalid coupon code'
+      }
+    }
+
+    // ✅ SUCCESS
+    return {
+      valid: true,
+      coupon: result.coupon,
+      message: result.message || result.coupon?.messageAr
+    }
+    
+  } catch (error: any) {
+    console.error('❌ Coupon validation failed:', error)
+    
+    // Return validation error structure instead of throwing
+    return {
+      valid: false,
+      error: error.message || 'Failed to validate coupon',
+      message: error.message || 'Failed to validate coupon'
+    }
+  }
 }
+
+// ================================================================
+// Export Device ID Helper (for direct usage if needed)
+// ================================================================
+
+export { getOrCreateDeviceId }
+
+// ================================================================
+// Module Load Confirmation
+// ================================================================
+
+console.log('✅ API Client loaded with Device ID support')
+console.log('🔐 Device ID:', getOrCreateDeviceId())

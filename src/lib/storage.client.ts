@@ -1,19 +1,76 @@
 'use client'
 
 // ================================================================
-// storage.client.ts - Client-Side Storage Manager for Next.js
+// storage.client.ts - Fixed Event System & Optimized
 // ================================================================
 
 // ================================================================
-// In-Memory Store (for runtime data)
+// Event Manager - Single Source of Truth
+// ================================================================
+class OrdersEventManager {
+  private static instance: OrdersEventManager
+  private debounceTimer: NodeJS.Timeout | null = null
+  private lastEventData: string = ''
+
+  static getInstance(): OrdersEventManager {
+    if (!OrdersEventManager.instance) {
+      OrdersEventManager.instance = new OrdersEventManager()
+    }
+    return OrdersEventManager.instance
+  }
+
+  // ✅ Single Event Dispatch with Deduplication
+  triggerUpdate(data: {
+    orderId?: string
+    action?: 'added' | 'updated' | 'cancelled' | 'deleted' | 'edited' | 'cartCleared'
+    count?: number
+  }) {
+    if (typeof window === 'undefined') return
+
+    // ✅ Prevent duplicate events
+    const eventKey = JSON.stringify(data)
+    if (eventKey === this.lastEventData) {
+      console.log('⏭️ Skipping duplicate event')
+      return
+    }
+    this.lastEventData = eventKey
+
+    // ✅ Debounce: Batch multiple updates within 100ms
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer)
+    }
+
+    this.debounceTimer = setTimeout(() => {
+      const event = new CustomEvent('ordersUpdated', {
+        detail: {
+          ...data,
+          timestamp: new Date().toISOString()
+        }
+      })
+      window.dispatchEvent(event)
+      console.log('📢 Event dispatched:', data)
+      
+      // Clear last event after 500ms to allow new events
+      setTimeout(() => {
+        this.lastEventData = ''
+      }, 500)
+    }, 100)
+  }
+
+  cleanup() {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer)
+    }
+    this.lastEventData = ''
+  }
+}
+
+// ================================================================
+// Memory Store
 // ================================================================
 class MemoryStore {
   private store = new Map<string, any>()
 
-  constructor() {
-    console.log('✅ MemoryStore initialized')
-  }
-  
   get(key: string, defaultValue: any = null): any {
     return this.store.has(key) ? this.store.get(key) : defaultValue
   }
@@ -33,25 +90,16 @@ class MemoryStore {
   clear(): void {
     this.store.clear()
   }
-  
-  size(): number {
-    return this.store.size
-  }
-  
-  keys(): string[] {
-    return Array.from(this.store.keys())
-  }
 }
 
 // ================================================================
-// Session Storage Wrapper (safe for SSR)
+// Session Storage Wrapper
 // ================================================================
 class SessionStore {
   private available: boolean
 
   constructor() {
     this.available = this.checkAvailability()
-    console.log('✅ SessionStore initialized (available:', this.available, ')')
   }
   
   private checkAvailability(): boolean {
@@ -75,22 +123,17 @@ class SessionStore {
       const item = sessionStorage.getItem(key)
       return item ? JSON.parse(item) : defaultValue
     } catch (e) {
-      console.warn(`Failed to get ${key} from sessionStorage:`, e)
       return defaultValue
     }
   }
   
   set(key: string, value: any): boolean {
-    if (!this.available) {
-      console.warn(`sessionStorage not available, cannot save ${key}`)
-      return false
-    }
+    if (!this.available) return false
     
     try {
       sessionStorage.setItem(key, JSON.stringify(value))
       return true
     } catch (e) {
-      console.warn(`Failed to save ${key} to sessionStorage:`, e)
       return false
     }
   }
@@ -102,7 +145,6 @@ class SessionStore {
       sessionStorage.removeItem(key)
       return true
     } catch (e) {
-      console.warn(`Failed to remove ${key} from sessionStorage:`, e)
       return false
     }
   }
@@ -119,21 +161,19 @@ class SessionStore {
       sessionStorage.clear()
       return true
     } catch (e) {
-      console.warn('Failed to clear sessionStorage:', e)
       return false
     }
   }
 }
 
 // ================================================================
-// Local Storage Wrapper (for persistent data)
+// Local Storage Wrapper
 // ================================================================
 class LocalStore {
   private available: boolean
 
   constructor() {
     this.available = this.checkAvailability()
-    console.log('✅ LocalStore initialized (available:', this.available, ')')
   }
   
   private checkAvailability(): boolean {
@@ -145,7 +185,6 @@ class LocalStore {
       localStorage.removeItem(test)
       return true
     } catch (e) {
-      console.warn('⚠️ localStorage not available:', e)
       return false
     }
   }
@@ -157,22 +196,17 @@ class LocalStore {
       const item = localStorage.getItem(key)
       return item ? JSON.parse(item) : defaultValue
     } catch (e) {
-      console.warn(`Failed to get ${key} from localStorage:`, e)
       return defaultValue
     }
   }
   
   set(key: string, value: any): boolean {
-    if (!this.available) {
-      console.warn(`localStorage not available, cannot save ${key}`)
-      return false
-    }
+    if (!this.available) return false
     
     try {
       localStorage.setItem(key, JSON.stringify(value))
       return true
     } catch (e) {
-      console.warn(`Failed to save ${key} to localStorage:`, e)
       return false
     }
   }
@@ -184,7 +218,6 @@ class LocalStore {
       localStorage.removeItem(key)
       return true
     } catch (e) {
-      console.warn(`Failed to remove ${key} from localStorage:`, e)
       return false
     }
   }
@@ -201,30 +234,28 @@ class LocalStore {
       localStorage.clear()
       return true
     } catch (e) {
-      console.warn('Failed to clear localStorage:', e)
       return false
     }
   }
 }
 
 // ================================================================
-// Unified Storage API
+// Storage Manager
 // ================================================================
 export class StorageManager {
   private memory: MemoryStore
   private session: SessionStore
   private local: LocalStore
+  private eventManager: OrdersEventManager
 
   constructor() {
     this.memory = new MemoryStore()
     this.session = new SessionStore()
     this.local = new LocalStore()
-    console.log('✅ StorageManager initialized')
+    this.eventManager = OrdersEventManager.getInstance()
   }
   
-  // ================================================================
-  // Cart data - use session storage
-  // ================================================================
+  // Cart
   getCart(): any[] {
     return this.session.get('cart', [])
   }
@@ -237,9 +268,7 @@ export class StorageManager {
     return this.session.remove('cart')
   }
   
-  // ================================================================
-  // Theme - use session storage
-  // ================================================================
+  // Theme
   getTheme(): string {
     return this.session.get('theme', 'light')
   }
@@ -248,9 +277,7 @@ export class StorageManager {
     return this.session.set('theme', theme)
   }
   
-  // ================================================================
-  // Language - use session storage
-  // ================================================================
+  // Language
   getLang(): string {
     return this.session.get('language', 'ar')
   }
@@ -259,9 +286,7 @@ export class StorageManager {
     return this.session.set('language', lang)
   }
   
-  // ================================================================
-  // User data - use session storage
-  // ================================================================
+  // User Data
   getUserData(): any {
     return this.session.get('userData', null)
   }
@@ -274,9 +299,7 @@ export class StorageManager {
     return this.session.remove('userData')
   }
   
-  // ================================================================
-  // Device ID - use localStorage (persistent)
-  // ================================================================
+  // Device ID
   getDeviceId(): string {
     let deviceId = this.local.get('deviceId')
     if (!deviceId) {
@@ -287,13 +310,11 @@ export class StorageManager {
   }
   
   // ================================================================
-  // Orders Management - use localStorage (persistent)
+  // Orders Management - FIXED
   // ================================================================
   
   getOrders(): any[] {
-    const orders = this.local.get('userOrders', [])
-    console.log('📦 Retrieved orders:', orders.length)
-    return orders
+    return this.local.get('userOrders', [])
   }
   
   addOrder(orderData: any): boolean {
@@ -307,7 +328,6 @@ export class StorageManager {
       
       const existingIndex = orders.findIndex((o: any) => o.id === orderData.id)
       if (existingIndex !== -1) {
-        console.warn('⚠️ Order already exists, updating instead')
         orders[existingIndex] = {
           ...orders[existingIndex],
           ...orderData,
@@ -324,9 +344,13 @@ export class StorageManager {
       const success = this.local.set('userOrders', orders)
       
       if (success) {
-        console.log('✅ Order saved successfully:', orderData.id)
-        this.triggerOrdersBadgeUpdate()
-        this.triggerOrdersUpdate(orderData.id, existingIndex !== -1 ? 'updated' : 'added')
+        console.log('✅ Order saved:', orderData.id)
+        // ✅ Single event dispatch
+        this.eventManager.triggerUpdate({
+          orderId: orderData.id,
+          action: existingIndex !== -1 ? 'updated' : 'added',
+          count: this.getActiveOrdersCount()
+        })
       }
       
       return success
@@ -338,9 +362,7 @@ export class StorageManager {
   
   getOrder(orderId: string): any {
     const orders = this.getOrders()
-    const order = orders.find((o: any) => o.id === orderId)
-    console.log('🔍 Found order:', orderId, '→', !!order)
-    return order || null
+    return orders.find((o: any) => o.id === orderId) || null
   }
   
   updateOrderStatus(orderId: string, newStatus: string): boolean {
@@ -353,20 +375,30 @@ export class StorageManager {
         return false
       }
       
+      // ✅ Skip if status unchanged
+      if (order.status === newStatus) {
+        console.log('⏭️ Status unchanged, skipping update')
+        return true
+      }
+      
       order.status = newStatus
       order.lastUpdated = new Date().toISOString()
       
       const success = this.local.set('userOrders', orders)
       
       if (success) {
-        console.log('✅ Order status updated:', orderId, '→', newStatus)
-        this.triggerOrdersBadgeUpdate()
-        this.triggerOrdersUpdate(orderId, 'updated')
+        console.log('✅ Status updated:', orderId, '→', newStatus)
+        // ✅ Single event dispatch
+        this.eventManager.triggerUpdate({
+          orderId,
+          action: 'updated',
+          count: this.getActiveOrdersCount()
+        })
       }
       
       return success
     } catch (e) {
-      console.error('❌ Failed to update order status:', e)
+      console.error('❌ Failed to update status:', e)
       return false
     }
   }
@@ -391,8 +423,12 @@ export class StorageManager {
       
       if (success) {
         console.log('✅ Order updated:', orderId)
-        this.triggerOrdersBadgeUpdate()
-        this.triggerOrdersUpdate(orderId, 'updated')
+        // ✅ Single event dispatch
+        this.eventManager.triggerUpdate({
+          orderId,
+          action: 'updated',
+          count: this.getActiveOrdersCount()
+        })
       }
       
       return success
@@ -423,14 +459,18 @@ export class StorageManager {
       const success = this.local.set('userOrders', orders)
       
       if (success) {
-        console.log('✅ Order items updated:', orderId)
-        this.triggerOrdersBadgeUpdate()
-        this.triggerOrdersUpdate(orderId, 'edited')
+        console.log('✅ Items updated:', orderId)
+        // ✅ Single event dispatch
+        this.eventManager.triggerUpdate({
+          orderId,
+          action: 'edited',
+          count: this.getActiveOrdersCount()
+        })
       }
       
       return success
     } catch (e) {
-      console.error('❌ Failed to update order items:', e)
+      console.error('❌ Failed to update items:', e)
       return false
     }
   }
@@ -449,8 +489,12 @@ export class StorageManager {
       
       if (success) {
         console.log('🗑️ Order deleted:', orderId)
-        this.triggerOrdersBadgeUpdate()
-        this.triggerOrdersUpdate(orderId, 'deleted')
+        // ✅ Single event dispatch
+        this.eventManager.triggerUpdate({
+          orderId,
+          action: 'deleted',
+          count: this.getActiveOrdersCount()
+        })
       }
       
       return success
@@ -466,7 +510,7 @@ export class StorageManager {
       
       if (success) {
         console.log('🗑️ All orders cleared')
-        this.triggerOrdersBadgeUpdate()
+        this.eventManager.triggerUpdate({ count: 0 })
       }
       
       return success
@@ -483,56 +527,27 @@ export class StorageManager {
   }
   
   getActiveOrders(): any[] {
-    // Support both English and Arabic statuses
     const activeStatuses = [
-      // English
       'pending', 'confirmed', 'preparing', 'out_for_delivery', 'ready',
-      // Arabic equivalents
       'جديد', 'مؤكد', 'قيد التحضير', 'في الطريق', 'جاهز',
-      // Common variations
-      'new', 'active', 'processing',
-      // Statuses from Telegram callbacks (with operator name)
-      'confirmed (', 'مقبول'
+      'new', 'active', 'processing', 'confirmed (', 'مقبول'
     ]
     
     const allOrders = this.getOrders()
     
-    // Debug: Log all orders with their statuses
-    console.log('🔍 All orders statuses:', allOrders.map((o: any) => ({ id: o.id, status: o.status })))
-    
-    // Filter active orders (support both English and Arabic)
     const activeOrders = allOrders.filter((o: any) => {
-      // If no status, consider it as pending (for backward compatibility)
-      if (!o.status) {
-        console.warn('⚠️ Order without status found:', o.id, '- treating as pending')
-        return true // Include orders without status as active
-      }
+      if (!o.status) return true
       
       const orderStatus = o.status.toString().trim()
       
-      // Check if status matches any active status (case-insensitive for English)
       return activeStatuses.some(status => {
-        // For English statuses, compare case-insensitive
         if (/^[a-zA-Z]+$/.test(status)) {
           return orderStatus.toLowerCase() === status.toLowerCase() || 
                  orderStatus.toLowerCase().startsWith(status.toLowerCase())
         }
-        // For Arabic statuses, compare as-is or starts with
         return orderStatus === status || orderStatus.startsWith(status)
       })
     })
-    
-    console.log('📊 Active orders count:', activeOrders.length, 'out of', allOrders.length)
-    console.log('📊 Active statuses filter:', activeStatuses)
-    
-    // Debug: Log which orders are active
-    if (activeOrders.length > 0) {
-      console.log('✅ Active orders:', activeOrders.map((o: any) => ({ id: o.id, status: o.status })))
-    } else {
-      console.warn('⚠️ No active orders found!')
-      console.warn('⚠️ Found statuses:', [...new Set(allOrders.map((o: any) => o.status))])
-      console.warn('⚠️ Expected one of:', activeStatuses)
-    }
     
     return activeOrders
   }
@@ -552,56 +567,18 @@ export class StorageManager {
   canCancelOrder(orderId: string): boolean {
     try {
       const order = this.getOrder(orderId)
-      if (!order || !order.canCancelUntil) {
-        console.warn('⚠️ Order not found or no cancel deadline:', orderId)
-        return false
-      }
+      if (!order || !order.canCancelUntil) return false
       
       const deadline = new Date(order.canCancelUntil)
       const now = new Date()
       
-      const canCancel = now < deadline && order.status === 'pending'
-      console.log('🔍 Can cancel order:', orderId, '→', canCancel)
-      
-      return canCancel
+      return now < deadline && order.status === 'pending'
     } catch (e) {
-      console.error('❌ Failed to check cancel eligibility:', e)
       return false
     }
   }
   
-  private triggerOrdersBadgeUpdate(): void {
-    if (typeof window !== 'undefined') {
-      const count = this.getActiveOrdersCount()
-      const event = new CustomEvent('ordersUpdated', {
-        detail: { 
-          count: count,
-          timestamp: new Date().toISOString()
-        }
-      })
-      window.dispatchEvent(event)
-      console.log('📢 Orders badge update triggered - count:', count)
-    }
-  }
-  
-  triggerOrdersUpdate(orderId: string, action: 'added' | 'updated' | 'cancelled' | 'deleted' | 'edited'): void {
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('ordersUpdated', {
-        detail: { 
-          orderId,
-          action,
-          count: this.getActiveOrdersCount(),
-          timestamp: new Date().toISOString()
-        }
-      })
-      window.dispatchEvent(event)
-      console.log('📢 Orders update triggered:', action, orderId)
-    }
-  }
-  
-  // ================================================================
-  // Products cache - use memory store (5 min TTL)
-  // ================================================================
+  // Products Cache
   getProductsCache(): any {
     return this.memory.get('products_cache')
   }
@@ -614,9 +591,7 @@ export class StorageManager {
     this.memory.remove('products_cache')
   }
   
-  // ================================================================
-  // Auth token - use memory store (security)
-  // ================================================================
+  // Auth Token
   getAuthToken(): string | null {
     return this.memory.get('authToken')
   }
@@ -629,9 +604,7 @@ export class StorageManager {
     this.memory.remove('authToken')
   }
   
-  // ================================================================
-  // Form data - use session storage
-  // ================================================================
+  // Checkout Form
   getCheckoutFormData(): any {
     return this.session.get('checkoutFormData', null)
   }
@@ -644,9 +617,7 @@ export class StorageManager {
     return this.session.remove('checkoutFormData')
   }
   
-  // ================================================================
-  // Session ID - use memory store
-  // ================================================================
+  // Session ID
   getSessionId(): string {
     let sessionId = this.memory.get('sessionId')
     if (!sessionId) {
@@ -656,9 +627,6 @@ export class StorageManager {
     return sessionId
   }
   
-  // ================================================================
-  // Helper: UUID Generator
-  // ================================================================
   private generateUUID(): string {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0
@@ -667,20 +635,26 @@ export class StorageManager {
     })
   }
   
-  // ================================================================
-  // Clear all data
-  // ================================================================
+  // ✅ NEW: Public trigger function for external use (e.g., CartProvider)
+  triggerOrdersUpdate(
+    orderId?: string,
+    action?: 'added' | 'updated' | 'cancelled' | 'deleted' | 'edited' | 'cartCleared',
+    count?: number
+  ): void {
+    this.eventManager.triggerUpdate({
+      orderId,
+      action,
+      count: count ?? this.getActiveOrdersCount()
+    })
+  }
+  
   clearAll(): void {
     this.memory.clear()
     this.session.clear()
-    // Don't clear localStorage (keep deviceId and orders)
-    console.log('🗑️ Session and memory storage cleared')
+    this.eventManager.cleanup()
+    console.log('🗑️ All cleared')
   }
 }
 
-// ================================================================
-// Export Singleton Instance
-// ================================================================
 export const storage = new StorageManager()
-
-console.log('✅ Storage module loaded (Client-side only)')
+console.log('✅ Storage loaded (optimized)')
