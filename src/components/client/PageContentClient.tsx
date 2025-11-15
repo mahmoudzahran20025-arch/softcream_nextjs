@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { useProductsData } from '@/providers/ProductsProvider'
 import Header from '@/components/client/Header'
@@ -60,13 +60,17 @@ const OrderSuccessModal = dynamic(() => import('@/components/client/OrderSuccess
   loading: () => null,
 })
 
-// ✅ Lazy load Swiper component (heavy library ~50KB)
+// ✅ Lazy load Swiper component (heavy library ~50KB) - deferred until client hydration
 const MarqueeSwiper = dynamic(() => import('@/components/client/MarqueeSwiper'), {
   ssr: false,
   loading: () => <div className="h-16 bg-slate-100 dark:bg-slate-800 animate-pulse" />,
 })
 
-export default function PageContentClient() {
+interface PageContentClientProps {
+  children?: ReactNode
+}
+
+export default function PageContentClient({ children }: PageContentClientProps) {
   const { products, selectedProduct, closeProduct } = useProductsData()
   const [showCartModal, setShowCartModal] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
@@ -136,6 +140,8 @@ export default function PageContentClient() {
         isSidebarOpen={sidebarOpen}
         onOpenCart={() => setShowCartModal(true)}
       />
+
+      {children}
 
       {/* Marquee Swiper */}
       <MarqueeSwiper />

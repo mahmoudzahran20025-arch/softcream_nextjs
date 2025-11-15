@@ -1,9 +1,9 @@
 import { Suspense } from 'react'
-import Hero from '@/components/server/Hero'
 import ProductsGrid from '@/components/client/ProductsGrid'
 import Footer from '@/components/server/Footer'
 import PageContentClient from '@/components/client/PageContentClient'
 import ProductsProvider from '@/providers/ProductsProvider'
+import StorytellingHero from '@/components/StorytellingHero'
 
 interface Product {
   id: string
@@ -34,12 +34,12 @@ interface PageContentProps {
 export default function PageContent({ initialProducts }: PageContentProps) {
   return (
     <ProductsProvider initialProducts={initialProducts}>
-      <PageContentClient />
-      <main className="min-h-screen bg-white dark:bg-slate-950">
-        {/* Hero Section */}
-        <Suspense fallback={<div className="h-96 bg-gradient-to-b from-purple-100 to-white dark:from-purple-900 dark:to-slate-950 animate-pulse" />}>
-          <Hero />
+      <PageContentClient>
+        <Suspense fallback={<div className="h-[70vh] bg-gradient-to-b from-slate-950 via-slate-900 to-black animate-pulse" />}>
+          <StorytellingHero />
         </Suspense>
+      </PageContentClient>
+      <main className="min-h-screen bg-white dark:bg-slate-950">
 
         {/* Products Grid */}
         <Suspense fallback={<div className="container mx-auto px-4 py-12">
