@@ -1,17 +1,28 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { X, CheckCircle2, AlertCircle, Info, AlertTriangle } from 'lucide-react'
 import { useTheme } from '@/providers/ThemeProvider'
 
 export default function ToastContainer() {
   const { toasts, removeToast } = useTheme()
+  const [exitingToasts, setExitingToasts] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const timers = toasts.map((toast) => {
       if (toast.duration && toast.duration > 0) {
         return setTimeout(() => {
-          removeToast(toast.id)
+          // Trigger exit animation
+          setExitingToasts(prev => new Set(prev).add(String(toast.id)))
+          // Remove after animation completes (300ms)
+          setTimeout(() => {
+            removeToast(toast.id)
+            setExitingToasts(prev => {
+              const next = new Set(prev)
+              next.delete(String(toast.id))
+              return next
+            })
+          }, 300)
         }, toast.duration)
       }
       return null
@@ -57,7 +68,11 @@ export default function ToastContainer() {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg pointer-events-auto animate-in slide-in-from-right-full ${getStyles(toast.type)}`}
+          className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg pointer-events-auto transition-all duration-300 ${
+            exitingToasts.has(String(toast.id))
+              ? 'animate-out slide-out-to-right-full opacity-0'
+              : 'animate-in slide-in-from-right-full'
+          } ${getStyles(toast.type)}`}
         >
           <div className="flex-shrink-0 mt-0.5">{getIcon(toast.type)}</div>
 
