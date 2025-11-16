@@ -18,8 +18,8 @@ export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: Hea
   const brandText = "SOFTCREAM"
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40">
-      <div className="container mx-auto px-4 py-3">
+    <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40 min-h-[70px]">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center justify-between gap-2">
           
           {/* Menu Button - Toggle Sidebar */}
