@@ -249,25 +249,27 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
             </div>
           )}
 
-          {/* Recommendations */}
-          {recommendations.length > 0 && (
-            <div>
-              <h3 className="font-bold text-slate-900 dark:text-white mb-3">قد يعجبك أيضاً</h3>
-              <Swiper
-                modules={[FreeMode]}
-                spaceBetween={12}
-                slidesPerView="auto"
-                freeMode
-                dir="rtl"
-              >
-                {recommendations.map(rec => (
-                  <SwiperSlide key={rec.id} className="!w-[140px]">
-                    <ProductCard product={rec} />
-                  </SwiperSlide>
-                ))}
-              </Swiper>
-            </div>
-          )}
+          {/* Recommendations - Reserved Height for CLS Prevention */}
+          <div className="min-h-[200px]">
+            {recommendations.length > 0 && (
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white mb-3">قد يعجبك أيضاً</h3>
+                <Swiper
+                  modules={[FreeMode]}
+                  spaceBetween={12}
+                  slidesPerView="auto"
+                  freeMode
+                  dir="rtl"
+                >
+                  {recommendations.map(rec => (
+                    <SwiperSlide key={rec.id} className="!w-[140px]">
+                      <ProductCard product={rec} />
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              </div>
+            )}
+          </div>
 
           {/* Add to Cart Button */}
           <button
