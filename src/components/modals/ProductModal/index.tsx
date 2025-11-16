@@ -93,13 +93,15 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
           <X className="w-6 h-6 text-slate-600 dark:text-slate-300" />
         </button>
 
-        {/* Product Image */}
+        {/* Product Image - Fixed Dimensions for CLS Prevention */}
         <div className="relative h-64 md:h-80 overflow-hidden bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30">
           {product.image ? (
             <img
               src={product.image}
               alt={product.name}
               className="w-full h-full object-cover"
+              width={600}
+              height={320}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-6xl">🍦</div>
