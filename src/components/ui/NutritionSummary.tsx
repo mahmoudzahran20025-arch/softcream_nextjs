@@ -66,6 +66,9 @@ export default function NutritionSummary({ isOpen, onClose, onCheckout }: Nutrit
 
   if (!isOpen) return null
 
+  // Show skeleton while loading
+  const isLoading = cart.length > 0 && !nutritionData
+  
   const subtotal = cart.reduce((sum, item: any) => {
     const product = productsMap[item.productId]
     return sum + ((product?.price || 0) * item.quantity)
@@ -105,24 +108,31 @@ export default function NutritionSummary({ isOpen, onClose, onCheckout }: Nutrit
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Nutrition Cards */}
-          <div className="grid grid-cols-2 gap-3">
-            {nutritionItems.map((item, index) => {
-              const Icon = item.icon
-              return (
-                <div key={index} className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon className={`w-5 h-5 ${item.color}`} />
-                    <p className="text-xs text-slate-600 dark:text-slate-400">{item.label}</p>
+        <div className="p-6 space-y-6 min-h-[400px]">
+          {/* Nutrition Cards - Reserved Height for CLS Prevention */}
+          <div className="grid grid-cols-2 gap-3 min-h-[120px]">
+            {isLoading ? (
+              // Skeleton Placeholders
+              [...Array(4)].map((_, i) => (
+                <div key={i} className="bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4 animate-pulse" />
+              ))
+            ) : (
+              nutritionItems.map((item, index) => {
+                const Icon = item.icon
+                return (
+                  <div key={index} className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className={`w-5 h-5 ${item.color}`} />
+                      <p className="text-xs text-slate-600 dark:text-slate-400">{item.label}</p>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {Math.round(item.value)}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{item.unit}</p>
                   </div>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {Math.round(item.value)}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{item.unit}</p>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
 
           {/* Cart Items */}
