@@ -1,5 +1,3 @@
-'use client'
-
 import { ShieldCheck, Truck, Clock, Users } from 'lucide-react'
 
 const trustItems = [
