@@ -242,7 +242,7 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1 min-h-[300px]">
           {navItems.map((item) => (
             <button
               key={item.id}
