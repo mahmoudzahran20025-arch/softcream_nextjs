@@ -13,7 +13,7 @@ const ProductsSwiper = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 min-h-[280px]">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="h-64 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
         ))}
