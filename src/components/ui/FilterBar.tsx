@@ -130,10 +130,10 @@ export default function FilterBar({ onFiltersChange }: FilterBarProps) {
   }, [])
 
   return (
-    <div className="bg-gradient-to-b from-white to-gray-50 border-b border-gray-200 sticky top-[72px] z-30 shadow-md">
+    <div className="bg-gradient-to-b from-white to-gray-50 border-b border-gray-200 sticky top-[72px] z-30 shadow-md min-h-[80px]">
       <div className="container mx-auto px-4 py-4">
         {/* Search Bar Row */}
-        <div className="flex gap-3 mb-4">
+        <div className="flex gap-3 mb-4 min-h-[48px]">
           {/* Search Input */}
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
