@@ -16,34 +16,38 @@ interface OrdersBadgeProps {
  */
 export default function OrdersBadge({ onClick, className = '' }: OrdersBadgeProps) {
   const [activeOrdersCount, setActiveOrdersCount] = useState(0)
-  const countRef = useRef(0)  // ✅ NEW: Ref للـ count الحالي، للـ check قبل update
+  const countRef = useRef(0)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     const updateCount = () => {
       const count = storage.getActiveOrdersCount()
-      // ✅ NEW: Update فقط إذا تغير الـ count – منع re-renders زائدة
       if (count !== countRef.current) {
         countRef.current = count
         setActiveOrdersCount(count)
-        console.log('🔄 OrdersBadge: Active orders count updated:', count)  // Log أقل
-      } else {
-        console.log('⏭️ OrdersBadge: Count unchanged, skipping update')  // Optional debug
       }
     }
 
     // Initial load
     updateCount()
 
-    // Listen for orders updates
-    const handleOrdersUpdated = (event: any) => {
-      console.log('📢 OrdersBadge: Received ordersUpdated event:', event?.detail)
-      updateCount()  // ✅ الآن آمن، مش هيعمل re-render كل مرة
+    // Debounced update handler - prevents rapid re-renders
+    const handleOrdersUpdated = () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      debounceTimerRef.current = setTimeout(() => {
+        updateCount()
+      }, 300)
     }
 
     if (typeof window !== 'undefined') {
       window.addEventListener('ordersUpdated', handleOrdersUpdated as EventListener)
       return () => {
         window.removeEventListener('ordersUpdated', handleOrdersUpdated as EventListener)
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current)
+        }
       }
     }
   }, [])
