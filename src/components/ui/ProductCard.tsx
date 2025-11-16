@@ -63,14 +63,16 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       className="card p-3 hover:shadow-xl transition-all duration-300 h-full flex flex-col"
       onClick={handleCardClick}
     >
-      {/* Image Container */}
-      <div className="relative w-full aspect-square bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg mb-3 overflow-hidden group">
+      {/* Image Container - Fixed Aspect Ratio for CLS Prevention */}
+      <div className="relative w-full aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg mb-3 overflow-hidden group">
         {product.image ? (
           <img
             src={product.image}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
             loading="lazy"
+            width={200}
+            height={250}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-600">
