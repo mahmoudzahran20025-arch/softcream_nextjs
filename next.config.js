@@ -37,6 +37,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'softcream-api.mahmoud-zahran20025.workers.dev',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     // ✅ Optimize image loading

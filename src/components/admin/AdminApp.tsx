@@ -1,0 +1,234 @@
+// src/components/admin/AdminApp.tsx
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { 
+  updateOrderStatusWithTracking,
+  createCoupon, 
+  toggleCoupon,
+  getAdminToken,
+  clearAdminToken,
+  OrdersPolling,
+  type Order,
+  type Coupon,
+  type Product 
+} from '@/lib/adminApi';
+
+import Header from './Header';
+import Sidebar from './Sidebar';
+import DashboardPage from './DashboardPage';
+import OrdersPage from './OrdersPage';
+import ProductsPage from './ProductsPage';
+import CouponsPage from './CouponsPage';
+import AnalyticsPage from './AnalyticsPage';
+import SettingsPage from './SettingsPage';
+import LoginPage from './LoginPage';
+
+interface AdminAppProps {
+  initialData: {
+    orders: Order[];
+    coupons: Coupon[];
+    stats: any;
+  };
+  onRefresh: () => void;
+}
+
+const AdminApp: React.FC<AdminAppProps> = ({ initialData, onRefresh }) => {
+  const [activeTab, setActiveTab] = useState('orders');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [orders, setOrders] = useState<Order[]>(initialData.orders);
+  const [coupons, setCoupons] = useState<Coupon[]>(initialData.coupons);
+  const [stats, setStats] = useState(initialData.stats);
+
+  // Setup orders polling
+  useEffect(() => {
+    const ordersPolling = new OrdersPolling((newOrders: Order[]) => {
+      setOrders(newOrders);
+    });
+
+    ordersPolling.start();
+
+    return () => {
+      ordersPolling.stop();
+    };
+  }, []);
+
+  // Update data when initialData changes
+  useEffect(() => {
+    setOrders(initialData.orders);
+    setCoupons(initialData.coupons);
+    setStats(initialData.stats);
+  }, [initialData]);
+
+  // Check authentication on mount
+  useEffect(() => {
+    const token = getAdminToken();
+    if (token) {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = (_token: string) => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    clearAdminToken();
+    setIsAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
+  };
+
+  // Handle order status update with tracking
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      // Get admin token to extract admin ID
+      const token = getAdminToken();
+      let adminId = 'unknown';
+      
+      // Try to extract admin ID from JWT token (if available)
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          adminId = payload.sub || payload.adminId || 'admin';
+        } catch (e) {
+          console.warn('Could not extract admin ID from token');
+          adminId = 'admin';
+        }
+      }
+      
+      // Use the new tracking API with admin identification
+      const response = await updateOrderStatusWithTracking(orderId, newStatus, {
+        updated_by: `admin:${adminId}`
+      });
+      
+      if (response.success) {
+        alert(`تم تحديث حالة الطلب إلى ${newStatus} بنجاح`);
+        
+        // Refresh orders to get updated data
+        onRefresh();
+      } else {
+        alert(response.message || 'فشل تحديث حالة الطلب');
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('حدث خطأ أثناء تحديث حالة الطلب');
+    }
+  };
+
+  const handleCreateCoupon = async (couponData: any) => {
+    try {
+      const result = await createCoupon(couponData);
+      setCoupons([result.data, ...coupons]);
+      alert('✅ تم إنشاء الكوبون بنجاح');
+      return true;
+    } catch (error) {
+      alert('❌ فشل إنشاء الكوبون');
+      console.error(error);
+      return false;
+    }
+  };
+
+  const handleUpdateProduct = (product: Product) => {
+    console.log('Product updated:', product);
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+    console.log('Product deleted:', productId);
+  };
+
+  const handleUpdateCoupon = async (code: string, data: any) => {
+    try {
+      // Update coupon in local state
+      setCoupons(coupons.map(c => 
+        c.code === code ? { ...c, ...data } : c
+      ));
+      return true;
+    } catch (error) {
+      console.error('Failed to update coupon:', error);
+      return false;
+    }
+  };
+
+  const handleDeleteCoupon = async (code: string) => {
+    try {
+      // Remove coupon from local state
+      setCoupons(coupons.filter(c => c.code !== code));
+      return true;
+    } catch (error) {
+      console.error('Failed to delete coupon:', error);
+      return false;
+    }
+  };
+
+  const handleToggleCoupon = async (code: string) => {
+    try {
+      const result = await toggleCoupon(code);
+      setCoupons(coupons.map(c => 
+        c.code === code ? result.coupon : c
+      ));
+      alert('✅ تم تحديث حالة الكوبون');
+    } catch (error) {
+      alert('❌ فشل تحديث الكوبون');
+      console.error(error);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50" dir="rtl">
+      <Header 
+        sidebarOpen={sidebarOpen} 
+        setSidebarOpen={setSidebarOpen}
+        onLogout={handleLogout}
+        onRefresh={onRefresh}
+      />
+      
+      <div className="flex">
+        <Sidebar 
+          sidebarOpen={sidebarOpen}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          stats={stats}
+        />
+        
+        <main className="flex-1 p-6">
+          {activeTab === 'dashboard' && (
+            <DashboardPage stats={stats} orders={orders} />
+          )}
+          {activeTab === 'orders' && (
+            <OrdersPage 
+              orders={orders} 
+              onUpdateStatus={handleUpdateOrderStatus}
+            />
+          )}
+          {activeTab === 'products' && (
+            <ProductsPage 
+              onRefresh={onRefresh}
+              onUpdate={handleUpdateProduct}
+              onDelete={handleDeleteProduct}
+            />
+          )}
+          {activeTab === 'coupons' && (
+            <CouponsPage 
+              coupons={coupons}
+              onCreate={handleCreateCoupon}
+              onToggle={handleToggleCoupon}
+              onUpdate={handleUpdateCoupon}
+              onDelete={handleDeleteCoupon}
+            />
+          )}
+          {activeTab === 'analytics' && <AnalyticsPage />}
+          {activeTab === 'settings' && <SettingsPage />}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default AdminApp;

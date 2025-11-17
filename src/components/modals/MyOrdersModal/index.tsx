@@ -332,37 +332,78 @@ export default function MyOrdersModal({ isOpen, onClose, onEditOrder }: MyOrders
                 </div>
               </div>
 
+              {/* 🎯 Phase 4: Tracking Information */}
+              {(selectedOrder.progress !== undefined || selectedOrder.last_updated_by) && (
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 border-2 border-green-200 dark:border-green-800">
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3">
+                    {language === 'ar' ? '📊 معلومات التتبع' : '📊 Tracking Information'}
+                  </p>
+                  
+                  {/* Progress Bar */}
+                  {selectedOrder.progress !== undefined && (
+                    <div className="mb-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                          {language === 'ar' ? 'التقدم' : 'Progress'}
+                        </span>
+                        <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                          {selectedOrder.progress}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-green-500 to-emerald-600 transition-all duration-500"
+                          style={{ width: `${selectedOrder.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Last Updated By */}
+                  {selectedOrder.last_updated_by && (
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-2 border border-green-100 dark:border-slate-700 text-xs">
+                      <span className="text-slate-600 dark:text-slate-400">
+                        {language === 'ar' ? 'آخر تحديث بواسطة: ' : 'Last updated by: '}
+                      </span>
+                      <span className={`font-semibold ${
+                        selectedOrder.last_updated_by === 'system' ? 'text-blue-600 dark:text-blue-400' :
+                        selectedOrder.last_updated_by === 'auto-time-progress' ? 'text-purple-600 dark:text-purple-400' :
+                        selectedOrder.last_updated_by.startsWith('admin:') ? 'text-orange-600 dark:text-orange-400' :
+                        'text-slate-600 dark:text-slate-400'
+                      }`}>
+                        {selectedOrder.last_updated_by === 'system' ? (language === 'ar' ? '🔧 النظام' : '🔧 System') :
+                         selectedOrder.last_updated_by === 'auto-time-progress' ? (language === 'ar' ? '⚡ تحديث تلقائي' : '⚡ Auto-update') :
+                         selectedOrder.last_updated_by.startsWith('admin:') ? `👨‍💼 ${language === 'ar' ? 'أدمن' : 'Admin'}: ${selectedOrder.last_updated_by.split(':')[1]}` :
+                         selectedOrder.last_updated_by}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Branch Info */}
               {(selectedOrder.branchName || selectedOrder.branch) && (
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-700 dark:to-slate-600 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800">
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
-                    <Store className="w-4 h-4" />
-                    {language === 'ar' ? 'معلومات الفرع' : 'Branch Information'}
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-blue-100 dark:border-slate-600">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                    {selectedOrder.deliveryMethod === 'pickup' 
+                      ? (language === 'ar' ? 'الفرع المحدد للاستلام' : 'Pickup Branch')
+                      : (language === 'ar' ? 'الفرع المسؤول عن التوصيل' : 'Delivery Branch')
+                    }
                   </p>
-                  <div className="space-y-2 text-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-blue-100 dark:border-slate-600">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                        {selectedOrder.deliveryMethod === 'pickup' 
-                          ? (language === 'ar' ? 'الفرع المحدد للاستلام' : 'Pickup Branch')
-                          : (language === 'ar' ? 'الفرع المسؤول عن التوصيل' : 'Delivery Branch')
-                        }
-                      </p>
-                      <p className="font-bold text-base text-blue-600 dark:text-blue-400">
-                        {selectedOrder.branchName || selectedOrder.branch}
-                      </p>
-                      {selectedOrder.branchAddress && (
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-start gap-1">
-                          <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                          {selectedOrder.branchAddress}
-                        </p>
-                      )}
-                      {selectedOrder.branchPhone && (
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 dir-ltr">
-                          📞 {selectedOrder.branchPhone}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  <p className="font-bold text-base text-blue-600 dark:text-blue-400">
+                    {selectedOrder.branchName || selectedOrder.branch}
+                  </p>
+                  {selectedOrder.branchAddress && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-start gap-1">
+                      <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      {selectedOrder.branchAddress}
+                    </p>
+                  )}
+                  {selectedOrder.branchPhone && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 dir-ltr">
+                      📞 {selectedOrder.branchPhone}
+                    </p>
+                  )}
                 </div>
               )}
 

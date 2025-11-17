@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Minus, Trash2, Save, Loader2, ShoppingCart } from 'lucide-react'
+import { X, Plus, Minus, Trash2, ShoppingCart, Loader2, Save } from 'lucide-react'
 import { useTheme } from '@/providers/ThemeProvider'
 import { useProductsData } from '@/providers/ProductsProvider'
+import { TimeManager } from '@/lib/orderTracking'
 import { storage } from '@/lib/storage.client'
-import { editOrder } from '@/lib/api'
+import { editOrder, calculateOrderPrices } from '@/lib/api'
 
 interface OrderItem {
   productId: string
@@ -48,6 +49,22 @@ export default function EditOrderModal({ isOpen, onClose, order, onSuccess }: Ed
   const [editedItems, setEditedItems] = useState<OrderItem[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [newTotals, setNewTotals] = useState<any>(null)
+  const [timeRemaining, setTimeRemaining] = useState<number>(0)
+
+  // Update time remaining every second
+  useEffect(() => {
+    if (!isOpen || !order) return
+
+    const updateTime = () => {
+      const remaining = TimeManager.getEditWindowRemaining(order)
+      setTimeRemaining(remaining)
+    }
+
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+
+    return () => clearInterval(interval)
+  }, [isOpen, order])
 
   useEffect(() => {
     if (isOpen && order) {
@@ -162,26 +179,24 @@ export default function EditOrderModal({ isOpen, onClose, order, onSuccess }: Ed
       return
     }
 
-    // Check if order can still be edited
-    if (!order.canCancelUntil) {
-      showToast({
-        type: 'error',
-        title: language === 'ar' ? 'خطأ' : 'Error',
-        message: language === 'ar' ? 'لا يمكن تعديل هذا الطلب' : 'Cannot edit this order',
-        duration: 3000
-      })
-      return
-    }
-
-    const deadline = new Date(order.canCancelUntil)
-    const now = new Date()
-    if (now > deadline) {
-      showToast({
-        type: 'error',
-        title: language === 'ar' ? 'انتهت المدة' : 'Time Expired',
-        message: language === 'ar' ? 'انتهت فترة التعديل المسموحة (5 دقائق)' : 'Edit period expired (5 minutes)',
-        duration: 3000
-      })
+    // Check if order can still be edited using TimeManager
+    if (!TimeManager.canEditOrder(order)) {
+      const remainingSeconds = TimeManager.getEditWindowRemaining(order)
+      if (remainingSeconds === 0) {
+        showToast({
+          type: 'error',
+          title: language === 'ar' ? 'انتهت المدة' : 'Time Expired',
+          message: language === 'ar' ? 'انتهت فترة التعديل المسموحة (5 دقائق)' : 'Edit period expired (5 minutes)',
+          duration: 3000
+        })
+      } else {
+        showToast({
+          type: 'error',
+          title: language === 'ar' ? 'خطأ' : 'Error',
+          message: language === 'ar' ? 'لا يمكن تعديل هذا الطلب' : 'Cannot edit this order',
+          duration: 3000
+        })
+      }
       return
     }
 
@@ -419,13 +434,13 @@ export default function EditOrderModal({ isOpen, onClose, order, onSuccess }: Ed
           >
             {isSaving ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>{language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}</span>
               </>
             ) : (
               <>
-                <Save className="w-5 h-5" />
-                {language === 'ar' ? 'حفظ التعديلات' : 'Save Changes'}
+                <Save className="w-4 h-4" />
+                <span>{language === 'ar' ? 'حفظ التعديلات' : 'Save Changes'}</span>
               </>
             )}
           </button>

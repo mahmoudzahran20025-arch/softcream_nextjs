@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, CheckCircle, Copy, MessageCircle, MapPin, Clock, Package } from 'lucide-react'
+import { X, CheckCircle, Copy, MessageCircle, MapPin, Clock, Package, CreditCard } from 'lucide-react'
 import TrackingModal from '@/components/modals/TrackingModal'
 
 interface OrderItem {
@@ -226,158 +226,35 @@ const OrderSuccessModal = ({
               </p>
             </div>
 
-            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-2 mb-1">
-                <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                <Clock className="w-4 h-4 text-green-600 dark:text-green-400" />
                 <p className="text-xs text-gray-600 dark:text-gray-400">الوقت المتوقع</p>
               </div>
-              <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                {order.eta || order.etaEn || '≈ 30 min'}
+              <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                {order.eta || '30-45 دقيقة'}
               </p>
             </div>
-          </div>
 
-          {/* Order Details */}
-          <div className="space-y-4 mb-6">
-            {/* Customer Info */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 rounded-xl p-4 border-2 border-purple-200 dark:border-purple-800">
-              <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 flex items-center gap-2">
-                <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  {order.customer.name.charAt(0).toUpperCase()}
-                </div>
-                بيانات العميل
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 mb-1">
+                <CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <p className="text-xs text-gray-600 dark:text-gray-400">الإجمالي</p>
               </div>
-              <div className="space-y-3 text-sm">
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">الاسم الكامل</p>
-                  <p className="font-bold text-lg text-gray-800 dark:text-gray-100">{order.customer.name}</p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">رقم الهاتف</p>
-                  <p className="font-bold text-base text-gray-800 dark:text-gray-100 dir-ltr">{order.customer.phone}</p>
-                </div>
-                {order.customer.address && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      عنوان التوصيل
-                    </p>
-                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{order.customer.address}</p>
-                  </div>
-                )}
-              </div>
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                {order.totals.total.toFixed(2)} ج.م
+              </p>
             </div>
 
-            {/* Delivery Info */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800">
-                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  معلومات التوصيل
-                </p>
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">الطريقة:</span>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">
-                      {order.deliveryMethod === 'delivery' ? 'توصيل للمنازل' : 'استلام من الفرع'}
-                    </p>
-                  </div>
-                  {order.deliveryInfo?.notes && (
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">ملاحظات:</p>
-                      <p className="text-gray-800 dark:text-gray-100">{order.deliveryInfo.notes}</p>
-                    </div>
-                  )}
-                  {order.eta && (
-                    <div className="flex items-center gap-2 pt-2 border-t border-blue-100 dark:border-gray-600">
-                      <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">الوقت المتوقع:</span>
-                        <span className="font-bold text-blue-600 dark:text-blue-400 mr-2">{order.eta}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
+              <div className="flex items-center gap-2 mb-1">
+                <MapPin className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                <p className="text-xs text-gray-600 dark:text-gray-400">التوصيل</p>
               </div>
-
-              {(branchLabel || order.branchAddress || order.branchPhone) && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-purple-200 dark:border-purple-800 space-y-3">
-                  <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
-                    <MapPin className="w-4 h-4" />
-                    <span className="text-sm font-semibold">معلومات الفرع</span>
-                  </div>
-                  {branchLabel && (
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">الفرع</p>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">{branchLabel}</p>
-                    </div>
-                  )}
-                  {order.branchAddress && (
-                    <div className="text-sm">
-                      <p className="text-gray-500 dark:text-gray-400">العنوان</p>
-                      <p className="text-gray-800 dark:text-gray-100">{order.branchAddress}</p>
-                    </div>
-                  )}
-                  {order.branchPhone && (
-                    <div className="text-sm">
-                      <p className="text-gray-500 dark:text-gray-400">الهاتف</p>
-                      <p className="text-gray-800 dark:text-gray-100 dir-ltr">{order.branchPhone}</p>
-                    </div>
-                  )}
-                </div>
-              )}
+              <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                {order.deliveryMethod === 'delivery' ? 'للمنزل' : 'من الفرع'}
+              </p>
             </div>
-
-            {/* Price Summary */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 rounded-xl p-4 border-2 border-purple-100 dark:border-gray-500">
-              <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">ملخص الأسعار</p>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                  <span>المجموع الفرعي:</span>
-                  <span>{order.totals.subtotal.toFixed(2)} ج.م</span>
-                </div>
-                {order.totals.deliveryFee > 0 && (
-                  <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                    <span>رسوم التوصيل:</span>
-                    <span>{order.totals.deliveryFee.toFixed(2)} ج.م</span>
-                  </div>
-                )}
-                {order.totals.discount > 0 && (
-                  <div className="flex justify-between text-green-600 dark:text-green-400">
-                    <span>الخصم:</span>
-                    <span>-{order.totals.discount.toFixed(2)} ج.م</span>
-                  </div>
-                )}
-                <div className="pt-2 border-t border-purple-200 dark:border-gray-500 flex justify-between font-bold text-base">
-                  <span className="text-gray-800 dark:text-gray-100">الإجمالي:</span>
-                  <span className="text-purple-600 dark:text-purple-400">{order.totals.total.toFixed(2)} ج.م</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Items List */}
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
-              <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">المنتجات</p>
-              <div className="space-y-2">
-                {order.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-sm">
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {item.name} × {item.quantity}
-                    </span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-100">
-                      {item.total.toFixed(2)} ج.م
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Info Note */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-6">
-            <p className="text-xs text-blue-800 dark:text-blue-200 text-center">
-              💡 يمكنك إلغاء أو تعديل الطلب خلال 5 دقائق
-            </p>
           </div>
 
           {/* Action Buttons */}

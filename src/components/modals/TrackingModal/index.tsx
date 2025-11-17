@@ -47,6 +47,10 @@ interface Order {
   branch?: Branch | string | null
   branchPhone?: string
   eta?: string
+  // NEW TRACKING FIELDS
+  progress?: number
+  last_updated_by?: string
+  timeline?: Array<{ status: string; timestamp: string; updated_by: string }>
 }
 
 interface TrackingModalProps {
@@ -56,17 +60,18 @@ interface TrackingModalProps {
   onEditOrder?: (order: Order) => void
 }
 
-// ✅ Smart Polling Configuration
+// ✅ Smart Polling Configuration (Optimized - تم التحسين)
 const POLLING_CONFIG = {
-  'جديد': 10000,          // 10s - New order
+  'جديد': 10000,          // 10s - New order (كان 3s)
   'pending': 10000,       // 10s
-  'مؤكد': 15000,          // 15s - Confirmed
+  'مؤكد': 15000,          // 15s - Confirmed (كان 5s)
   'confirmed': 15000,     // 15s
-  'قيد التحضير': 20000,  // 20s - Preparing
+  'قيد التحضير': 20000,  // 20s - Preparing (كان 10s)
   'preparing': 20000,     // 20s
-  'في الطريق': 5000,     // 5s - Out for delivery (fastest)
-  'out_for_delivery': 5000, // 5s
-  'جاهز': 30000,          // 30s - Ready for pickup
+  'جاري التوصيل': 30000, // 30s - Out for delivery (كان 5s)
+  'out_for_delivery': 30000, // 30s
+  'في الطريق': 30000,    // 30s - Out for delivery
+  'جاهز': 30000,          // 30s - Ready for pickup (كان 15s)
   'ready': 30000,         // 30s
   'default': 15000        // 15s - Default
 }
@@ -87,6 +92,187 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
   const lastFetchRef = useRef<number>(0)
   const fetchCountRef = useRef<number>(0)
   const unchangedCountRef = useRef<number>(0) // ✅ FIX: Unchanged counter
+  const lastModifiedRef = useRef<string | null>(null) // ✅ For Conditional Requests
+
+  // Helper functions - defined before useEffect
+  const getStatusLabel = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'pending': 'قيد المراجعة',
+      'جديد': 'قيد المراجعة',
+      'confirmed': 'تم التأكيد',
+      'مؤكد': 'تم التأكيد',
+      'preparing': 'قيد التحضير',
+      'قيد التحضير': 'قيد التحضير',
+      'out_for_delivery': 'في الطريق',
+      'في الطريق': 'في الطريق',
+      'ready': 'جاهز',
+      'جاهز': 'جاهز',
+      'delivered': 'تم التسليم',
+      'cancelled': 'ملغي',
+      'ملغي': 'ملغي'
+    }
+    return statusMap[status] || status
+  }
+
+  // Format update source for display
+  const formatUpdatedBy = (updatedBy: string): string => {
+    if (!updatedBy) return 'النظام'
+    if (updatedBy === 'system') return '🔧 النظام'
+    if (updatedBy === 'auto-time-progress') return '⚡ تحديث تلقائي'
+    if (updatedBy.startsWith('admin:')) return `👨‍💼 أدمن: ${updatedBy.split(':')[1]}`
+    return updatedBy
+  }
+
+  // Fetch status function - moved outside useEffect
+  const fetchStatus = async () => {
+    if (!isMountedRef.current || !isOpen || !order?.id) return
+    
+    const now = Date.now()
+    
+    // ✅ Rate limiting: Min 1 second between requests
+    if (now - lastFetchRef.current < 1000) {
+      console.log('⏭️ Skipping fetch (rate limited)')
+      return
+    }
+    lastFetchRef.current = now
+
+    // ✅ FIX: Max fetches limit
+    if (fetchCountRef.current > 20) {
+      console.log('🛑 Max fetches reached, stopping polling')
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+      return
+    }
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://softcream-api.mahmoud-zahran20025.workers.dev'
+      // 🎯 Use new tracking endpoint - path should be part of URL, not query parameter
+      const url = `${API_URL}/orders/${order.id}/tracking`
+      
+      // ✅ إضافة If-Modified-Since للـ Conditional Requests
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+      
+      if (lastModifiedRef.current) {
+        headers['If-Modified-Since'] = lastModifiedRef.current
+      }
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers
+      })
+      
+      // ✅ معالجة 304 Not Modified
+      if (response.status === 304) {
+        console.log('✅ Not Modified (304) - no changes')
+        unchangedCountRef.current++
+        return
+      }
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ API Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: url,
+          body: errorText
+        })
+        
+        // ✅ معالجة خاصة للـ Rate Limiting
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After')
+          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000 // 30s default
+          console.log(`🔒 Rate limited - waiting ${waitTime/1000}s before retry`)
+          unchangedCountRef.current++
+          
+          // زيادة الـ interval للـ polling التالي
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              fetchStatus()
+            }
+          }, waitTime)
+          return
+        }
+        
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      // ✅ حفظ Last-Modified header
+      const lastModified = response.headers.get('Last-Modified')
+      if (lastModified) {
+        lastModifiedRef.current = lastModified
+        console.log('📅 Last-Modified saved:', lastModified)
+      }
+
+      // ✅ Cache awareness logging
+      const cacheStatus = response.headers.get('X-Cache')
+      const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining')
+      if (cacheStatus) {
+        console.log(`📦 Cache status: ${cacheStatus}`)
+      }
+      if (rateLimitRemaining) {
+        console.log(`🔒 Rate limit remaining: ${rateLimitRemaining}`)
+      }
+
+      const trackingData = data.data
+      
+      if (trackingData && isMountedRef.current) {
+        const oldStatus = currentOrder?.status
+        const newStatus = trackingData.status
+
+        setCurrentOrder(prev => prev ? {
+          ...prev,
+          status: newStatus,
+          progress: trackingData.progress_percentage,
+          last_updated_by: trackingData.last_updated_by,
+          timeline: trackingData.timeline,
+          estimatedMinutes: trackingData.total_estimated_minutes,
+          canCancelUntil: prev.canCancelUntil
+        } : null)
+        
+        // 🎯 Update storage with tracking data
+        storage.updateOrderTracking(order.id, {
+          progress: trackingData.progress_percentage,
+          last_updated_by: trackingData.last_updated_by,
+          timeline: trackingData.timeline
+        })
+
+        // ✅ Show toast only on actual status change
+        if (oldStatus && oldStatus !== newStatus) {
+          showToast({
+            type: 'info',
+            title: 'تحديث الطلب',
+            message: `${getStatusLabel(newStatus)} - ${formatUpdatedBy(trackingData.last_updated_by)}`,
+            duration: 3000
+          })
+          unchangedCountRef.current = 0 // Reset on change
+        } else {
+          unchangedCountRef.current++ // Increment unchanged
+        }
+
+        fetchCountRef.current++
+        console.log(`✅ Status: ${newStatus} (${trackingData.progress_percentage}%) - Updated by: ${trackingData.last_updated_by} (fetch #${fetchCountRef.current})`)
+
+        // ✅ Stop polling if order is complete
+        if (FINAL_STATUSES.includes(newStatus)) {
+          console.log('🏁 Order complete, stopping polling')
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+            timeoutRef.current = null
+          }
+          return
+        }
+      }
+    } catch (error) {
+      console.error('❌ Fetch error:', error)
+      unchangedCountRef.current++ // ✅ FIX: Treat error as unchanged
+    }
+  }
 
   // ✅ Smart Polling with cleanup
   useEffect(() => {
@@ -102,92 +288,6 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
     isMountedRef.current = true
     fetchCountRef.current = 0
     unchangedCountRef.current = 0
-
-    const fetchStatus = async () => {
-      if (!isMountedRef.current || !isOpen) return
-      
-      const now = Date.now()
-      
-      // ✅ Rate limiting: Min 1 second between requests
-      if (now - lastFetchRef.current < 1000) {
-        console.log('⏭️ Skipping fetch (rate limited)')
-        return
-      }
-      lastFetchRef.current = now
-
-      // ✅ FIX: Max fetches limit
-      if (fetchCountRef.current > 20) {
-        console.log('🛑 Max fetches reached, stopping polling')
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
-          timeoutRef.current = null
-        }
-        return
-      }
-
-      try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://softcream-api.mahmoud-zahran20025.workers.dev'
-        const url = `${API_URL}?path=${encodeURIComponent('/orders/status')}&id=${encodeURIComponent(order.id)}`
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        })
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
-        }
-        
-        const data = await response.json()
-        const orderData = data.data?.order || data.order
-        
-        if (orderData && isMountedRef.current) {
-          const oldStatus = currentOrder?.status
-          const newStatus = orderData.status
-
-          setCurrentOrder(prev => prev ? {
-            ...prev,
-            status: newStatus,
-            canCancelUntil: orderData.canCancelUntil,
-            estimatedMinutes: orderData.estimatedMinutes
-          } : null)
-          
-          storage.updateOrderStatus(order.id, newStatus)
-
-          // ✅ Show toast only on actual status change
-          if (oldStatus && oldStatus !== newStatus) {
-            showToast({
-              type: 'info',
-              title: 'تحديث الطلب',
-              message: getStatusLabel(newStatus),
-              duration: 3000
-            })
-            unchangedCountRef.current = 0 // Reset on change
-          } else {
-            unchangedCountRef.current++ // Increment unchanged
-          }
-
-          fetchCountRef.current++
-          console.log(`✅ Status: ${newStatus} (fetch #${fetchCountRef.current})`)
-
-          // ✅ Stop polling if order is complete
-          if (FINAL_STATUSES.includes(newStatus)) {
-            console.log('🏁 Order complete, stopping polling')
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current)
-              timeoutRef.current = null
-            }
-            return
-          }
-        }
-      } catch (error) {
-        console.error('❌ Fetch error:', error)
-        unchangedCountRef.current++ // ✅ FIX: Treat error as unchanged
-      }
-    }
 
     const scheduleNextPoll = () => {
       if (!isMountedRef.current || !isOpen) return
@@ -267,76 +367,12 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
     
     const deadline = new Date(currentOrder.canCancelUntil)
     const now = new Date()
-    const isPending = currentOrder.status === 'جديد' || currentOrder.status === 'pending'
-    setCanCancel(now < deadline && isPending)
-  }, [currentOrder])
-
-  // ✅ FIX: Manual refresh
-  const fetchStatus = async () => {
-    if (!order?.id) return
-    const now = Date.now()
-    if (now - lastFetchRef.current < 1000) return
-    lastFetchRef.current = now
-
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://softcream-api.mahmoud-zahran20025.workers.dev'
-      const url = `${API_URL}?path=${encodeURIComponent('/orders/status')}&id=${encodeURIComponent(order.id)}`
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      })
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
-      }
-      
-      const data = await response.json()
-      const orderData = data.data?.order || data.order
-      
-      if (orderData && isMountedRef.current) {
-        const oldStatus = currentOrder?.status
-        const newStatus = orderData.status
-
-        setCurrentOrder(prev => prev ? {
-          ...prev,
-          status: newStatus,
-          canCancelUntil: orderData.canCancelUntil,
-          estimatedMinutes: orderData.estimatedMinutes
-        } : null)
-        
-        storage.updateOrderStatus(order.id, newStatus)
-
-        if (oldStatus && oldStatus !== newStatus) {
-          showToast({
-            type: 'info',
-            title: 'تحديث الطلب',
-            message: getStatusLabel(newStatus),
-            duration: 3000
-          })
-          unchangedCountRef.current = 0
-        } else {
-          unchangedCountRef.current++
-        }
-
-        if (FINAL_STATUSES.includes(newStatus)) {
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current)
-            timeoutRef.current = null
-          }
-        }
-      }
-    } catch (error) {
-      console.error('❌ Fetch error:', error)
-      throw error
-    }
-  }
+    setCanCancel(now < deadline)
+  }, [currentOrder?.canCancelUntil])
 
   const handleManualRefresh = async () => {
-    if (isRefreshing || !order?.id) return
+    if (!order?.id) return
+    
     setIsRefreshing(true)
     try {
       await fetchStatus()
@@ -357,25 +393,6 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
     } finally {
       setIsRefreshing(false)
     }
-  }
-
-  const getStatusLabel = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'pending': 'قيد المراجعة',
-      'جديد': 'قيد المراجعة',
-      'confirmed': 'تم التأكيد',
-      'مؤكد': 'تم التأكيد',
-      'preparing': 'قيد التحضير',
-      'قيد التحضير': 'قيد التحضير',
-      'out_for_delivery': 'في الطريق',
-      'في الطريق': 'في الطريق',
-      'ready': 'جاهز',
-      'جاهز': 'جاهز',
-      'delivered': 'تم التسليم',
-      'cancelled': 'ملغي',
-      'ملغي': 'ملغي'
-    }
-    return statusMap[status] || status
   }
 
   const handleCancelOrder = async () => {

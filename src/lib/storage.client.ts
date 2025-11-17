@@ -577,6 +577,47 @@ export class StorageManager {
       return false
     }
   }
+
+  // 🎯 Phase 3: Update order with tracking data (progress, timeline, last_updated_by)
+  updateOrderTracking(orderId: string, trackingData: any): boolean {
+    try {
+      const orders = this.getOrders()
+      const orderIndex = orders.findIndex((o: any) => o.id === orderId)
+      
+      if (orderIndex === -1) {
+        console.warn('⚠️ Order not found:', orderId)
+        return false
+      }
+      
+      orders[orderIndex] = {
+        ...orders[orderIndex],
+        progress: trackingData.progress,
+        last_updated_by: trackingData.last_updated_by,
+        timeline: trackingData.timeline,
+        lastUpdated: new Date().toISOString()
+      }
+      
+      const success = this.local.set('userOrders', orders)
+      
+      if (success) {
+        console.log('🎯 Tracking data updated:', orderId, {
+          progress: trackingData.progress,
+          last_updated_by: trackingData.last_updated_by
+        })
+        // ✅ Single event dispatch
+        this.eventManager.triggerUpdate({
+          orderId,
+          action: 'updated',
+          count: this.getActiveOrdersCount()
+        })
+      }
+      
+      return success
+    } catch (e) {
+      console.error('❌ Failed to update tracking:', e)
+      return false
+    }
+  }
   
   // Products Cache
   getProductsCache(): any {

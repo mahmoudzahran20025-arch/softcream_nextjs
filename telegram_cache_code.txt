@@ -1,0 +1,18 @@
+      // Add status history record
+      try {
+        await env.DB.prepare(`
+          INSERT INTO order_status_history (order_id, status, timestamp, updated_by)
+          VALUES (?, ?, ?, ?)
+        `).bind(orderId, status, now, operatorName).run();
+        console.log('Status history recorded for', orderId, ':', status);
+      } catch (e) {
+        console.warn('Failed to record status history:', e.message);
+      }
+
+      // Clear cache
+      try {
+        await env.CACHE.delete('tracking:' + orderId);
+        console.log('Cache cleared for order:', orderId);
+      } catch (e) {
+        console.warn('Cache delete failed:', e.message);
+      }
