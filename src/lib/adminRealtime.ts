@@ -18,7 +18,6 @@ class SSEManager {
   private maxReconnectAttempts: number = 5;
   private reconnectDelay: number = 1000;
   private callbacks: Map<string, Function[]> = new Map();
-  private isConnected: boolean = false;
 
   connect(url: string) {
     if (this.eventSource) {
@@ -39,7 +38,6 @@ class SSEManager {
 
     this.eventSource.onopen = () => {
       console.log('🔌 SSE Connected');
-      this.isConnected = true;
       this.reconnectAttempts = 0;
     };
 
@@ -54,7 +52,6 @@ class SSEManager {
 
     this.eventSource.onerror = () => {
       console.error('SSE connection error');
-      this.isConnected = false;
       this.scheduleReconnect();
     };
 
@@ -104,7 +101,6 @@ class SSEManager {
       this.eventSource.close();
       this.eventSource = null;
     }
-    this.isConnected = false;
   }
 
   on(eventType: string, callback: Function) {
@@ -135,7 +131,6 @@ export class AdminRealtimeManager {
   private lastData: Map<string, any> = new Map();
   private cache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
   private sseEnabled: boolean = false;
-  private batchMode: boolean = true;
   private settings: {
     orderNotifications: boolean;
     soundNotifications: boolean;
@@ -173,11 +168,11 @@ export class AdminRealtimeManager {
     }
 
     // Setup SSE event handlers
-    sseManager.on('order_update', (data) => {
+    sseManager.on('order_update', (data: any) => {
       this.handleSSEOrderUpdate(data);
     });
 
-    sseManager.on('status_change', (data) => {
+    sseManager.on('status_change', (data: any) => {
       this.handleSSEStatusChange(data);
     });
   }
@@ -320,7 +315,7 @@ export class AdminRealtimeManager {
     }
   }
 
-  // Start all polling (Optimized - تم التحسين)
+  // Start all polling (Optimized MORE - تم التحسين أكثر)
   startAll() {
     if (!this.settings.autoRefresh) return;
 
@@ -330,19 +325,19 @@ export class AdminRealtimeManager {
       return;
     }
 
-    // ✅ تحسين: زيادة Intervals لتقليل الضغط على API
-    const baseInterval = Math.max((this.settings.refreshInterval || 10), 10) * 1000; // 10s minimum (كان 3s)
+    // ✅ تحسين أكثر: زيادة Intervals لتقليل الضغط على API بشكل كبير
+    const baseInterval = Math.max((this.settings.refreshInterval || 30), 30) * 1000; // 30s minimum (كان 15s)
     
-    this.start('orders', baseInterval); // Orders: 10s (كان 3s)
-    this.start('stats', baseInterval * 3); // Stats: 30s (كان 9s)
-    this.start('coupons', baseInterval * 6); // Coupons: 60s (كان 15s)
-    this.start('analytics', baseInterval * 6); // Analytics: 60s (كان 30s)
+    this.start('orders', baseInterval); // Orders: 30s (كان 15s)
+    this.start('stats', baseInterval * 4); // Stats: 120s (كان 60s)
+    this.start('coupons', baseInterval * 8); // Coupons: 240s (كان 120s)
+    this.start('analytics', baseInterval * 8); // Analytics: 240s (كان 120s)
   }
 
-  // Start batch mode for efficient polling (Optimized - تم التحسين)
+  // Start batch mode for efficient polling (Optimized MORE - تم التحسين أكثر)
   private startBatchMode() {
-    // ✅ تحسين: زيادة Interval لتقليل الضغط على API
-    const baseInterval = Math.max((this.settings.refreshInterval || 10), 10) * 1000; // 10s minimum (كان 3s)
+    // ✅ تحسين أكثر: زيادة Interval لتقليل الضغط على API بشكل كبير
+    const baseInterval = Math.max((this.settings.refreshInterval || 30), 30) * 1000; // 30s minimum (كان 20s)
     
     // Batch all data types in one request
     this.startBatch(['orders', 'stats', 'coupons', 'analytics'], baseInterval);

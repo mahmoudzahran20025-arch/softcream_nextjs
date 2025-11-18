@@ -8,7 +8,6 @@ import {
   toggleCoupon,
   getAdminToken,
   clearAdminToken,
-  OrdersPolling,
   type Order,
   type Coupon,
   type Product 
@@ -41,18 +40,17 @@ const AdminApp: React.FC<AdminAppProps> = ({ initialData, onRefresh }) => {
   const [coupons, setCoupons] = useState<Coupon[]>(initialData.coupons);
   const [stats, setStats] = useState(initialData.stats);
 
-  // Setup orders polling
-  useEffect(() => {
-    const ordersPolling = new OrdersPolling((newOrders: Order[]) => {
-      setOrders(newOrders);
-    });
-
-    ordersPolling.start();
-
-    return () => {
-      ordersPolling.stop();
-    };
-  }, []);
+  // ✅ FIX: DISABLED automatic polling - use manual refresh only
+  // Too many requests! Let user refresh manually instead.
+  // useEffect(() => {
+  //   const ordersPolling = new OrdersPolling((newOrders: Order[]) => {
+  //     setOrders(newOrders);
+  //   });
+  //   ordersPolling.start();
+  //   return () => {
+  //     ordersPolling.stop();
+  //   };
+  // }, []);
 
   // Update data when initialData changes
   useEffect(() => {

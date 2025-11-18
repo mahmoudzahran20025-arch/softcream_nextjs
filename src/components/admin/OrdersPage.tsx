@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import { Search, Download, Package, User, Phone, MapPin, Clock, Eye } from 'lucide-react';
 import type { Order } from '@/lib/adminApi';
 import { StatusManager } from '@/lib/orderTracking';
-import { getOrdersWithTracking } from '@/lib/adminApi';
 
 interface OrdersPageProps {
   orders: Order[];
@@ -17,148 +16,24 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ orders, onUpdateStatus }) => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [ordersWithTracking, setOrdersWithTracking] = useState<Order[]>([]);
 
-  // 🎯 Calculate tracking data for orders with smart polling
+  // ✅ FIX: Remove duplicate polling - rely on parent component's polling
+  // Just process the orders prop when it changes (parent already polls via adminRealtime)
   useEffect(() => {
-    const calculateTrackingData = async () => {
-      try {
-        // First, try to get orders with tracking data from backend
-        const trackingResponse = await getOrdersWithTracking({ includeTracking: true });
-        
-        if (trackingResponse.success && trackingResponse.data.orders) {
-          // Use backend tracking data
-          const updatedOrders = trackingResponse.data.orders.map(order => ({
-            ...order,
-            // Ensure all tracking fields are present
-            progress: order.progress || 0,
-            elapsedMinutes: order.elapsedMinutes || 0,
-            isAutoProgressed: order.isAutoProgressed || false,
-            nextStatus: order.nextStatus || '',
-            estimatedCompletionTime: order.estimatedCompletionTime || '',
-            // Backend tracking fields
-            last_updated_by: order.last_updated_by || '',
-            processed_date: order.processed_date || '',
-            processed_by: order.processed_by || ''
-          }));
-          setOrdersWithTracking(updatedOrders);
-        } else {
-          // Fallback to frontend calculation if backend fails
-          const updatedOrders = (orders || []).map(order => {
-            // If order already has tracking data from backend, use it
-            if (order.progress !== undefined && order.elapsedMinutes !== undefined) {
-              return {
-                ...order,
-                // Ensure all tracking fields are present
-                progress: order.progress || 0,
-                elapsedMinutes: order.elapsedMinutes || 0,
-                isAutoProgressed: order.isAutoProgressed || false,
-                nextStatus: order.nextStatus || '',
-                estimatedCompletionTime: order.estimatedCompletionTime || '',
-                // Backend tracking fields
-                last_updated_by: order.last_updated_by || '',
-                processed_date: order.processed_date || '',
-                processed_by: order.processed_by || ''
-              };
-            }
-
-            // Fallback to frontend calculation for orders without backend tracking
-            const now = Date.now();
-            const orderTime = order.timestamp;
-            const elapsedMinutes = Math.floor((now - orderTime) / 60000);
-            
-            // Calculate progress based on status and elapsed time
-            let progress = 0;
-            let nextStatus = '';
-            let estimatedCompletionTime = '';
-            let isAutoProgressed = false;
-
-            // Status progression with time-based percentages
-            const statusProgression = {
-              'جديد': { min: 0, max: 25, next: 'قيد التحضير', timeThreshold: 5 },
-              'قيد التحضير': { min: 25, max: 60, next: 'جاهز', timeThreshold: 15 },
-              'جاهز': { min: 60, max: 85, next: 'تم التوصيل', timeThreshold: 10 },
-              'تم التوصيل': { min: 85, max: 100, next: '', timeThreshold: 0 },
-              'cancelled': { min: 0, max: 0, next: '', timeThreshold: 0 }
-            };
-
-            const currentStatusConfig = statusProgression[order.status as keyof typeof statusProgression] || statusProgression['جديد'];
-            
-            // Calculate progress within current status range
-            if (order.status !== 'cancelled' && order.status !== 'تم التوصيل') {
-              const timeInStatus = elapsedMinutes;
-              const timeProgress = Math.min(1, timeInStatus / currentStatusConfig.timeThreshold);
-              const statusRange = currentStatusConfig.max - currentStatusConfig.min;
-              progress = currentStatusConfig.min + (statusRange * timeProgress);
-              
-              // Check if should auto-progress
-              if (timeProgress >= 1 && currentStatusConfig.next) {
-                isAutoProgressed = true;
-                nextStatus = currentStatusConfig.next;
-                progress = statusProgression[nextStatus as keyof typeof statusProgression]?.min || progress;
-              }
-            } else if (order.status === 'تم التوصيل') {
-              progress = 100;
-            } else if (order.status === 'cancelled') {
-              progress = 0;
-            }
-
-            // Calculate estimated completion time
-            if (order.status !== 'تم التوصيل' && order.status !== 'cancelled') {
-              const totalEstimatedTime = 5 + 15 + 10; // 5+15+10 minutes total
-              const remainingTime = Math.max(0, totalEstimatedTime - elapsedMinutes);
-              const completionDate = new Date(now + remainingTime * 60000);
-              estimatedCompletionTime = completionDate.toLocaleTimeString('ar-EG', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              });
-            }
-
-            return {
-              ...order,
-              progress: Math.round(progress),
-              elapsedMinutes,
-              isAutoProgressed,
-              nextStatus,
-              estimatedCompletionTime,
-              // Backend tracking fields (if available)
-              last_updated_by: order.last_updated_by || '',
-              processed_date: order.processed_date || '',
-              processed_by: order.processed_by || ''
-            };
-          });
-
-          setOrdersWithTracking(updatedOrders);
-        }
-      } catch (error) {
-        console.error('Error fetching tracking data:', error);
-        // Fallback to frontend calculation on error
-        const updatedOrders = (orders || []).map(order => ({
-          ...order,
-          progress: order.progress || 0,
-          elapsedMinutes: order.elapsedMinutes || 0,
-          isAutoProgressed: order.isAutoProgressed || false,
-          nextStatus: order.nextStatus || '',
-          estimatedCompletionTime: order.estimatedCompletionTime || '',
-          last_updated_by: order.last_updated_by || '',
-          processed_date: order.processed_date || '',
-          processed_by: order.processed_by || ''
-        }));
-        setOrdersWithTracking(updatedOrders);
-      }
-    };
-
-    calculateTrackingData();
+    // Simply use the orders from props - they already have tracking data from parent
+    const processedOrders = (orders || []).map(order => ({
+      ...order,
+      // Ensure all tracking fields have fallback values
+      progress: order.progress ?? 0,
+      elapsedMinutes: order.elapsedMinutes ?? 0,
+      isAutoProgressed: order.isAutoProgressed ?? false,
+      nextStatus: order.nextStatus ?? '',
+      estimatedCompletionTime: order.estimatedCompletionTime ?? '',
+      last_updated_by: order.last_updated_by ?? 'system',
+      processed_date: order.processed_date ?? '',
+      processed_by: order.processed_by ?? ''
+    }));
     
-    // Smart polling: more frequent for active orders
-    const getPollingInterval = () => {
-      const hasActiveOrders = (orders || []).some(order => 
-        order.status !== 'تم التوصيل' && order.status !== 'cancelled'
-      );
-      return hasActiveOrders ? 2000 : 5000; // 2s for active, 5s for completed
-    };
-    
-    const interval = setInterval(calculateTrackingData, getPollingInterval());
-    
-    return () => clearInterval(interval);
+    setOrdersWithTracking(processedOrders);
   }, [orders]);
 
   const statuses = [

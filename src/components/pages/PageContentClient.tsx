@@ -98,6 +98,26 @@ export default function PageContentClient({ children }: PageContentClientProps) 
     }
   }, [])
 
+  // ✅ Listen for openTrackingModal event from MyOrdersModal
+  useEffect(() => {
+    const handleOpenTracking = (event: any) => {
+      const { order } = event.detail || {}
+      if (order) {
+        console.log('📍 Opening TrackingModal for order:', order.id)
+        setSelectedOrder(order)
+        setShowTracking(true)
+        setShowMyOrders(false) // Close MyOrdersModal
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('openTrackingModal', handleOpenTracking)
+      return () => {
+        window.removeEventListener('openTrackingModal', handleOpenTracking)
+      }
+    }
+  }, [])
+
   // ✅ Listen for order status updates from backend (via polling or webhook)
   useEffect(() => {
     if (typeof window === 'undefined') return

@@ -225,20 +225,25 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
         const oldStatus = currentOrder?.status
         const newStatus = trackingData.status
 
+        // ✅ FIX: Map backend fields correctly (progress not progress_percentage)
+        const progress = trackingData.progress ?? trackingData.progress_percentage ?? null
+        const lastUpdatedBy = trackingData.last_updated_by || 'system'
+        const estimatedMinutes = trackingData.estimatedMinutes ?? trackingData.total_estimated_minutes ?? currentOrder?.estimatedMinutes
+
         setCurrentOrder(prev => prev ? {
           ...prev,
           status: newStatus,
-          progress: trackingData.progress_percentage,
-          last_updated_by: trackingData.last_updated_by,
+          progress: progress,  // ✅ Fixed field name
+          last_updated_by: lastUpdatedBy,  // ✅ With fallback
           timeline: trackingData.timeline,
-          estimatedMinutes: trackingData.total_estimated_minutes,
+          estimatedMinutes: estimatedMinutes,
           canCancelUntil: prev.canCancelUntil
         } : null)
         
         // 🎯 Update storage with tracking data
         storage.updateOrderTracking(order.id, {
-          progress: trackingData.progress_percentage,
-          last_updated_by: trackingData.last_updated_by,
+          progress: progress,
+          last_updated_by: lastUpdatedBy,
           timeline: trackingData.timeline
         })
 
@@ -247,7 +252,7 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
           showToast({
             type: 'info',
             title: 'تحديث الطلب',
-            message: `${getStatusLabel(newStatus)} - ${formatUpdatedBy(trackingData.last_updated_by)}`,
+            message: `${getStatusLabel(newStatus)} - ${formatUpdatedBy(lastUpdatedBy)}`,
             duration: 3000
           })
           unchangedCountRef.current = 0 // Reset on change
@@ -256,7 +261,10 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
         }
 
         fetchCountRef.current++
-        console.log(`✅ Status: ${newStatus} (${trackingData.progress_percentage}%) - Updated by: ${trackingData.last_updated_by} (fetch #${fetchCountRef.current})`)
+        // ✅ FIX: Add fallback display for undefined values
+        const progressDisplay = progress !== null && progress !== undefined ? `${progress}%` : 'جاري الحساب...'
+        const updatedByDisplay = formatUpdatedBy(lastUpdatedBy)
+        console.log(`✅ Status: ${newStatus} (${progressDisplay}) - Updated by: ${updatedByDisplay} (fetch #${fetchCountRef.current})`)
 
         // ✅ Stop polling if order is complete
         if (FINAL_STATUSES.includes(newStatus)) {
@@ -358,17 +366,51 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
     }
   }, [order])
 
-  // Check if can cancel
+  // Check if can cancel (based on time AND status) - with live timer
   useEffect(() => {
-    if (!currentOrder?.canCancelUntil) {
-      setCanCancel(false)
-      return
+    const checkCanCancel = () => {
+      // ✅ FIX: Can only cancel if:
+      // 1. Within 5-minute window (canCancelUntil)
+      // 2. Status is still 'pending' or 'جديد'
+      // 3. Not already cancelled or delivered
+      
+      if (!currentOrder) {
+        setCanCancel(false)
+        return
+      }
+
+      // Check status first
+      const allowedStatuses = ['pending', 'جديد']
+      if (!allowedStatuses.includes(currentOrder.status)) {
+        setCanCancel(false)
+        return
+      }
+
+      // Check time window
+      if (!currentOrder.canCancelUntil) {
+        setCanCancel(false)
+        return
+      }
+      
+      const deadline = new Date(currentOrder.canCancelUntil)
+      const now = new Date()
+      const withinTimeWindow = now < deadline
+      
+      setCanCancel(withinTimeWindow)
+      
+      if (!withinTimeWindow) {
+        console.log('⏰ Cancel window expired')
+      }
     }
-    
-    const deadline = new Date(currentOrder.canCancelUntil)
-    const now = new Date()
-    setCanCancel(now < deadline)
-  }, [currentOrder?.canCancelUntil])
+
+    // Check immediately
+    checkCanCancel()
+
+    // ✅ Check every second to update cancel button in real-time
+    const timer = setInterval(checkCanCancel, 1000)
+
+    return () => clearInterval(timer)
+  }, [currentOrder?.canCancelUntil, currentOrder?.status, currentOrder])
 
   const handleManualRefresh = async () => {
     if (!order?.id) return
@@ -622,6 +664,40 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
                 )}
               </button>
             </div>
+
+            {/* ✅ Enhanced Progress Bar with Shimmer */}
+            {currentOrder.progress !== null && currentOrder.progress !== undefined && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 mb-2">
+                  <span className="font-medium">نسبة الإنجاز</span>
+                  <span className="font-bold text-lg text-blue-600 dark:text-blue-400">{currentOrder.progress}%</span>
+                </div>
+                <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 h-full rounded-full transition-all duration-700 ease-out relative"
+                    style={{ width: `${currentOrder.progress}%` }}
+                  >
+                    {/* Shine effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ✅ Enhanced Last Updated By */}
+            {currentOrder.last_updated_by && (
+              <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    آخر تحديث بواسطة
+                  </p>
+                </div>
+                <p className="mt-1 text-sm font-semibold text-blue-600 dark:text-blue-400">
+                  {formatUpdatedBy(currentOrder.last_updated_by)}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Customer Info */}
@@ -650,30 +726,49 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
             </div>
           </div>
 
-          {/* Branch Info (Pickup) */}
-          {currentOrder.deliveryMethod === 'pickup' && currentOrder.branch && (
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border-2 border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2 mb-3">
-                <Store className="w-5 h-5 text-green-600" />
-                <p className="font-bold text-green-800 dark:text-green-400">الفرع المحدد للاستلام</p>
+          {/* Enhanced Branch Info */}
+          {currentOrder.branch && (
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 border-2 border-green-200 dark:border-green-800">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <Store className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    {currentOrder.deliveryMethod === 'pickup' ? 'الفرع المحدد للاستلام' : 'الفرع المسؤول عن التوصيل'}
+                  </p>
+                  <p className="font-bold text-lg text-green-700 dark:text-green-400">
+                    {getBranchName()}
+                  </p>
+                </div>
               </div>
-              <div className="space-y-2 text-sm">
-                <p className="font-bold text-gray-800 dark:text-gray-100 text-base">
-                  {getBranchName()}
-                </p>
-                {getBranchAddress() && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-gray-600 dark:text-gray-400">{getBranchAddress()}</p>
-                  </div>
-                )}
-                {getBranchPhone() && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-500" />
-                    <p className="text-gray-600 dark:text-gray-400 dir-ltr">{getBranchPhone()}</p>
-                  </div>
-                )}
-              </div>
+              
+              {getBranchAddress() && (
+                <div className="flex items-start gap-2 mb-3 text-sm">
+                  <MapPin className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-gray-700 dark:text-gray-300">{getBranchAddress()}</p>
+                </div>
+              )}
+              
+              {/* Contact Buttons */}
+              {getBranchPhone() && (
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <button
+                    onClick={handleCallBranch}
+                    className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-gray-700 border-2 border-green-300 dark:border-green-700 rounded-lg font-semibold text-green-600 dark:text-green-400 transition-all active:scale-95"
+                  >
+                    <Phone className="w-4 h-4" />
+                    <span className="text-sm">اتصال</span>
+                  </button>
+                  <button
+                    onClick={handleWhatsApp}
+                    className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-gray-700 border-2 border-green-300 dark:border-green-700 rounded-lg font-semibold text-green-600 dark:text-green-400 transition-all active:scale-95"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="text-sm">واتساب</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

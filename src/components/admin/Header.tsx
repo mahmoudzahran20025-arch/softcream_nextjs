@@ -20,6 +20,7 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isConnected, setIsConnected] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     // Monitor connection status
@@ -84,22 +85,32 @@ const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Live Status Indicator */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-            <span className="text-xs font-medium text-green-700">
-              مباشر • تحديث منذ {formatLastUpdate(lastUpdate)}
+          {/* Manual Refresh Status */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-blue-500' : 'bg-red-500'}`}></div>
+            <span className="text-xs font-medium text-blue-700">
+              تحديث يدوي • آخر تحديث {formatLastUpdate(lastUpdate)}
             </span>
           </div>
 
           {/* Refresh Button */}
           <button 
-            onClick={onRefresh}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            title="تحديث البيانات"
+            onClick={async () => {
+              if (isRefreshing || !onRefresh) return;
+              setIsRefreshing(true);
+              try {
+                await onRefresh();
+                setLastUpdate(new Date());
+              } finally {
+                setIsRefreshing(false);
+              }
+            }}
+            disabled={isRefreshing}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="تحديث البيانات يدوياً"
             aria-label="Refresh data"
           >
-            <RefreshCw size={20} className="text-gray-600" />
+            <RefreshCw size={20} className={`text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
 
           {/* Notifications */}

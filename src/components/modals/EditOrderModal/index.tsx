@@ -6,7 +6,7 @@ import { useTheme } from '@/providers/ThemeProvider'
 import { useProductsData } from '@/providers/ProductsProvider'
 import { TimeManager } from '@/lib/orderTracking'
 import { storage } from '@/lib/storage.client'
-import { editOrder, calculateOrderPrices } from '@/lib/api'
+import { editOrder } from '@/lib/api'
 
 interface OrderItem {
   productId: string
@@ -49,7 +49,7 @@ export default function EditOrderModal({ isOpen, onClose, order, onSuccess }: Ed
   const [editedItems, setEditedItems] = useState<OrderItem[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [newTotals, setNewTotals] = useState<any>(null)
-  const [timeRemaining, setTimeRemaining] = useState<number>(0)
+  const [, setTimeRemaining] = useState<number>(0)
 
   // Update time remaining every second
   useEffect(() => {
@@ -220,14 +220,16 @@ export default function EditOrderModal({ isOpen, onClose, order, onSuccess }: Ed
 
       const result = await editOrder(order.id, itemsForApi)
 
-      // ✅ FIX: Enhanced condition - check !error first, then success (covers more cases)
-      // Log full result for debug
+      // ✅ FIX: api.ts returns result.data directly, so check for orderId presence
+      // Backend returns: {success: true, data: {orderId, status, items, totals}}
+      // But api.ts extracts: {orderId, status, items, totals}
       console.log('🔍 Edit API Response full:', result)
       
-      const isSuccess = !result.error && (result.success === true || (result.data && !result.data.error))
+      // Success if we have orderId (means data was extracted) OR explicit success flag
+      const isSuccess = result.orderId || (result.success === true && !result.error)
       
       if (isSuccess) {
-        console.log('✅ Order updated successfully (fixed condition)')
+        console.log('✅ Order updated successfully (orderId present or success=true)')
         
         // Update local storage
         if (newTotals) {

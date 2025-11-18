@@ -127,7 +127,7 @@ const OrderSuccessModal = ({
   const [showTracking, setShowTracking] = useState(false)
   const branchLabel = getBranchLabel(order.branch) || order.branchName || ''
 
-  console.log('🎯 OrderSuccessModal rendered:', { isOpen, orderId: order?.id })
+  console.log('🎯 OrderSuccessModal rendered:', { isOpen, orderId: order?.id, branchLabel })
 
   const handleCopyOrderId = () => {
     navigator.clipboard.writeText(order.id)

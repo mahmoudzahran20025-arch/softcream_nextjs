@@ -67,11 +67,29 @@ export default function AdminPage() {
       }));
     });
 
-    // Start all real-time updates
-    adminRealtime().startAll();
+    // ✅ NEW: Listen to client-side order updates (from EditOrderModal, etc.)
+    const handleOrdersUpdated = (event: any) => {
+      const { orderId, action } = event.detail || {};
+      console.log(`📢 Admin: Order ${orderId} ${action} - refreshing data`);
+      loadInitialData(); // Reload all orders
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('ordersUpdated', handleOrdersUpdated);
+    }
+
+    // ✅ FIX: Auto-refresh every 60 seconds (reasonable interval)
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing admin data...');
+      loadInitialData();
+    }, 60000); // 60 seconds
 
     return () => {
-      adminRealtime().destroy();
+      clearInterval(refreshInterval);
+      adminRealtime().stopAll();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('ordersUpdated', handleOrdersUpdated);
+      }
     };
   }, []);
 

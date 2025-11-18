@@ -23,7 +23,7 @@ export function clearAdminToken(): void {
 }
 
 // ===========================
-// HTTP Request Helper (FIXED)
+// HTTP Request Helper (FIXED + DEDUPLICATION)
 // ===========================
 
 interface RequestOptions {
@@ -32,11 +32,38 @@ interface RequestOptions {
   requiresAuth?: boolean;
 }
 
+// ✅ Request deduplication cache with timestamp
+interface CachedRequest {
+  promise: Promise<any>;
+  timestamp: number;
+}
+
+const pendingRequests = new Map<string, CachedRequest>();
+const DEDUP_WINDOW = 1000; // 1 second deduplication window
+
 async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
   const { method = 'GET', body, requiresAuth = true } = options;
+
+  // ✅ Create request key for deduplication (only for GET requests)
+  const requestKey = method === 'GET' ? `${method}:${endpoint}` : null;
+  
+  // ✅ Check if same request is already in flight OR was made recently
+  if (requestKey) {
+    const cached = pendingRequests.get(requestKey);
+    if (cached) {
+      const age = Date.now() - cached.timestamp;
+      if (age < DEDUP_WINDOW) {
+        console.log('🔄 Deduplicating request (age: ' + age + 'ms):', requestKey);
+        return cached.promise;
+      } else {
+        // Old request, remove it
+        pendingRequests.delete(requestKey);
+      }
+    }
+  }
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -59,37 +86,57 @@ async function apiRequest<T>(
     config.body = JSON.stringify(body);
   }
 
-  try {
-    // ✅ FIX: Construct URL properly
-    // Split endpoint into path and query params
-    const [path, queryString] = endpoint.split('?');
-    
-    let finalUrl;
-    if (queryString) {
-      // If endpoint has query params, append them to the main URL
-      finalUrl = `${API_BASE_URL}?path=${path}&${queryString}`;
-    } else {
-      // No query params, just path
-      finalUrl = `${API_BASE_URL}?path=${path}`;
+  // ✅ Create the request promise
+  const requestPromise = (async () => {
+    try {
+      // ✅ FIX: Construct URL properly
+      // Split endpoint into path and query params
+      const [path, queryString] = endpoint.split('?');
+      
+      let finalUrl;
+      if (queryString) {
+        // If endpoint has query params, append them to the main URL
+        finalUrl = `${API_BASE_URL}?path=${path}&${queryString}`;
+      } else {
+        // No query params, just path
+        finalUrl = `${API_BASE_URL}?path=${path}`;
+      }
+
+      console.log('🔗 API Request:', method, finalUrl);
+
+      const response = await fetch(finalUrl, config);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('❌ API Error:', response.status, errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ API Response:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ API Request Error:', error);
+      throw error;
+    } finally {
+      // ✅ Keep in cache for DEDUP_WINDOW, then remove
+      if (requestKey) {
+        setTimeout(() => {
+          pendingRequests.delete(requestKey);
+        }, DEDUP_WINDOW);
+      }
     }
+  })();
 
-    console.log('🔗 API Request:', method, finalUrl);
-
-    const response = await fetch(finalUrl, config);
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      console.error('❌ API Error:', response.status, errorData);
-      throw new Error(errorData.error || `HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('✅ API Response:', data);
-    return data;
-  } catch (error) {
-    console.error('❌ API Request Error:', error);
-    throw error;
+  // ✅ Store in pending requests with timestamp
+  if (requestKey) {
+    pendingRequests.set(requestKey, {
+      promise: requestPromise,
+      timestamp: Date.now()
+    });
   }
+
+  return requestPromise;
 }
 
 // ===========================
@@ -752,7 +799,7 @@ export class OrdersPolling {
         // Always check for status changes in existing orders
         const hasChanges = this.detectChanges(newOrders);
         if (hasChanges) {
-          console.log(' Order status changes detected');
+          console.log('📊 Order status changes detected');
         }
         
         this.lastOrderId = latestOrderId;
@@ -770,10 +817,22 @@ export class OrdersPolling {
     }
   }
 
-  private detectChanges(_orders: Order[]): boolean {
-    // Simple change detection - in real implementation, compare with previous state
-    // For now, we'll always trigger callback to ensure UI is up-to-date
-    return true;
+  private lastOrdersSnapshot: string = '';
+  
+  private detectChanges(orders: Order[]): boolean {
+    // ✅ FIX: Actually detect changes by comparing snapshots
+    const currentSnapshot = JSON.stringify(orders.map(o => ({
+      id: o.id,
+      status: o.status,
+      timestamp: o.timestamp
+    })));
+    
+    if (this.lastOrdersSnapshot === currentSnapshot) {
+      return false; // No changes
+    }
+    
+    this.lastOrdersSnapshot = currentSnapshot;
+    return true; // Changes detected
   }
 }
 
