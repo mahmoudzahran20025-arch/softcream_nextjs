@@ -510,16 +510,18 @@ export interface Coupon {
   name: string;
   discount_percent: number;
   discount_percent_child?: number;
-  discount_percent_second?: number;
+  discount_percent_parent_second?: number;  // Fixed field name
   valid_from: number;
   valid_to: number;
-  valid_days?: number;
   min_order: number;
   max_uses: number;
   current_uses: number;
   active: number;
+  created_at: number;
   message_ar?: string;
   message_en?: string;
+  // Computed field for display
+  valid_days?: number;
 }
 
 export interface CreateCouponData {
@@ -545,7 +547,7 @@ export async function createCoupon(data: CreateCouponData): Promise<{
   success: boolean;
   data: Coupon;
 }> {
-  return apiRequest('/admin/coupons/create', {
+  return apiRequest('/admin/coupons', {
     method: 'POST',
     body: data
   });
@@ -564,9 +566,27 @@ export async function toggleCoupon(code: string): Promise<{
 // Get coupon statistics
 export async function getCouponStats(code: string): Promise<{
   code: string;
+  name: string;
   totalUses: number;
+  maxUses: number;
+  remainingUses: number;
   totalDiscount: number;
-  usageHistory: any[];
+  usageBreakdown: Array<{
+    usage_type: string;
+    count: number;
+    total_discount: number;
+  }>;
+  usageHistory: Array<{
+    id: number;
+    coupon_code: string;
+    user_phone: string;
+    order_id: string;
+    usage_type: string;
+    discount_applied: number;
+    used_at: number;
+    customer_name?: string;
+    order_total?: number;
+  }>;
 }> {
   return apiRequest(`/admin/coupons/${code}/stats`);
 }
@@ -584,6 +604,7 @@ export async function deleteCoupon(code: string): Promise<{
 // Update coupon
 export async function updateCoupon(code: string, data: Partial<CreateCouponData>): Promise<{
   success: boolean;
+  message: string;
   data: Coupon;
 }> {
   return apiRequest(`/admin/coupons/${code}`, {

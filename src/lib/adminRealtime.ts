@@ -141,9 +141,9 @@ export class AdminRealtimeManager {
     batchMode: boolean;
   } = {
     orderNotifications: true,
-    soundNotifications: true,
-    autoRefresh: true,
-    refreshInterval: 3,
+    soundNotifications: false, // Disabled by default to reduce noise
+    autoRefresh: false, // Disabled - use manual refresh instead
+    refreshInterval: 120, // 2 minutes if enabled
     smartPolling: true,
     sseEnabled: false,
     batchMode: true

@@ -407,14 +407,96 @@ ${items}
 
 // Polling configuration for different statuses
 export const POLLING_CONFIG = {
-  'pending': 10000,        // 10s - New order
-  'confirmed': 15000,      // 15s - Confirmed
-  'preparing': 20000,       // 20s - Preparing
-  'out_for_delivery': 5000,  // 5s - Out for delivery (fastest)
-  'ready': 30000,           // 30s - Ready for pickup
-  'delivered': 0,           // Stop polling
-  'cancelled': 0,           // Stop polling
-  'default': 15000          // 15s - Default
+  // English statuses
+  'pending': 20000,        // 20s - New order
+  'confirmed': 20000,      // 20s - Confirmed
+  'preparing': 30000,      // 30s - Preparing
+  'out_for_delivery': 15000,  // 15s - Out for delivery
+  'ready': 30000,          // 30s - Ready for pickup
+  'delivered': 0,          // Stop polling
+  'cancelled': 0,          // Stop polling
+  
+  // Arabic statuses (same intervals)
+  'جديد': 20000,           // 20s - New order
+  'مؤكد': 20000,           // 20s - Confirmed
+  'قيد التحضير': 30000,    // 30s - Preparing
+  'في الطريق': 15000,      // 15s - Out for delivery
+  'جاهز': 30000,           // 30s - Ready for pickup
+  'تم التوصيل': 0,         // Stop polling
+  'ملغي': 0,               // Stop polling
+  
+  'default': 20000         // 20s - Default
 }
 
-export const FINAL_STATUSES = ['delivered', 'cancelled']
+export const FINAL_STATUSES = ['delivered', 'cancelled', 'تم التوصيل', 'ملغي', 'مكتمل', 'completed']
+
+// Pickup-specific stages (4 stages only, no "في الطريق")
+export const PICKUP_STAGES = [
+  {
+    id: 'pending',
+    label: 'جديد',
+    labelEn: 'New',
+    icon: '⏳',
+    progress: 0
+  },
+  {
+    id: 'confirmed',
+    label: 'مؤكد',
+    labelEn: 'Confirmed',
+    icon: '✅',
+    progress: 33
+  },
+  {
+    id: 'preparing',
+    label: 'قيد التحضير',
+    labelEn: 'Preparing',
+    icon: '👨‍🍳',
+    progress: 66
+  },
+  {
+    id: 'ready',
+    label: 'جاهز للاستلام',
+    labelEn: 'Ready for Pickup',
+    icon: '🏪',
+    progress: 100
+  }
+]
+
+// Delivery-specific stages (5 stages including "في الطريق")
+export const DELIVERY_STAGES = [
+  {
+    id: 'pending',
+    label: 'جديد',
+    labelEn: 'New',
+    icon: '⏳',
+    progress: 0
+  },
+  {
+    id: 'confirmed',
+    label: 'مؤكد',
+    labelEn: 'Confirmed',
+    icon: '✅',
+    progress: 25
+  },
+  {
+    id: 'preparing',
+    label: 'قيد التحضير',
+    labelEn: 'Preparing',
+    icon: '👨‍🍳',
+    progress: 50
+  },
+  {
+    id: 'out_for_delivery',
+    label: 'في الطريق',
+    labelEn: 'Out for Delivery',
+    icon: '🚚',
+    progress: 75
+  },
+  {
+    id: 'delivered',
+    label: 'تم التسليم',
+    labelEn: 'Delivered',
+    icon: '🎉',
+    progress: 100
+  }
+]

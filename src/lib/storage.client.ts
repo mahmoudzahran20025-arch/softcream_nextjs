@@ -589,27 +589,39 @@ export class StorageManager {
         return false
       }
       
+      const FINAL_STATUSES = ['delivered', 'cancelled', 'تم التوصيل', 'ملغي', 'مكتمل', 'completed']
+      const isFinalStatus = FINAL_STATUSES.includes(trackingData.status)
+      
       orders[orderIndex] = {
         ...orders[orderIndex],
+        status: trackingData.status || orders[orderIndex].status,
         progress: trackingData.progress,
         last_updated_by: trackingData.last_updated_by,
         timeline: trackingData.timeline,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        isFinal: isFinalStatus // Mark as final to prevent further polling
       }
       
       const success = this.local.set('userOrders', orders)
       
       if (success) {
         console.log('🎯 Tracking data updated:', orderId, {
+          status: trackingData.status,
           progress: trackingData.progress,
-          last_updated_by: trackingData.last_updated_by
+          last_updated_by: trackingData.last_updated_by,
+          isFinal: isFinalStatus
         })
-        // ✅ Single event dispatch
-        this.eventManager.triggerUpdate({
-          orderId,
-          action: 'updated',
-          count: this.getActiveOrdersCount()
-        })
+        
+        // ✅ Only trigger event if not final status (reduce noise)
+        if (!isFinalStatus) {
+          this.eventManager.triggerUpdate({
+            orderId,
+            action: 'updated',
+            count: this.getActiveOrdersCount()
+          })
+        } else {
+          console.log('🏁 Final status - no event triggered')
+        }
       }
       
       return success

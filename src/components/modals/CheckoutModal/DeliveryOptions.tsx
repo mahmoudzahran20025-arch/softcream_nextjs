@@ -1,7 +1,7 @@
 'use client'
 
-//import React from 'react'
-import { Store, Truck, CheckCircle, MapPin, Loader2, AlertCircle } from 'lucide-react'
+import { Store, Truck, CheckCircle, MapPin, Loader2, AlertCircle, Navigation } from 'lucide-react'
+import { openBranchDirections } from '@/lib/utils'
 
 interface DeliveryOptionsProps {
   deliveryMethod: 'pickup' | 'delivery' | null
@@ -78,24 +78,47 @@ const DeliveryOptions = ({
               {branches.map((branch) => (
                 <div
                   key={branch.id}
-                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                  className={`p-4 border-2 rounded-xl transition-all ${
                     selectedBranch === branch.id 
                       ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20' 
                       : 'border-gray-300 hover:border-purple-600'
                   }`}
-                  onClick={() => onBranchSelect(branch.id)}
                 >
-                  <div className="font-bold text-gray-800 dark:text-gray-100">
-                    {branch.name}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {branch.address}
-                  </div>
-                  {branch.phone && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      📞 {branch.phone}
+                  <div 
+                    className="cursor-pointer"
+                    onClick={() => onBranchSelect(branch.id)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="font-bold text-gray-800 dark:text-gray-100">
+                          {branch.name}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {branch.address}
+                        </div>
+                        {branch.phone && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            📞 {branch.phone}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Map Icon Button */}
+                      {branch.location_lat && branch.location_lng && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openBranchDirections(branch.location_lat, branch.location_lng)
+                          }}
+                          className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 shadow-lg"
+                          title="فتح الاتجاهات في الخريطة"
+                          aria-label="Open directions in map"
+                        >
+                          <Navigation className="w-5 h-5" />
+                        </button>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>

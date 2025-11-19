@@ -30,9 +30,18 @@ interface AdminAppProps {
     stats: any;
   };
   onRefresh: () => void;
+  onRefreshOrders?: () => Promise<void>;
+  onRefreshCoupons?: () => Promise<void>;
+  onRefreshStats?: () => Promise<void>;
 }
 
-const AdminApp: React.FC<AdminAppProps> = ({ initialData, onRefresh }) => {
+const AdminApp: React.FC<AdminAppProps> = ({ 
+  initialData, 
+  onRefresh,
+  onRefreshOrders,
+  onRefreshCoupons,
+  onRefreshStats
+}) => {
   const [activeTab, setActiveTab] = useState('orders');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -97,6 +106,15 @@ const AdminApp: React.FC<AdminAppProps> = ({ initialData, onRefresh }) => {
         }
       }
       
+      // Optimistic update: Update local state immediately
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: newStatus, last_updated_by: `admin:${adminId}` }
+            : order
+        )
+      );
+      
       // Use the new tracking API with admin identification
       const response = await updateOrderStatusWithTracking(orderId, newStatus, {
         updated_by: `admin:${adminId}`
@@ -105,13 +123,33 @@ const AdminApp: React.FC<AdminAppProps> = ({ initialData, onRefresh }) => {
       if (response.success) {
         alert(`تم تحديث حالة الطلب إلى ${newStatus} بنجاح`);
         
-        // Refresh orders to get updated data
-        onRefresh();
+        // Refresh only orders (not all data)
+        if (onRefreshOrders) {
+          await onRefreshOrders();
+        } else {
+          onRefresh();
+        }
       } else {
+        // Revert optimistic update on failure
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === orderId 
+              ? initialData.orders.find(o => o.id === orderId) || order
+              : order
+          )
+        );
         alert(response.message || 'فشل تحديث حالة الطلب');
       }
     } catch (error) {
       console.error('Error updating order status:', error);
+      // Revert optimistic update on error
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? initialData.orders.find(o => o.id === orderId) || order
+            : order
+        )
+      );
       alert('حدث خطأ أثناء تحديث حالة الطلب');
     }
   };
@@ -139,24 +177,44 @@ const AdminApp: React.FC<AdminAppProps> = ({ initialData, onRefresh }) => {
 
   const handleUpdateCoupon = async (code: string, data: any) => {
     try {
-      // Update coupon in local state
-      setCoupons(coupons.map(c => 
-        c.code === code ? { ...c, ...data } : c
-      ));
-      return true;
+      const { updateCoupon } = await import('@/lib/adminApi');
+      const result = await updateCoupon(code, data);
+      
+      if (result.success) {
+        // Update local state with the returned data
+        setCoupons(coupons.map(c => 
+          c.code === code ? result.data : c
+        ));
+        alert('✅ تم تحديث الكوبون بنجاح');
+        return true;
+      } else {
+        alert('❌ فشل تحديث الكوبون');
+        return false;
+      }
     } catch (error) {
       console.error('Failed to update coupon:', error);
+      alert('❌ حدث خطأ أثناء تحديث الكوبون');
       return false;
     }
   };
 
   const handleDeleteCoupon = async (code: string) => {
     try {
-      // Remove coupon from local state
-      setCoupons(coupons.filter(c => c.code !== code));
-      return true;
+      const { deleteCoupon } = await import('@/lib/adminApi');
+      const result = await deleteCoupon(code);
+      
+      if (result.success) {
+        // Remove from local state
+        setCoupons(coupons.filter(c => c.code !== code));
+        alert('✅ ' + result.message);
+        return true;
+      } else {
+        alert('❌ فشل حذف الكوبون');
+        return false;
+      }
     } catch (error) {
       console.error('Failed to delete coupon:', error);
+      alert('❌ حدث خطأ أثناء حذف الكوبون');
       return false;
     }
   };
@@ -185,6 +243,10 @@ const AdminApp: React.FC<AdminAppProps> = ({ initialData, onRefresh }) => {
         setSidebarOpen={setSidebarOpen}
         onLogout={handleLogout}
         onRefresh={onRefresh}
+        activeTab={activeTab}
+        onRefreshOrders={onRefreshOrders}
+        onRefreshCoupons={onRefreshCoupons}
+        onRefreshStats={onRefreshStats}
       />
       
       <div className="flex">

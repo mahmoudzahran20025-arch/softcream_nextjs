@@ -78,11 +78,12 @@ export default function AdminPage() {
       window.addEventListener('ordersUpdated', handleOrdersUpdated);
     }
 
-    // ✅ FIX: Auto-refresh every 60 seconds (reasonable interval)
+    // ✅ OPTIMIZED: Auto-refresh every 2 minutes (reduced load)
+    // Only refresh orders (most dynamic data), not everything
     const refreshInterval = setInterval(() => {
-      console.log('🔄 Auto-refreshing admin data...');
-      loadInitialData();
-    }, 60000); // 60 seconds
+      console.log('🔄 Auto-refreshing orders...');
+      refreshOrders(); // Only refresh orders, not all data
+    }, 120000); // 120 seconds (2 minutes)
 
     return () => {
       clearInterval(refreshInterval);
@@ -135,6 +136,43 @@ export default function AdminPage() {
     }
   }
 
+  // Granular refresh functions
+  async function refreshOrders() {
+    try {
+      const ordersRes = await getOrders({ limit: 50 });
+      setData(prev => ({
+        ...prev,
+        orders: ordersRes.data.orders
+      }));
+    } catch (err) {
+      console.error('Failed to refresh orders:', err);
+    }
+  }
+
+  async function refreshCoupons() {
+    try {
+      const couponsRes = await getCoupons();
+      setData(prev => ({
+        ...prev,
+        coupons: couponsRes.data
+      }));
+    } catch (err) {
+      console.error('Failed to refresh coupons:', err);
+    }
+  }
+
+  async function refreshStats() {
+    try {
+      const statsRes = await getTodayStats();
+      setData(prev => ({
+        ...prev,
+        stats: statsRes
+      }));
+    } catch (err) {
+      console.error('Failed to refresh stats:', err);
+    }
+  }
+
   if (error && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-50 p-4">
@@ -172,5 +210,13 @@ export default function AdminPage() {
     );
   }
 
-  return <AdminApp initialData={data} onRefresh={loadInitialData} />;
+  return (
+    <AdminApp 
+      initialData={data} 
+      onRefresh={loadInitialData}
+      onRefreshOrders={refreshOrders}
+      onRefreshCoupons={refreshCoupons}
+      onRefreshStats={refreshStats}
+    />
+  );
 }

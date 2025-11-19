@@ -10,13 +10,21 @@ interface HeaderProps {
   setSidebarOpen: (open: boolean) => void;
   onLogout: () => void;
   onRefresh?: () => void;
+  activeTab?: string;
+  onRefreshOrders?: () => Promise<void>;
+  onRefreshCoupons?: () => Promise<void>;
+  onRefreshStats?: () => Promise<void>;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
   sidebarOpen, 
   setSidebarOpen, 
   onLogout,
-  onRefresh 
+  onRefresh,
+  activeTab,
+  onRefreshOrders,
+  onRefreshCoupons,
+  onRefreshStats
 }) => {
   const [isConnected, setIsConnected] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -93,13 +101,40 @@ const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-          {/* Refresh Button */}
+          {/* Refresh Button - Smart refresh based on active tab */}
           <button 
             onClick={async () => {
-              if (isRefreshing || !onRefresh) return;
+              if (isRefreshing) return;
               setIsRefreshing(true);
               try {
-                await onRefresh();
+                // Smart refresh: only refresh data for the active tab
+                switch (activeTab) {
+                  case 'orders':
+                    if (onRefreshOrders) {
+                      await onRefreshOrders();
+                    } else if (onRefresh) {
+                      await onRefresh();
+                    }
+                    break;
+                  case 'coupons':
+                    if (onRefreshCoupons) {
+                      await onRefreshCoupons();
+                    } else if (onRefresh) {
+                      await onRefresh();
+                    }
+                    break;
+                  case 'dashboard':
+                    if (onRefreshStats) {
+                      await onRefreshStats();
+                    } else if (onRefresh) {
+                      await onRefresh();
+                    }
+                    break;
+                  default:
+                    if (onRefresh) {
+                      await onRefresh();
+                    }
+                }
                 setLastUpdate(new Date());
               } finally {
                 setIsRefreshing(false);
@@ -107,7 +142,7 @@ const Header: React.FC<HeaderProps> = ({
             }}
             disabled={isRefreshing}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="تحديث البيانات يدوياً"
+            title={`تحديث ${activeTab === 'orders' ? 'الطلبات' : activeTab === 'coupons' ? 'الكوبونات' : 'البيانات'}`}
             aria-label="Refresh data"
           >
             <RefreshCw size={20} className={`text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`} />

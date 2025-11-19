@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Phone, MessageCircle, XCircle, Store, MapPin, Package, Loader2, Edit, AlertCircle, RefreshCw } from 'lucide-react'
+import { X, Phone, MessageCircle, Store, MapPin, Package, Loader2, Edit, RefreshCw, TrendingUp, Clock, Navigation } from 'lucide-react'
 import SimpleOrderTimer from '@/components/ui/SimpleOrderTimer'
 import { storage } from '@/lib/storage.client'
 import { useTheme } from '@/providers/ThemeProvider'
+import { OrderPollerManager } from '@/lib/orderPoller'
+import { FINAL_STATUSES, PICKUP_STAGES, DELIVERY_STAGES } from '@/lib/orderTracking'
+import { openBranchDirections } from '@/lib/utils'
 
 interface OrderItem {
   productId: string
@@ -32,6 +35,8 @@ interface Branch {
   name: string
   address?: string
   phone?: string
+  location_lat?: number
+  location_lng?: number
 }
 
 interface Order {
@@ -47,7 +52,6 @@ interface Order {
   branch?: Branch | string | null
   branchPhone?: string
   eta?: string
-  // NEW TRACKING FIELDS
   progress?: number
   last_updated_by?: string
   timeline?: Array<{ status: string; timestamp: string; updated_by: string }>
@@ -60,41 +64,12 @@ interface TrackingModalProps {
   onEditOrder?: (order: Order) => void
 }
 
-// ✅ Smart Polling Configuration (Optimized - تم التحسين)
-const POLLING_CONFIG = {
-  'جديد': 10000,          // 10s - New order (كان 3s)
-  'pending': 10000,       // 10s
-  'مؤكد': 15000,          // 15s - Confirmed (كان 5s)
-  'confirmed': 15000,     // 15s
-  'قيد التحضير': 20000,  // 20s - Preparing (كان 10s)
-  'preparing': 20000,     // 20s
-  'جاري التوصيل': 30000, // 30s - Out for delivery (كان 5s)
-  'out_for_delivery': 30000, // 30s
-  'في الطريق': 30000,    // 30s - Out for delivery
-  'جاهز': 30000,          // 30s - Ready for pickup (كان 15s)
-  'ready': 30000,         // 30s
-  'default': 15000        // 15s - Default
-}
-
-// ✅ Final statuses - stop polling
-const FINAL_STATUSES = ['delivered', 'cancelled', 'تم التوصيل', 'ملغي', 'مكتمل', 'completed']
-
 export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: TrackingModalProps) {
   const { showToast } = useTheme()
   const [currentOrder, setCurrentOrder] = useState(order)
-  const [canCancel, setCanCancel] = useState(true)
-  const [isCancelling, setIsCancelling] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false) // ✅ FIX: For manual refresh
-  
-  // ✅ Refs to prevent memory leaks
-  const isMountedRef = useRef(true)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const lastFetchRef = useRef<number>(0)
-  const fetchCountRef = useRef<number>(0)
-  const unchangedCountRef = useRef<number>(0) // ✅ FIX: Unchanged counter
-  const lastModifiedRef = useRef<string | null>(null) // ✅ For Conditional Requests
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const pollerRef = useRef<any>(null)
 
-  // Helper functions - defined before useEffect
   const getStatusLabel = (status: string): string => {
     const statusMap: Record<string, string> = {
       'pending': 'قيد المراجعة',
@@ -114,7 +89,6 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
     return statusMap[status] || status
   }
 
-  // Format update source for display
   const formatUpdatedBy = (updatedBy: string): string => {
     if (!updatedBy) return 'النظام'
     if (updatedBy === 'system') return '🔧 النظام'
@@ -123,308 +97,97 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
     return updatedBy
   }
 
-  // Fetch status function - moved outside useEffect
-  const fetchStatus = async () => {
-    if (!isMountedRef.current || !isOpen || !order?.id) return
-    
-    const now = Date.now()
-    
-    // ✅ Rate limiting: Min 1 second between requests
-    if (now - lastFetchRef.current < 1000) {
-      console.log('⏭️ Skipping fetch (rate limited)')
-      return
-    }
-    lastFetchRef.current = now
-
-    // ✅ FIX: Max fetches limit
-    if (fetchCountRef.current > 20) {
-      console.log('🛑 Max fetches reached, stopping polling')
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
-      }
-      return
-    }
-
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://softcream-api.mahmoud-zahran20025.workers.dev'
-      // 🎯 Use new tracking endpoint - path should be part of URL, not query parameter
-      const url = `${API_URL}/orders/${order.id}/tracking`
-      
-      // ✅ إضافة If-Modified-Since للـ Conditional Requests
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-      
-      if (lastModifiedRef.current) {
-        headers['If-Modified-Since'] = lastModifiedRef.current
-      }
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers
-      })
-      
-      // ✅ معالجة 304 Not Modified
-      if (response.status === 304) {
-        console.log('✅ Not Modified (304) - no changes')
-        unchangedCountRef.current++
-        return
-      }
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ API Error Details:', {
-          status: response.status,
-          statusText: response.statusText,
-          url: url,
-          body: errorText
-        })
-        
-        // ✅ معالجة خاصة للـ Rate Limiting
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After')
-          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000 // 30s default
-          console.log(`🔒 Rate limited - waiting ${waitTime/1000}s before retry`)
-          unchangedCountRef.current++
-          
-          // زيادة الـ interval للـ polling التالي
-          setTimeout(() => {
-            if (isMountedRef.current) {
-              fetchStatus()
-            }
-          }, waitTime)
-          return
-        }
-        
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      // ✅ حفظ Last-Modified header
-      const lastModified = response.headers.get('Last-Modified')
-      if (lastModified) {
-        lastModifiedRef.current = lastModified
-        console.log('📅 Last-Modified saved:', lastModified)
-      }
-
-      // ✅ Cache awareness logging
-      const cacheStatus = response.headers.get('X-Cache')
-      const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining')
-      if (cacheStatus) {
-        console.log(`📦 Cache status: ${cacheStatus}`)
-      }
-      if (rateLimitRemaining) {
-        console.log(`🔒 Rate limit remaining: ${rateLimitRemaining}`)
-      }
-
-      const trackingData = data.data
-      
-      if (trackingData && isMountedRef.current) {
-        const oldStatus = currentOrder?.status
-        const newStatus = trackingData.status
-
-        // ✅ FIX: Map backend fields correctly (progress not progress_percentage)
-        const progress = trackingData.progress ?? trackingData.progress_percentage ?? null
-        const lastUpdatedBy = trackingData.last_updated_by || 'system'
-        const estimatedMinutes = trackingData.estimatedMinutes ?? trackingData.total_estimated_minutes ?? currentOrder?.estimatedMinutes
-
-        setCurrentOrder(prev => prev ? {
-          ...prev,
-          status: newStatus,
-          progress: progress,  // ✅ Fixed field name
-          last_updated_by: lastUpdatedBy,  // ✅ With fallback
-          timeline: trackingData.timeline,
-          estimatedMinutes: estimatedMinutes,
-          canCancelUntil: prev.canCancelUntil
-        } : null)
-        
-        // 🎯 Update storage with tracking data
-        storage.updateOrderTracking(order.id, {
-          progress: progress,
-          last_updated_by: lastUpdatedBy,
-          timeline: trackingData.timeline
-        })
-
-        // ✅ Show toast only on actual status change
-        if (oldStatus && oldStatus !== newStatus) {
-          showToast({
-            type: 'info',
-            title: 'تحديث الطلب',
-            message: `${getStatusLabel(newStatus)} - ${formatUpdatedBy(lastUpdatedBy)}`,
-            duration: 3000
-          })
-          unchangedCountRef.current = 0 // Reset on change
-        } else {
-          unchangedCountRef.current++ // Increment unchanged
-        }
-
-        fetchCountRef.current++
-        // ✅ FIX: Add fallback display for undefined values
-        const progressDisplay = progress !== null && progress !== undefined ? `${progress}%` : 'جاري الحساب...'
-        const updatedByDisplay = formatUpdatedBy(lastUpdatedBy)
-        console.log(`✅ Status: ${newStatus} (${progressDisplay}) - Updated by: ${updatedByDisplay} (fetch #${fetchCountRef.current})`)
-
-        // ✅ Stop polling if order is complete
-        if (FINAL_STATUSES.includes(newStatus)) {
-          console.log('🏁 Order complete, stopping polling')
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current)
-            timeoutRef.current = null
-          }
-          return
-        }
-      }
-    } catch (error) {
-      console.error('❌ Fetch error:', error)
-      unchangedCountRef.current++ // ✅ FIX: Treat error as unchanged
-    }
-  }
-
-  // ✅ Smart Polling with cleanup
+  // ✅ NEW: Use OrderPoller singleton
   useEffect(() => {
     if (!isOpen || !order?.id) {
-      // Clean up on close
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
+      // Cleanup on close
+      if (pollerRef.current) {
+        const poller = OrderPollerManager.getInstance(order?.id || '')
+        poller.unsubscribe(pollerRef.current)
+        pollerRef.current = null
       }
       return
     }
 
-    isMountedRef.current = true
-    fetchCountRef.current = 0
-    unchangedCountRef.current = 0
-
-    const scheduleNextPoll = () => {
-      if (!isMountedRef.current || !isOpen) return
-      
-      // Clear existing timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-
-      // ✅ Don't poll if final status
-      if (currentOrder && FINAL_STATUSES.includes(currentOrder.status)) {
-        console.log('🛑 Final status reached, no more polling')
-        return
-      }
-
-      // ✅ FIX: Stop polling if canCancelUntil expired (5 min window over)
-      if (currentOrder?.canCancelUntil) {
-        const deadline = new Date(currentOrder.canCancelUntil)
-        const now = new Date()
-        if (now >= deadline) {
-          console.log('🛑 5-min edit/cancel window expired, stopping polling (use phone for changes)')
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current)
-            timeoutRef.current = null
-          }
-          return
-        }
-      }
-
-      // ✅ Get interval based on status
-      const status = currentOrder?.status || 'default'
-      let interval = (POLLING_CONFIG as any)[status] || POLLING_CONFIG.default
-      
-      // ✅ FIX: Increase interval if unchanged >5
-      if (unchangedCountRef.current > 5) {
-        interval = Math.max(interval * 3, 30000) // 30s min
-        console.log('⏸️ Paused mode: unchanged for 5+ fetches')
-      }
-      
-      console.log(`⏰ Next poll in ${interval / 1000}s (status: ${status})`)
-      
-      timeoutRef.current = setTimeout(async () => {
-        await fetchStatus()
-        scheduleNextPoll()
-      }, interval)
+    // Don't poll if order is in final status
+    if (order && FINAL_STATUSES.includes(order.status)) {
+      console.log('🏁 Order in final status, no polling needed:', order.id)
+      return
     }
 
-    // ✅ Initial fetch
-    fetchStatus().then(() => {
-      scheduleNextPoll()
-    })
+    // Get or create poller instance
+    const poller = OrderPollerManager.getInstance(order.id)
+    
+    // Define callback
+    const handleUpdate = (data: any) => {
+      const oldStatus = currentOrder?.status
+      const newStatus = data.status
 
-    // ✅ Cleanup on unmount
+      // Update local state
+      setCurrentOrder(prev => prev ? {
+        ...prev,
+        status: newStatus,
+        progress: data.progress,
+        last_updated_by: data.last_updated_by,
+        timeline: data.timeline,
+        estimatedMinutes: data.estimatedMinutes || prev.estimatedMinutes,
+        canCancelUntil: prev.canCancelUntil
+      } : null)
+      
+      // Update storage
+      storage.updateOrderTracking(order.id, {
+        status: newStatus,
+        progress: data.progress,
+        last_updated_by: data.last_updated_by,
+        timeline: data.timeline
+      })
+
+      // Show toast on status change
+      if (oldStatus && oldStatus !== newStatus) {
+        showToast({
+          type: 'info',
+          title: 'تحديث الطلب',
+          message: `${getStatusLabel(newStatus)} - ${formatUpdatedBy(data.last_updated_by)}`,
+          duration: 3000
+        })
+      }
+    }
+    
+    // Subscribe to updates
+    poller.subscribe(handleUpdate)
+    pollerRef.current = handleUpdate
+    
+    console.log('✅ TrackingModal subscribed to OrderPoller:', order.id)
+
+    // Cleanup on unmount
     return () => {
-      console.log('🧹 Cleaning up polling')
-      isMountedRef.current = false
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
+      if (pollerRef.current) {
+        poller.unsubscribe(pollerRef.current)
+        pollerRef.current = null
+        console.log('🧹 TrackingModal unsubscribed from OrderPoller:', order.id)
       }
     }
-  }, [isOpen, order?.id, currentOrder?.status, currentOrder?.canCancelUntil]) // ✅ FIX: Add canCancelUntil to deps
+  }, [isOpen, order?.id])
 
-  // Update currentOrder when prop changes
   useEffect(() => {
     if (order) {
       setCurrentOrder(order)
     }
   }, [order])
 
-  // Check if can cancel (based on time AND status) - with live timer
-  useEffect(() => {
-    const checkCanCancel = () => {
-      // ✅ FIX: Can only cancel if:
-      // 1. Within 5-minute window (canCancelUntil)
-      // 2. Status is still 'pending' or 'جديد'
-      // 3. Not already cancelled or delivered
-      
-      if (!currentOrder) {
-        setCanCancel(false)
-        return
-      }
-
-      // Check status first
-      const allowedStatuses = ['pending', 'جديد']
-      if (!allowedStatuses.includes(currentOrder.status)) {
-        setCanCancel(false)
-        return
-      }
-
-      // Check time window
-      if (!currentOrder.canCancelUntil) {
-        setCanCancel(false)
-        return
-      }
-      
-      const deadline = new Date(currentOrder.canCancelUntil)
-      const now = new Date()
-      const withinTimeWindow = now < deadline
-      
-      setCanCancel(withinTimeWindow)
-      
-      if (!withinTimeWindow) {
-        console.log('⏰ Cancel window expired')
-      }
-    }
-
-    // Check immediately
-    checkCanCancel()
-
-    // ✅ Check every second to update cancel button in real-time
-    const timer = setInterval(checkCanCancel, 1000)
-
-    return () => clearInterval(timer)
-  }, [currentOrder?.canCancelUntil, currentOrder?.status, currentOrder])
-
   const handleManualRefresh = async () => {
     if (!order?.id) return
     
     setIsRefreshing(true)
     try {
-      await fetchStatus()
+      const poller = OrderPollerManager.getInstance(order.id)
+      await poller.refresh()
       showToast({
         type: 'success',
         title: 'تم التحديث',
         message: 'حالة الطلب محدثة',
         duration: 2000
       })
-      unchangedCountRef.current = 0
     } catch (error) {
       showToast({
         type: 'error',
@@ -434,67 +197,6 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
       })
     } finally {
       setIsRefreshing(false)
-    }
-  }
-
-  const handleCancelOrder = async () => {
-    if (!canCancel || !currentOrder) return
-    
-    const confirmed = window.confirm(
-      'هل أنت متأكد من إلغاء الطلب؟\n\n' +
-      '⚠️ لا يمكن التراجع عن هذا الإجراء'
-    )
-    
-    if (!confirmed) return
-    
-    setIsCancelling(true)
-    
-    try {
-      const { cancelOrder } = await import('@/lib/api')
-      const result = await cancelOrder(currentOrder.id)
-      
-      const responseData = result.data || result
-      
-      if (!result.success && !responseData?.success) {
-        throw new Error(responseData?.message || responseData?.error || result.error || 'فشل الإلغاء')
-      }
-      
-      storage.updateOrderStatus(currentOrder.id, 'cancelled')
-      storage.updateOrder(currentOrder.id, {
-        status: 'cancelled',
-        canCancelUntil: null
-      })
-      
-      setCurrentOrder({
-        ...currentOrder,
-        status: 'cancelled',
-        canCancelUntil: undefined
-      })
-      
-      setCanCancel(false)
-      
-      showToast({
-        type: 'success',
-        title: 'تم الإلغاء',
-        message: 'تم إلغاء الطلب بنجاح',
-        duration: 3000
-      })
-      
-      setTimeout(() => {
-        onClose()
-      }, 2000)
-      
-    } catch (error: any) {
-      console.error('Failed to cancel order:', error)
-      const errorMessage = error.message || error.error || 'خطأ غير معروف'
-      showToast({
-        type: 'error',
-        title: 'فشل الإلغاء',
-        message: errorMessage,
-        duration: 4000
-      })
-    } finally {
-      setIsCancelling(false)
     }
   }
 
@@ -518,17 +220,6 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
       return
     }
     onEditOrder(currentOrder)
-  }
-
-  const getTimeRemaining = (): string | null => {
-    if (!currentOrder?.canCancelUntil) return null
-    const deadline = new Date(currentOrder.canCancelUntil)
-    const now = new Date()
-    const diff = deadline.getTime() - now.getTime()
-    if (diff <= 0) return null
-    const minutes = Math.floor(diff / 60000)
-    const seconds = Math.floor((diff % 60000) / 1000)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
   const getBranchPhone = (): string | null => {
@@ -592,38 +283,41 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
 
   return (
     <div 
-      className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-5"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div 
-        className="bg-white dark:bg-gray-800 rounded-3xl max-w-[550px] w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+        className="bg-white dark:bg-slate-900 rounded-3xl max-w-[580px] w-full max-h-[92vh] overflow-y-auto shadow-2xl animate-in zoom-in duration-300"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b-2 border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
-          <div className="flex items-center gap-3">
-            <Package className="w-6 h-6 text-purple-600" />
-            <div>
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">تتبع الطلب</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                يتم التحديث تلقائياً
-              </p>
-            </div>
-          </div>
+        {/* 🎨 Modern Header with Gradient */}
+        <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-6 rounded-t-3xl">
           <button 
             onClick={onClose} 
-            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 flex items-center justify-center transition-all"
             aria-label="إغلاق"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 text-white" />
           </button>
+          <div className="flex items-center gap-4 text-white">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+              <Package className="w-7 h-7" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold mb-1">تتبع الطلب</h2>
+              <div className="text-white/90 text-sm flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                يتم التحديث تلقائياً
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Order ID */}
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border-2 border-purple-200 dark:border-purple-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">رقم الطلب</p>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">#{currentOrder.id}</p>
+        <div className="p-6 space-y-5">
+          {/* Order ID Card */}
+          <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-5 border border-purple-200 dark:border-purple-800">
+            <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-1">رقم الطلب</p>
+            <p className="text-3xl font-bold text-purple-700 dark:text-purple-300 font-mono">#{currentOrder.id}</p>
           </div>
 
           {/* Timer */}
@@ -632,140 +326,195 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
               createdAt={currentOrder.createdAt}
               estimatedMinutes={currentOrder.estimatedMinutes}
               canCancelUntil={currentOrder.canCancelUntil}
-              onCanCancelExpired={() => setCanCancel(false)}
             />
           )}
 
-          {/* Status */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">حالة الطلب</p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+          {/* 🎯 Enhanced Status Card with Pickup/Delivery Progress */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${
                   (currentOrder.status === 'pending' || currentOrder.status === 'جديد') ? 'bg-yellow-500 animate-pulse' :
                   (currentOrder.status === 'confirmed' || currentOrder.status === 'مؤكد') ? 'bg-green-500' :
                   (currentOrder.status === 'cancelled' || currentOrder.status === 'ملغي') ? 'bg-red-500' : 'bg-blue-500'
                 }`} />
-                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                  {getStatusLabel(currentOrder.status)}
-                </p>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">حالة الطلب</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
+                    {getStatusLabel(currentOrder.status)}
+                  </p>
+                </div>
               </div>
-              {/* ✅ FIX: Refresh button */}
               <button 
                 onClick={handleManualRefresh} 
                 disabled={isRefreshing} 
-                className="p-1 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center"
+                className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 transition-all"
                 aria-label="تحديث يدوي"
               >
                 {isRefreshing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="w-5 h-5" />
                 )}
               </button>
             </div>
 
-            {/* ✅ Enhanced Progress Bar with Shimmer */}
-            {currentOrder.progress !== null && currentOrder.progress !== undefined && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 mb-2">
-                  <span className="font-medium">نسبة الإنجاز</span>
-                  <span className="font-bold text-lg text-blue-600 dark:text-blue-400">{currentOrder.progress}%</span>
-                </div>
-                <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner">
+            {/* 🎯 Smart Progress Bar (Pickup = 4 stages, Delivery = 5 stages) */}
+            {!FINAL_STATUSES.includes(currentOrder.status) && (
+              <div className="space-y-4">
+                {/* Progress Percentage */}
+                {currentOrder.progress !== null && currentOrder.progress !== undefined && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">نسبة الإنجاز</span>
+                    </div>
+                    <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{currentOrder.progress}%</span>
+                  </div>
+                )}
+                
+                {/* Progress Bar */}
+                <div className="relative w-full bg-slate-100 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
                   <div 
-                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 h-full rounded-full transition-all duration-700 ease-out relative"
-                    style={{ width: `${currentOrder.progress}%` }}
+                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-700 ease-out relative"
+                    style={{ width: `${currentOrder.progress || 0}%` }}
                   >
-                    {/* Shine effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
+                  </div>
+                </div>
+                
+                {/* 🎯 Stage Timeline (Pickup vs Delivery) */}
+                <div className="pt-3">
+                  <div className="flex justify-between items-start gap-2">
+                    {(currentOrder.deliveryMethod === 'pickup' ? PICKUP_STAGES : DELIVERY_STAGES).map((stage) => {
+                      const progress = currentOrder.progress || 0
+                      const isCompleted = progress >= stage.progress
+                      const isCurrent = Math.abs(progress - stage.progress) < 20
+                      
+                      return (
+                        <div key={stage.id} className="flex flex-col items-center flex-1">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition-all mb-2 ${
+                            isCompleted 
+                              ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg scale-110' 
+                              : isCurrent 
+                                ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white animate-pulse shadow-lg' 
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                          }`}>
+                            {isCompleted ? '✓' : stage.icon}
+                          </div>
+                          <span className={`text-xs text-center leading-tight ${
+                            isCurrent ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400'
+                          }`}>
+                            {stage.label}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ✅ Enhanced Last Updated By */}
+            {/* Last Updated By */}
             {currentOrder.last_updated_by && (
-              <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    آخر تحديث بواسطة
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-slate-400" />
+                    <span className="text-xs text-slate-500 dark:text-slate-400">آخر تحديث بواسطة</span>
+                  </div>
+                  <p className={`text-sm font-semibold ${
+                    currentOrder.last_updated_by === 'system' ? 'text-blue-600 dark:text-blue-400' :
+                    currentOrder.last_updated_by === 'auto-time-progress' ? 'text-purple-600 dark:text-purple-400' :
+                    currentOrder.last_updated_by.startsWith('admin:') ? 'text-orange-600 dark:text-orange-400' :
+                    'text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {formatUpdatedBy(currentOrder.last_updated_by)}
                   </p>
                 </div>
-                <p className="mt-1 text-sm font-semibold text-blue-600 dark:text-blue-400">
-                  {formatUpdatedBy(currentOrder.last_updated_by)}
-                </p>
               </div>
             )}
           </div>
 
           {/* Customer Info */}
-          <div className="space-y-3">
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700">
+            <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold">
                 {currentOrder.customer.name.charAt(0).toUpperCase()}
               </div>
               معلومات العميل
             </h3>
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">الاسم:</span>
-                <span className="font-semibold text-gray-800 dark:text-gray-100">{currentOrder.customer.name}</span>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600 dark:text-slate-400">الاسم</span>
+                <span className="font-semibold text-slate-900 dark:text-white">{currentOrder.customer.name}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">الهاتف:</span>
-                <span className="font-semibold text-gray-800 dark:text-gray-100 dir-ltr">{currentOrder.customer.phone}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600 dark:text-slate-400">الهاتف</span>
+                <span className="font-semibold text-slate-900 dark:text-white dir-ltr">{currentOrder.customer.phone}</span>
               </div>
               {currentOrder.customer.address && (
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">العنوان:</p>
-                  <p className="font-semibold text-gray-800 dark:text-gray-100">{currentOrder.customer.address}</p>
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                  <p className="text-slate-600 dark:text-slate-400 mb-2">العنوان</p>
+                  <p className="font-semibold text-slate-900 dark:text-white">{currentOrder.customer.address}</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Enhanced Branch Info */}
+          {/* 🎯 Enhanced Branch Info for Pickup */}
           {currentOrder.branch && (
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 border-2 border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                  <Store className="w-5 h-5 text-white" />
+            <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 rounded-2xl p-6 border-2 border-blue-200 dark:border-blue-800 shadow-lg">
+              <div className="flex items-start gap-4 mb-5">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+                  <Store className="w-7 h-7 text-white" />
                 </div>
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {currentOrder.deliveryMethod === 'pickup' ? 'الفرع المحدد للاستلام' : 'الفرع المسؤول عن التوصيل'}
+                <div className="flex-1">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-bold mb-1.5 uppercase tracking-wide">
+                    {currentOrder.deliveryMethod === 'pickup' ? '🏪 استلام من الفرع' : '🚚 فرع التوصيل'}
                   </p>
-                  <p className="font-bold text-lg text-green-700 dark:text-green-400">
+                  <p className="font-black text-xl text-blue-700 dark:text-blue-300 mb-2">
                     {getBranchName()}
                   </p>
+                  {getBranchAddress() && (
+                    <div className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <p className="leading-relaxed">{getBranchAddress()}</p>
+                    </div>
+                  )}
                 </div>
               </div>
               
-              {getBranchAddress() && (
-                <div className="flex items-start gap-2 mb-3 text-sm">
-                  <MapPin className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-gray-700 dark:text-gray-300">{getBranchAddress()}</p>
-                </div>
+              {/* 🗺️ Pickup: Big Map Button */}
+              {currentOrder.deliveryMethod === 'pickup' && typeof currentOrder.branch === 'object' && currentOrder.branch.location_lat && currentOrder.branch.location_lng && (
+                <button
+                  onClick={() => openBranchDirections(
+                    (currentOrder.branch as any).location_lat,
+                    (currentOrder.branch as any).location_lng
+                  )}
+                  className="w-full py-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl active:scale-[0.98] mb-3"
+                >
+                  <Navigation className="w-6 h-6" />
+                  <span className="text-lg">🗺️ فتح الاتجاهات في الخريطة</span>
+                </button>
               )}
               
               {/* Contact Buttons */}
               {getBranchPhone() && (
-                <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleCallBranch}
-                    className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-gray-700 border-2 border-green-300 dark:border-green-700 rounded-lg font-semibold text-green-600 dark:text-green-400 transition-all active:scale-95"
+                    className="flex items-center justify-center gap-2 py-3.5 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 border-2 border-blue-300 dark:border-blue-700 rounded-xl font-bold text-blue-600 dark:text-blue-400 transition-all active:scale-95 shadow-sm"
                   >
-                    <Phone className="w-4 h-4" />
-                    <span className="text-sm">اتصال</span>
+                    <Phone className="w-5 h-5" />
+                    <span>اتصال</span>
                   </button>
                   <button
                     onClick={handleWhatsApp}
-                    className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-gray-700 border-2 border-green-300 dark:border-green-700 rounded-lg font-semibold text-green-600 dark:text-green-400 transition-all active:scale-95"
+                    className="flex items-center justify-center gap-2 py-3.5 bg-white dark:bg-slate-800 hover:bg-green-50 dark:hover:bg-slate-700 border-2 border-green-300 dark:border-green-700 rounded-xl font-bold text-green-600 dark:text-green-400 transition-all active:scale-95 shadow-sm"
                   >
-                    <MessageCircle className="w-4 h-4" />
-                    <span className="text-sm">واتساب</span>
+                    <MessageCircle className="w-5 h-5" />
+                    <span>واتساب</span>
                   </button>
                 </div>
               )}
@@ -773,18 +522,18 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
           )}
 
           {/* Items */}
-          <div className="space-y-3">
-            <h3 className="font-bold text-gray-800 dark:text-gray-100">المنتجات المطلوبة</h3>
-            <div className="space-y-2">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700">
+            <h3 className="font-bold text-slate-900 dark:text-white mb-4">المنتجات المطلوبة</h3>
+            <div className="space-y-3">
               {currentOrder.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                  <div>
-                    <p className="font-medium text-gray-800 dark:text-gray-100">{item.name}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="font-medium text-slate-900 dark:text-white">{item.name}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                       {item.price.toFixed(2)} ج.م × {item.quantity}
                     </p>
                   </div>
-                  <p className="font-bold text-purple-600 dark:text-purple-400">
+                  <p className="font-bold text-lg text-purple-600 dark:text-purple-400">
                     {item.total.toFixed(2)} ج.م
                   </p>
                 </div>
@@ -793,27 +542,27 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
           </div>
 
           {/* Total Summary */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border-2 border-purple-200 dark:border-purple-800">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                <span>المجموع الفرعي:</span>
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-5 border border-slate-200 dark:border-slate-600">
+            <div className="space-y-3">
+              <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                <span>المجموع الفرعي</span>
                 <span className="font-semibold">{currentOrder.totals.subtotal.toFixed(2)} ج.م</span>
               </div>
               {currentOrder.totals.deliveryFee > 0 && (
-                <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                  <span>رسوم التوصيل:</span>
+                <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                  <span>رسوم التوصيل</span>
                   <span className="font-semibold">{currentOrder.totals.deliveryFee.toFixed(2)} ج.م</span>
                 </div>
               )}
               {currentOrder.totals.discount > 0 && (
                 <div className="flex justify-between text-green-600 dark:text-green-400">
-                  <span>الخصم:</span>
+                  <span>الخصم</span>
                   <span className="font-semibold">-{currentOrder.totals.discount.toFixed(2)} ج.م</span>
                 </div>
               )}
-              <div className="pt-2 border-t-2 border-purple-300 dark:border-purple-700 flex justify-between font-bold text-lg">
-                <span className="text-gray-800 dark:text-gray-100">الإجمالي:</span>
-                <span className="text-purple-600 dark:text-purple-400">
+              <div className="pt-3 border-t-2 border-slate-300 dark:border-slate-600 flex justify-between items-center">
+                <span className="text-lg font-bold text-slate-800 dark:text-slate-100">الإجمالي</span>
+                <span className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   {currentOrder.totals.total.toFixed(2)} ج.م
                 </span>
               </div>
@@ -822,70 +571,20 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            {/* Edit Button */}
             {canEditOrder(currentOrder) && onEditOrder && (
-              <>
-                <button
-                  onClick={handleEditOrder}
-                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95"
-                >
-                  <Edit className="w-5 h-5" />
-                  ✏️ تعديل الطلب
-                </button>
-                {getTimeRemaining() && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-3 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      <span className="font-bold">الوقت المتبقي للتعديل:</span> {getTimeRemaining()} دقيقة
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Cancel Button */}
-            {canCancel && (currentOrder.status === 'pending' || currentOrder.status === 'جديد') && (
               <button
-                onClick={handleCancelOrder}
-                disabled={isCancelling}
-                className="w-full py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95"
+                onClick={handleEditOrder}
+                className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-[0.98]"
               >
-                {isCancelling ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    جاري الإلغاء...
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-5 h-5" />
-                    ❌ إلغاء الطلب
-                  </>
-                )}
+                <Edit className="w-5 h-5" />
+                ✏️ تعديل الطلب
               </button>
             )}
 
-            {/* Contact Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={handleCallBranch}
-                className="py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95"
-              >
-                <Phone className="w-5 h-5" />
-                اتصال
-              </button>
-              <button
-                onClick={handleWhatsApp}
-                className="py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95"
-              >
-                <MessageCircle className="w-5 h-5" />
-                واتساب
-              </button>
-            </div>
-
-            {/* Close */}
+            {/* Close Button */}
             <button
               onClick={onClose}
-              className="w-full py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+              className="w-full py-4 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
             >
               إغلاق
             </button>

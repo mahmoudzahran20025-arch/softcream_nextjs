@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Clock, CheckCircle } from 'lucide-react'
+import { Clock, CheckCircle, Sparkles } from 'lucide-react'
 
 interface SimpleOrderTimerProps {
   createdAt: string
@@ -29,20 +29,16 @@ export default function SimpleOrderTimer({
       const cancelDeadline = new Date(canCancelUntil)
       const completionTime = new Date(new Date(createdAt).getTime() + estimatedMinutes * 60000)
       
-      // حساب الوقت المتبقي للإلغاء (5 دقائق)
       const cancelRemaining = cancelDeadline.getTime() - now.getTime()
       const canStillCancel = cancelRemaining > 0
       
-      // حساب الوقت المتبقي للتسليم
       const deliveryRemaining = completionTime.getTime() - now.getTime()
       const isDelivered = deliveryRemaining <= 0
       
-      // إشعار عند انتهاء فترة الإلغاء
       if (!canStillCancel && onCanCancelExpired && cancelRemaining > -1000) {
         onCanCancelExpired()
       }
       
-      // عرض الوقت المناسب
       const remaining = canStillCancel ? cancelRemaining : deliveryRemaining
       const minutes = Math.max(0, Math.floor(remaining / 60000))
       const seconds = Math.max(0, Math.floor((remaining % 60000) / 1000))
@@ -58,17 +54,19 @@ export default function SimpleOrderTimer({
 
   const { minutes, seconds, canStillCancel, isDelivered } = timeLeft
 
-  // إذا تم التسليم
   if (isDelivered) {
     return (
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 border-2 border-green-300">
-        <div className="flex items-center gap-3">
-          <CheckCircle className="w-6 h-6 text-green-600 animate-pulse" />
-          <div>
-            <p className="font-bold text-green-800 dark:text-green-400">
+      <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-5 border border-green-300 dark:border-green-800 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center animate-bounce">
+            <CheckCircle className="w-7 h-7 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-lg text-green-800 dark:text-green-300 mb-1">
               الوقت المتوقع انتهى! 🎉
             </p>
-            <p className="text-sm text-green-700 dark:text-green-500 mt-1">
+            <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
               من المفترض أن يصلك الطلب الآن
             </p>
           </div>
@@ -77,36 +75,53 @@ export default function SimpleOrderTimer({
     )
   }
 
-  // ✅ Simplified: Clean timer display
   return (
-    <div className={`rounded-xl p-4 border-2 transition-all ${
+    <div className={`rounded-2xl p-5 border-2 transition-all shadow-sm ${
       canStillCancel 
-        ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-300'
-        : 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200'
+        ? 'bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-300 dark:border-amber-800'
+        : 'bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-800'
     }`}>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Clock className={`w-5 h-5 ${canStillCancel ? 'text-amber-600 animate-pulse' : 'text-blue-600'}`} />
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+            canStillCancel 
+              ? 'bg-amber-500 dark:bg-amber-600' 
+              : 'bg-blue-500 dark:bg-blue-600'
+          }`}>
+            <Clock className="w-6 h-6 text-white" />
+          </div>
           <div>
-            <p className="font-bold text-gray-800 dark:text-gray-100">
-              {canStillCancel ? 'وقت التعديل/الإلغاء المتبقي' : 'الوقت المتوقع للوصول'}
+            <p className="font-bold text-lg text-slate-900 dark:text-white mb-1">
+              {canStillCancel ? 'وقت التعديل المتبقي' : 'الوقت المتوقع للوصول'}
             </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              {canStillCancel 
-                ? 'يمكنك تعديل أو إلغاء الطلب خلال هذا الوقت' 
-                : 'الوقت التقريبي لوصول طلبك'}
+            <p className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+              {canStillCancel ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                  يمكنك تعديل الطلب خلال هذا الوقت
+                </>
+              ) : (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                  الوقت التقريبي لوصول طلبك
+                </>
+              )}
             </p>
           </div>
         </div>
         <div className="text-right">
-          <div className={`text-3xl font-black tabular-nums ${
+          <div className={`text-4xl font-black tabular-nums leading-none ${
             canStillCancel 
               ? 'text-amber-600 dark:text-amber-400' 
               : 'text-blue-600 dark:text-blue-400'
           }`}>
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
           </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+          <p className={`text-xs font-medium mt-2 ${
+            canStillCancel 
+              ? 'text-amber-600 dark:text-amber-400' 
+              : 'text-blue-600 dark:text-blue-400'
+          }`}>
             دقيقة
           </p>
         </div>
