@@ -17,6 +17,7 @@ import { storage } from '@/lib/storage.client'
 interface CartItem {
   productId: string
   quantity: number
+  selectedAddons?: string[] // Array of addon IDs
 }
 
 interface Product {
@@ -26,14 +27,21 @@ interface Product {
   price: number
 }
 
+interface Addon {
+  id: string
+  name: string
+  name_en: string
+  price: number
+}
+
 interface CartContextType {
   cart: CartItem[]
-  addToCart: (product: Product, quantity?: number) => void
-  removeFromCart: (productId: string) => void
-  updateCartQuantity: (productId: string, quantity: number) => void
+  addToCart: (product: Product, quantity?: number, selectedAddons?: string[]) => void
+  removeFromCart: (productId: string, selectedAddons?: string[]) => void
+  updateCartQuantity: (productId: string, quantity: number, selectedAddons?: string[]) => void
   clearCart: () => void
   getCartCount: () => number
-  getCartTotal: (productsMap: Record<string, Product>) => number
+  getCartTotal: (productsMap: Record<string, Product>, addonsMap?: Record<string, Addon>) => number
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -100,9 +108,41 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   // Cart Operations
   // ========================================
 
-  const addToCart = useCallback((product: Product, quantity = 1) => {
+  // Helper function to compare addon arrays
+  const areAddonsEqual = (addons1?: string[], addons2?: string[]) => {
+    // Both undefined/null/empty = equal
+    const arr1 = addons1 || []
+    const arr2 = addons2 || []
+    
+    if (arr1.length === 0 && arr2.length === 0) return true
+    if (arr1.length !== arr2.length) return false
+    
+    const sorted1 = [...arr1].sort()
+    const sorted2 = [...arr2].sort()
+    const isEqual = sorted1.every((addon, index) => addon === sorted2[index])
+    
+    console.log('🔍 Comparing addons:', { arr1, arr2, isEqual })
+    return isEqual
+  }
+
+  const addToCart = useCallback((product: Product, quantity = 1, selectedAddons?: string[]) => {
+    console.log('➕ Adding to cart:', {
+      productId: product.id,
+      productName: product.name || product.nameEn,
+      quantity,
+      selectedAddons: selectedAddons || []
+    })
+    
     setCart(prevCart => {
-      const existing = prevCart.find(item => item.productId === product.id)
+      console.log('📦 Current cart before add:', prevCart)
+      
+      // Find existing item with same product AND same addons
+      const existing = prevCart.find(item => 
+        item.productId === product.id && 
+        areAddonsEqual(item.selectedAddons, selectedAddons)
+      )
+      
+      console.log('🔎 Found existing item:', existing)
       
       const MAX_QUANTITY = 50
       
@@ -111,27 +151,39 @@ export const CartProvider = ({ children }: CartProviderProps) => {
           alert(`Maximum ${MAX_QUANTITY} items allowed`)
           return prevCart
         }
+        console.log('✅ Updating existing item quantity')
         return prevCart.map(item =>
-          item.productId === product.id
+          item.productId === product.id && areAddonsEqual(item.selectedAddons, selectedAddons)
             ? { ...item, quantity: item.quantity + quantity }
             : item
         )
       }
       
-      return [...prevCart, { productId: product.id, quantity }]
+      // Add as new item (different addons = different item)
+      console.log('✅ Adding as new item')
+      return [...prevCart, { 
+        productId: product.id, 
+        quantity,
+        selectedAddons: selectedAddons || []
+      }]
     })
     
-    console.log('🛒 Product added to cart:', product.name || product.nameEn)
+    const addonsText = selectedAddons && selectedAddons.length > 0 
+      ? ` with ${selectedAddons.length} addon(s)` 
+      : ''
+    console.log('🛒 Product added to cart:', product.name || product.nameEn, addonsText)
   }, [])
 
-  const removeFromCart = useCallback((productId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.productId !== productId))
+  const removeFromCart = useCallback((productId: string, selectedAddons?: string[]) => {
+    setCart(prevCart => prevCart.filter(item => 
+      !(item.productId === productId && areAddonsEqual(item.selectedAddons, selectedAddons))
+    ))
     console.log('🗑️ Product removed from cart:', productId)
   }, [])
 
-  const updateCartQuantity = useCallback((productId: string, quantity: number) => {
+  const updateCartQuantity = useCallback((productId: string, quantity: number, selectedAddons?: string[]) => {
     if (quantity <= 0) {
-      removeFromCart(productId)
+      removeFromCart(productId, selectedAddons)
       return
     }
     
@@ -143,7 +195,9 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     
     setCart(prevCart =>
       prevCart.map(item =>
-        item.productId === productId ? { ...item, quantity } : item
+        item.productId === productId && areAddonsEqual(item.selectedAddons, selectedAddons)
+          ? { ...item, quantity } 
+          : item
       )
     )
   }, [removeFromCart])
@@ -162,11 +216,23 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     return cart.reduce((sum, item) => sum + item.quantity, 0)
   }, [cart])
 
-  const getCartTotal = useCallback((productsMap: Record<string, Product>) => {
+  const getCartTotal = useCallback((productsMap: Record<string, Product>, addonsMap?: Record<string, Addon>) => {
     return cart.reduce((total, item) => {
       const product = productsMap[item.productId]
       if (!product) return total
-      return total + (product.price * item.quantity)
+      
+      let itemPrice = product.price
+      
+      // Add addon prices if provided
+      if (addonsMap && item.selectedAddons && item.selectedAddons.length > 0) {
+        const addonsTotal = item.selectedAddons.reduce((sum, addonId) => {
+          const addon = addonsMap[addonId]
+          return sum + (addon?.price || 0)
+        }, 0)
+        itemPrice += addonsTotal
+      }
+      
+      return total + (itemPrice * item.quantity)
     }, 0)
   }, [cart])
 

@@ -3,6 +3,7 @@
 import { ShoppingCart, Menu, Sun, Moon, Globe } from 'lucide-react'
 import { useTheme } from '@/providers/ThemeProvider'
 import { useCart } from '@/providers/CartProvider'
+import { useState, useEffect } from 'react'
 
 interface HeaderProps {
   onOpenSidebar?: () => void
@@ -13,8 +14,16 @@ interface HeaderProps {
 export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: HeaderProps) {
   const { language, toggleLanguage, toggleTheme, isDark, isRTL } = useTheme()
   const { getCartCount } = useCart()
+  
+  // Fix hydration error: only show count on client side
+  const [displayCount, setDisplayCount] = useState(0)
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+    setDisplayCount(getCartCount())
+  }, [getCartCount])
 
-  const displayCount = getCartCount()
   const brandText = "SOFTCREAM"
 
   return (
@@ -95,7 +104,7 @@ export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: Hea
               aria-label="Open cart"
             >
               <ShoppingCart className="w-6 h-6" />
-              {displayCount > 0 && (
+              {mounted && displayCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
                   {displayCount}
                 </span>

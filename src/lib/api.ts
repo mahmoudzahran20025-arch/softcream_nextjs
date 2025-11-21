@@ -41,6 +41,15 @@ export interface ApiResponse<T> {
   error?: string
 }
 
+export interface Addon {
+  id: string
+  name: string
+  name_en: string
+  type: 'topping' | 'sauce' | 'extra'
+  price: number
+  available?: number
+}
+
 export interface Product {
   id: string
   name: string
@@ -61,11 +70,18 @@ export interface Product {
   energy_type?: string
   energy_score?: number
   badge?: string
+  // Add-ons support
+  allowed_addons?: string
+  addonsList?: Addon[]
+  ingredientsList?: string[]
+  allergensList?: string[]
+  nutritionData?: any
 }
 
 export interface OrderItem {
   productId: string
   quantity: number
+  selectedAddons?: string[] // Array of addon IDs
 }
 
 export interface OrderData {
@@ -113,7 +129,7 @@ async function httpRequest<T>(
   data: any = null,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_URL}?path=${encodeURIComponent(endpoint)}`
+  const url = `${API_URL}${endpoint}`
 
   // ✅ Only add Content-Type for requests with body (POST, PUT, DELETE)
   // GET requests don't need Content-Type header, which avoids unnecessary CORS preflight
@@ -215,8 +231,18 @@ export async function getProducts(filters: Record<string, any> = {}): Promise<Pr
   return httpRequest<Product[]>('GET', '/products', filters)
 }
 
-export async function getProduct(productId: string): Promise<Product> {
-  return httpRequest<Product>('GET', `/products/${productId}`)
+export async function getProduct(
+  productId: string,
+  options?: { expand?: string[] }
+): Promise<Product> {
+  let endpoint = `/products/${productId}`
+  
+  // Add expand parameter if provided
+  if (options?.expand && options.expand.length > 0) {
+    endpoint += `?expand=${options.expand.join(',')}`
+  }
+  
+  return httpRequest<Product>('GET', endpoint)
 }
 
 export async function getRecommendations(productId: string, limit = 5): Promise<Product[]> {

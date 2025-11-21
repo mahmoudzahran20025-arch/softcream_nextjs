@@ -136,13 +136,16 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
           ) : (
             // Cart Items List
             <div className="space-y-4">
-              {cart.map((item) => {
+              {cart.map((item, index) => {
                 const product = allProducts.find(p => p.id === item.productId)
                 if (!product) return null
 
+                // Create unique key combining productId and addons
+                const itemKey = `${item.productId}-${(item.selectedAddons || []).sort().join('-')}-${index}`
+
                 return (
                   <div
-                    key={item.productId}
+                    key={itemKey}
                     className="flex gap-4 p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-700 dark:to-slate-600 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
                   >
                     {/* Product Image */}
@@ -163,11 +166,25 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                       <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                         {product.price} ج.م
                       </p>
+                      
+                      {/* Show selected addons if any */}
+                      {item.selectedAddons && item.selectedAddons.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.selectedAddons.map((addonId) => (
+                            <span
+                              key={addonId}
+                              className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full"
+                            >
+                              +{addonId}
+                            </span>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Quantity Controls */}
                       <div className="flex items-center gap-2 mt-2">
                         <button
-                          onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
+                          onClick={() => updateCartQuantity(item.productId, item.quantity - 1, item.selectedAddons)}
                           className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors"
                           aria-label="تقليل الكمية"
                         >
@@ -177,14 +194,14 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
+                          onClick={() => updateCartQuantity(item.productId, item.quantity + 1, item.selectedAddons)}
                           className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors"
                           aria-label="زيادة الكمية"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => removeFromCart(item.productId)}
+                          onClick={() => removeFromCart(item.productId, item.selectedAddons)}
                           className="ml-auto w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-colors"
                           aria-label="حذف المنتج"
                         >
