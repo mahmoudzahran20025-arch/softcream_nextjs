@@ -22,17 +22,22 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
   
   const [userData, setUserData] = useState<any>(null)
   const [activeOrdersCount, setActiveOrdersCount] = useState(0)
+  const [customerProfile, setCustomerProfile] = useState<any>(null)
   
   const cartCount = getCartCount()
 
-  // Load user data and orders count
+  // Load user data, customer profile, and orders count
   useEffect(() => {
     updateUserData()
+    updateCustomerProfile()
     updateOrdersCount()
   }, [])
 
   useEffect(() => {
-    const handleOrdersUpdated = () => updateOrdersCount()
+    const handleOrdersUpdated = () => {
+      updateOrdersCount()
+      updateCustomerProfile() // ✅ Update profile when orders change
+    }
     const handleUserDataUpdated = () => updateUserData()
 
     if (typeof window !== 'undefined') {
@@ -50,6 +55,15 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
     if (typeof window !== 'undefined') {
       const data = storage.getUserData()
       setUserData(data)
+    }
+  }
+  
+  // ✅ NEW: Load customer profile for personalized greeting
+  const updateCustomerProfile = () => {
+    if (typeof window !== 'undefined') {
+      const profile = storage.getCustomerProfile()
+      setCustomerProfile(profile)
+      console.log('👤 Customer profile loaded in sidebar:', profile?.name || 'Guest')
     }
   }
 
@@ -210,11 +224,11 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
             </div>
           </div>
 
-          {/* Welcome Section */}
+          {/* Welcome Section - ✅ ENHANCED with Customer Profile */}
           <div className="rounded-2xl bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-blue-900/20 p-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-br from-[#A3164D] to-purple-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
-                {userData?.name ? (
+                {(userData?.name || customerProfile?.name) ? (
                   <User className="w-6 h-6 text-white" />
                 ) : (
                   <Heart className="w-6 h-6 text-white" />
@@ -222,6 +236,7 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
               </div>
               
               <div className="flex-1 min-w-0">
+                {/* ✅ Priority: userData > customerProfile > generic greeting */}
                 {userData?.name ? (
                   <>
                     <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
@@ -229,6 +244,15 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
                     </p>
                     <p className="text-sm font-black text-gray-900 dark:text-white truncate">
                       {userData.name}
+                    </p>
+                  </>
+                ) : customerProfile?.name ? (
+                  <>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                      {language === 'ar' ? 'مرحباً،' : 'Hi,'}
+                    </p>
+                    <p className="text-sm font-black text-gray-900 dark:text-white truncate">
+                      {customerProfile.name} 👋
                     </p>
                   </>
                 ) : (

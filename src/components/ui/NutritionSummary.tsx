@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Minus, Trash2, Flame, Droplets, Wheat, Activity, ShoppingCart } from 'lucide-react'
+import { X, ShoppingCart } from 'lucide-react'
 import { useCart } from '@/providers/CartProvider'
 import { useProductsData } from '@/providers/ProductsProvider'
+import NutritionIcon from './common/NutritionIcon'
+import QuantitySelector from './common/QuantitySelector'
+import PriceDisplay from './common/PriceDisplay'
 
 interface NutritionData {
   totalCalories: number
@@ -20,7 +23,7 @@ interface NutritionSummaryProps {
 }
 
 export default function NutritionSummary({ isOpen, onClose, onCheckout }: NutritionSummaryProps) {
-  const { cart, updateCartQuantity, removeFromCart } = useCart()
+  const { cart, updateCartQuantity } = useCart()
   const { productsMap } = useProductsData()
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
 
@@ -66,21 +69,11 @@ export default function NutritionSummary({ isOpen, onClose, onCheckout }: Nutrit
 
   if (!isOpen) return null
 
-  // Show skeleton while loading
-  const isLoading = cart.length > 0 && !nutritionData
-  
   const subtotal = cart.reduce((sum, item: any) => {
     const product = productsMap[item.productId]
     return sum + ((product?.price || 0) * item.quantity)
   }, 0)
   const totalItems = cart.reduce((sum, item: any) => sum + item.quantity, 0)
-
-  const nutritionItems = [
-    { icon: Flame, label: 'السعرات', value: nutritionData?.totalCalories || 0, unit: 'kcal', color: 'text-orange-500' },
-    { icon: Droplets, label: 'البروتين', value: nutritionData?.totalProtein || 0, unit: 'g', color: 'text-red-500' },
-    { icon: Wheat, label: 'الكربوهيدرات', value: nutritionData?.totalCarbs || 0, unit: 'g', color: 'text-yellow-500' },
-    { icon: Activity, label: 'الدهون', value: nutritionData?.totalFat || 0, unit: 'g', color: 'text-pink-500' },
-  ]
 
   return (
     <div
@@ -108,31 +101,33 @@ export default function NutritionSummary({ isOpen, onClose, onCheckout }: Nutrit
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6 min-h-[400px]">
-          {/* Nutrition Cards - Reserved Height for CLS Prevention */}
-          <div className="grid grid-cols-2 gap-3 min-h-[120px]">
-            {isLoading ? (
-              // Skeleton Placeholders
-              [...Array(4)].map((_, i) => (
-                <div key={i} className="bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4 animate-pulse" />
-              ))
-            ) : (
-              nutritionItems.map((item, index) => {
-                const Icon = item.icon
-                return (
-                  <div key={index} className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Icon className={`w-5 h-5 ${item.color}`} />
-                      <p className="text-xs text-slate-600 dark:text-slate-400">{item.label}</p>
-                    </div>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {Math.round(item.value)}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{item.unit}</p>
-                  </div>
-                )
-              })
-            )}
+        <div className="p-6 space-y-6">
+          {/* Nutrition Cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <NutritionIcon
+              type="calories"
+              value={Math.round(nutritionData?.totalCalories || 0)}
+              size="lg"
+              variant="colored"
+            />
+            <NutritionIcon
+              type="protein"
+              value={parseFloat((nutritionData?.totalProtein || 0).toFixed(1))}
+              size="lg"
+              variant="colored"
+            />
+            <NutritionIcon
+              type="carbs"
+              value={parseFloat((nutritionData?.totalCarbs || 0).toFixed(1))}
+              size="lg"
+              variant="colored"
+            />
+            <NutritionIcon
+              type="fat"
+              value={parseFloat((nutritionData?.totalFat || 0).toFixed(1))}
+              size="lg"
+              variant="colored"
+            />
           </div>
 
           {/* Cart Items */}
@@ -144,44 +139,19 @@ export default function NutritionSummary({ isOpen, onClose, onCheckout }: Nutrit
                 if (!product) return null
 
                 return (
-                  <div key={item.productId} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900 dark:text-white">{product.name}</p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {product.price} ج.م × {item.quantity}
-                      </p>
+                  <div key={item.productId} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900 dark:text-white truncate">{product.name}</p>
+                      <PriceDisplay price={product.price} size="sm" />
                     </div>
 
                     {/* Quantity Controls */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
-                        className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 hover:bg-red-500 text-slate-700 dark:text-white hover:text-white flex items-center justify-center transition-colors"
-                        aria-label="تقليل"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-
-                      <span className="w-6 text-center font-bold text-slate-900 dark:text-white">
-                        {item.quantity}
-                      </span>
-
-                      <button
-                        onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
-                        className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 hover:bg-green-500 text-slate-700 dark:text-white hover:text-white flex items-center justify-center transition-colors"
-                        aria-label="إضافة"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        onClick={() => removeFromCart(item.productId)}
-                        className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 hover:bg-red-500 text-slate-700 dark:text-white hover:text-white flex items-center justify-center transition-colors"
-                        aria-label="حذف"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <QuantitySelector
+                      quantity={item.quantity}
+                      onIncrease={() => updateCartQuantity(item.productId, item.quantity + 1)}
+                      onDecrease={() => updateCartQuantity(item.productId, item.quantity - 1)}
+                      size="sm"
+                    />
                   </div>
                 )
               })}
@@ -192,9 +162,7 @@ export default function NutritionSummary({ isOpen, onClose, onCheckout }: Nutrit
           <div className="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-slate-600 dark:text-slate-400">المجموع:</span>
-              <span className="font-bold text-lg text-slate-900 dark:text-white">
-                {subtotal} ج.م
-              </span>
+              <PriceDisplay price={subtotal} size="lg" className="font-extrabold" />
             </div>
           </div>
 
@@ -204,7 +172,7 @@ export default function NutritionSummary({ isOpen, onClose, onCheckout }: Nutrit
               onCheckout?.()
               onClose()
             }}
-            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-bold transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] hover:from-[#FF5A8E] hover:to-[#FF4979] text-white rounded-lg font-bold transition-all flex items-center justify-center gap-2 shadow-lg"
           >
             <ShoppingCart className="w-5 h-5" />
             متابعة للدفع

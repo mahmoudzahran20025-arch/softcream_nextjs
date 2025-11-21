@@ -225,6 +225,31 @@ export type ApiResponse<T> = {
   error?: string
 }
 
+// ✅ NEW: Addon Types
+interface Addon {
+  id: string
+  name: string
+  name_en: string
+  type: string
+  price: number
+  available: boolean
+}
+
+interface CartItem {
+  productId: string
+  quantity: number
+  selectedAddons?: string[]  // Array of addon IDs
+}
+
+interface Product {
+  id: string
+  name: string
+  price: number
+  // ... other fields ...
+  addonsList?: Addon[]  // Populated when expand=addons
+  allowed_addons?: string  // JSON string of allowed addon IDs
+}
+
 // ⚠️ PREFER: Interfaces over Types (unless union/intersection needed)
 ```
 
@@ -336,14 +361,37 @@ const handleAddToCart = useCallback((product: Product) => {
 // ✅ CORRECT: Use centralized API client
 import { getProducts, submitOrder } from '@/lib/api'
 
-// ✅ CORRECT: Never send prices from frontend
+// ✅ CORRECT: Use expand parameter for heavy data
+const products = await getProducts({ expand: ['ingredients', 'nutrition', 'addons'] })
+const product = await getProduct(id, { expand: ['recommendations', 'addons'] })
+
+// ✅ CORRECT: Never send prices from frontend (including addons)
 const orderData = {
-  items: [{ productId: '1', quantity: 2 }], // ✅ No price
+  items: [
+    { 
+      productId: '1', 
+      quantity: 2,
+      selectedAddons: ['addon-1', 'addon-2']  // ✅ Only addon IDs
+    }
+  ],
   customer: { name, phone }
 }
 
 // ❌ WRONG: Direct fetch calls
 const response = await fetch('https://api...') // ❌ Use api.ts
+
+// ❌ WRONG: Sending addon prices
+const orderData = {
+  items: [
+    { 
+      productId: '1', 
+      quantity: 2,
+      selectedAddons: [
+        { id: 'addon-1', price: 5 }  // ❌ SECURITY RISK
+      ]
+    }
+  ]
+}
 ```
 
 #### Backend Service Layer
@@ -452,12 +500,22 @@ const orderData = {
   ]
 }
 
-// ✅ CORRECT: Backend calculates all prices
+// ✅ CORRECT: Backend calculates all prices (including addons)
 const orderData = {
   items: [
-    { productId: '1', quantity: 2 } // ✅ Only ID and quantity
+    { 
+      productId: '1', 
+      quantity: 2,
+      selectedAddons: ['addon-1', 'addon-2']  // ✅ Only IDs, no prices
+    }
   ]
 }
+
+// Backend will:
+// 1. Fetch product price from database
+// 2. Fetch addon prices from database
+// 3. Validate addons are allowed for this product
+// 4. Calculate total: (product.price + sum(addon.prices)) * quantity
 ```
 
 #### 4. Never Bypass Rate Limiting
@@ -626,6 +684,45 @@ useEffect(() => {
 
 ## 6. API & Data Flow Patterns
 
+### Smart Expansion Pattern (NEW)
+
+The API now supports selective data loading via `?expand=` query parameter:
+
+```typescript
+// ✅ CORRECT: Request only needed data
+const products = await getProducts({ 
+  expand: ['ingredients', 'nutrition', 'addons'] 
+})
+
+const product = await getProduct(productId, { 
+  expand: ['recommendations', 'addons', 'allergens'] 
+})
+
+// Available expansion fields:
+// - ingredients: Product ingredients list
+// - nutrition: Detailed nutrition facts
+// - allergens: Allergen information
+// - tags: Product tags (always lightweight)
+// - recommendations: Similar products (single product only)
+// - addons: Allowed addons for product (NEW)
+
+// Backend parses JSON fields and fetches related data
+// Frontend receives enriched product objects:
+{
+  id: '1',
+  name: 'Product Name',
+  price: 25,
+  // ... base fields ...
+  
+  // Expanded fields (only if requested):
+  ingredientsList: ['ingredient1', 'ingredient2'],  // if expand=ingredients
+  nutritionData: { calories: 250, protein: 10 },    // if expand=nutrition
+  addonsList: [                                      // if expand=addons
+    { id: 'addon-1', name: 'Extra Topping', price: 5 }
+  ]
+}
+```
+
 ### Request Flow (Frontend → Backend)
 
 ```
@@ -635,7 +732,7 @@ Component Event Handler
     ↓
 API Client (lib/api.ts)
     ↓
-HTTP Request (with device ID, idempotency key)
+HTTP Request (with device ID, idempotency key, expand params)
     ↓
 Cloudflare Worker (src/index.js)
     ↓
@@ -643,9 +740,11 @@ Route Handler (src/routes/*.js)
     ↓
 Service Layer (src/services/*.js)
     ↓
+Smart Data Enrichment (if expand params present)
+    ↓
 Database/Cache (D1/KV)
     ↓
-Response (JSON)
+Response (JSON with enriched data)
     ↓
 API Client (parse & validate)
     ↓
@@ -695,12 +794,36 @@ localStorage.setItem('admin_token', token)
 
 ### Context Providers (UI State)
 
-#### CartProvider
+#### CartProvider (Enhanced with Add-ons)
 ```typescript
-// Purpose: Shopping cart state
+// Purpose: Shopping cart state with addon support
 // Storage: sessionStorage
 // Scope: Global (all pages)
+// ✅ NEW: Cart items now include selectedAddons array
+
+interface CartItem {
+  productId: string
+  quantity: number
+  selectedAddons?: string[]  // Array of addon IDs (NEW)
+}
+
+// Cart Logic: Unique Item Signature
+// Same product + different addons = DIFFERENT cart items
+// Example:
+// - Product A + [Addon 1, Addon 2] → Cart Item 1
+// - Product A + [Addon 3]          → Cart Item 2
+// - Product A + []                 → Cart Item 3
+
 const { cart, addToCart, removeFromCart, clearCart } = useCart()
+
+// Adding to cart with addons
+addToCart(product, quantity, ['addon-1', 'addon-2'])
+
+// Removing from cart (must match addons)
+removeFromCart(productId, ['addon-1', 'addon-2'])
+
+// Calculating total with addons
+getCartTotal(productsMap, addonsMap)
 ```
 
 #### ProductsProvider
@@ -1006,4 +1129,5 @@ npm test                 # Run Vitest tests
 
 **Remember:** This codebase is now in its cleanest state. Keep it that way by following these rules strictly. When in doubt, refer to this file first.
 
-**Last Cleanup:** November 19, 2025 - Phase 1 Complete ✅
+**Last Cleanup:** November 19, 2025 - Phase 1 Complete ✅  
+**Last Updated:** November 21, 2025 - Add-ons System & Smart Expansion Added ✅

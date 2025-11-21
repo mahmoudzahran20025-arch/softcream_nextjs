@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { useCart } from '@/providers/CartProvider'
 import { useProductsData } from '@/providers/ProductsProvider'
-import { ShoppingCart, Plus, Minus } from 'lucide-react'
+import { ShoppingCart } from 'lucide-react'
+import QuantitySelector from './common/QuantitySelector'
+import PriceDisplay from './common/PriceDisplay'
 
 interface Product {
   id: string
@@ -64,7 +66,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       onClick={handleCardClick}
     >
       {/* Image Container - Fixed Aspect Ratio for CLS Prevention */}
-      <div className="relative w-full aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg mb-3 overflow-hidden group">
+      <div className="relative w-full aspect-[4/5] bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-800 dark:to-slate-700 rounded-lg mb-3 overflow-hidden group">
         {product.image ? (
           <img
             src={product.image}
@@ -82,7 +84,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         
         {/* Badge */}
         {product.badge && (
-          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+          <div className="absolute top-2 right-2 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
             {product.badge}
           </div>
         )}
@@ -110,48 +112,25 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
 
       {/* Price and Controls */}
       <div className="mt-auto pt-3 border-t border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
-            {product.price} ج.م
-          </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            {quantity}x
-          </span>
+        <div className="flex items-center justify-between mb-3">
+          <PriceDisplay price={product.price} size="md" />
         </div>
 
         {/* Quantity Controls */}
-        <div className="flex items-center gap-1 mb-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setQuantity(Math.max(1, quantity - 1))
-            }}
-            className="flex-1 p-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
-            disabled={quantity <= 1}
-            aria-label="تقليل الكمية"
-          >
-            <Minus size={14} className="mx-auto" />
-          </button>
-          <span className="flex-1 text-center text-sm font-semibold">
-            {quantity}
-          </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setQuantity(quantity + 1)
-            }}
-            className="flex-1 p-1 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 rounded transition-colors"
-            aria-label="زيادة الكمية"
-          >
-            <Plus size={14} className="mx-auto" />
-          </button>
+        <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+          <QuantitySelector
+            quantity={quantity}
+            onIncrease={() => setQuantity(quantity + 1)}
+            onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
+            size="sm"
+          />
         </div>
 
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
           disabled={isAdding}
-          className="w-full btn-primary py-2 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+          className="w-full bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] hover:from-[#FF5A8E] hover:to-[#FF4979] text-white py-2 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md hover:shadow-lg active:scale-[0.98]"
           aria-label="إضافة إلى العربة"
         >
           <ShoppingCart size={16} />

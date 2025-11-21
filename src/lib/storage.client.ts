@@ -310,6 +310,83 @@ export class StorageManager {
   }
   
   // ================================================================
+  // Customer Profile Management (Guest Checkout Memory)
+  // ================================================================
+  
+  /**
+   * Save customer profile for auto-fill on next checkout
+   * @param data Customer profile data
+   * @returns Success boolean
+   */
+  saveCustomerProfile(data: { name: string; phone: string; address?: string }): boolean {
+    try {
+      const profile = {
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        address: data.address?.trim() || '',
+        savedAt: new Date().toISOString()
+      }
+      
+      const success = this.local.set('customerProfile', profile)
+      
+      if (success) {
+        console.log('✅ Customer profile saved:', profile.name)
+      }
+      
+      return success
+    } catch (e) {
+      console.error('❌ Failed to save customer profile:', e)
+      return false
+    }
+  }
+  
+  /**
+   * Get saved customer profile
+   * @returns Customer profile or null
+   */
+  getCustomerProfile(): { name: string; phone: string; address: string; savedAt: string } | null {
+    try {
+      const profile = this.local.get('customerProfile', null)
+      
+      if (profile) {
+        console.log('📋 Customer profile loaded:', profile.name)
+      }
+      
+      return profile
+    } catch (e) {
+      console.error('❌ Failed to load customer profile:', e)
+      return null
+    }
+  }
+  
+  /**
+   * Clear saved customer profile
+   * @returns Success boolean
+   */
+  clearCustomerProfile(): boolean {
+    try {
+      const success = this.local.remove('customerProfile')
+      
+      if (success) {
+        console.log('🗑️ Customer profile cleared')
+      }
+      
+      return success
+    } catch (e) {
+      console.error('❌ Failed to clear customer profile:', e)
+      return false
+    }
+  }
+  
+  /**
+   * Check if customer profile exists
+   * @returns Boolean
+   */
+  hasCustomerProfile(): boolean {
+    return this.local.has('customerProfile')
+  }
+  
+  // ================================================================
   // Orders Management - FIXED
   // ================================================================
   
@@ -644,18 +721,10 @@ export class StorageManager {
     this.memory.remove('products_cache')
   }
   
-  // Auth Token
-  getAuthToken(): string | null {
-    return this.memory.get('authToken')
-  }
-  
-  setAuthToken(token: string): void {
-    this.memory.set('authToken', token)
-  }
-  
-  clearAuthToken(): void {
-    this.memory.remove('authToken')
-  }
+  // ================================================================
+  // Removed: Auth Token (Guest-only approach)
+  // We're using device ID for identification instead
+  // ================================================================
   
   // Checkout Form
   getCheckoutFormData(): any {
@@ -710,4 +779,17 @@ export class StorageManager {
 }
 
 export const storage = new StorageManager()
-console.log('✅ Storage loaded (optimized)')
+
+// ================================================================
+// Export Helper Functions for Direct Usage
+// ================================================================
+
+/**
+ * Get or create device ID (exported for convenience)
+ */
+export function getOrCreateDeviceId(): string {
+  return storage.getDeviceId()
+}
+
+console.log('✅ Storage loaded (optimized with Customer Profile support)')
+console.log('🔐 Device ID:', storage.getDeviceId())

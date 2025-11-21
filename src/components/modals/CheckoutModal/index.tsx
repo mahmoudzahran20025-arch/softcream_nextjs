@@ -46,6 +46,10 @@ const CheckoutModal = ({ isOpen, onClose, onCheckoutSuccess, onOpenTracking }: C
   const [couponData, setCouponData] = useState<any>(null)
   const [couponLoading, setCouponLoading] = useState(false)
   
+  // ✅ NEW: Remember Me checkbox state
+  const [rememberMe, setRememberMe] = useState(true)
+  const [profileLoaded, setProfileLoaded] = useState(false)
+  
   // GPS State
   const [useGPS, setUseGPS] = useState(true)
   const [userLocation, setUserLocation] = useState<any>(null)
@@ -66,6 +70,35 @@ const CheckoutModal = ({ isOpen, onClose, onCheckoutSuccess, onOpenTracking }: C
   const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isCalculatingRef = useRef(false)
 
+  // ✅ NEW: Load saved customer profile on mount
+  useEffect(() => {
+    if (isOpen && !profileLoaded) {
+      const savedProfile = storage.getCustomerProfile()
+      
+      if (savedProfile) {
+        console.log('👋 Welcome back! Loading saved profile:', savedProfile.name)
+        
+        setFormData(prev => ({
+          ...prev,
+          name: savedProfile.name,
+          phone: savedProfile.phone,
+          address: savedProfile.address || ''
+        }))
+        
+        setProfileLoaded(true)
+        
+        // Show welcome toast
+        showToast({
+          type: 'success',
+          title: language === 'ar' ? 'مرحباً بعودتك!' : 'Welcome back!',
+          message: language === 'ar' 
+            ? `تم تعبئة بياناتك تلقائياً، ${savedProfile.name} 👋` 
+            : `Your details have been auto-filled, ${savedProfile.name} 👋`
+        })
+      }
+    }
+  }, [isOpen, profileLoaded, language, showToast])
+  
   // Load Initial Data
   useEffect(() => {
     if (isOpen && cart.length > 0) {
@@ -568,6 +601,19 @@ const CheckoutModal = ({ isOpen, onClose, onCheckoutSuccess, onOpenTracking }: C
         }
       }
       
+      // ✅ NEW: Save customer profile if "Remember Me" is checked
+      if (rememberMe) {
+        const profileSaved = storage.saveCustomerProfile({
+          name: formData.name.trim(),
+          phone: formData.phone.replace(/\D/g, ''),
+          address: formData.address.trim()
+        })
+        
+        if (profileSaved) {
+          console.log('💾 Customer profile saved for next time')
+        }
+      }
+      
       clearCart()
       onClose()
       
@@ -607,6 +653,8 @@ const CheckoutModal = ({ isOpen, onClose, onCheckoutSuccess, onOpenTracking }: C
     setErrors({})
     setCouponStatus(null)
     setCouponData(null)
+    setRememberMe(true)
+    setProfileLoaded(false)
     lastLocationRef.current = null
     isCalculatingRef.current = false
   }
@@ -686,6 +734,28 @@ const CheckoutModal = ({ isOpen, onClose, onCheckoutSuccess, onOpenTracking }: C
             pricesError={pricesError}
             deliveryMethod={deliveryMethod}
           />
+        )}
+
+        {/* ✅ NEW: Remember Me Checkbox */}
+        {deliveryMethod && (
+          <div className="mt-4 mb-2">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-5 h-5 rounded border-2 border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer"
+              />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                {language === 'ar' ? '💾 حفظ بياناتي للطلب القادم' : '💾 Save my details for next time'}
+              </span>
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mr-8">
+              {language === 'ar' 
+                ? 'سنقوم بتعبئة بياناتك تلقائياً في المرة القادمة' 
+                : "We'll auto-fill your details next time"}
+            </p>
+          </div>
         )}
 
         <div className="flex gap-3 mt-6">
