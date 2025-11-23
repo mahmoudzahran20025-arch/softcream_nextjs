@@ -3,6 +3,7 @@ import ProductsGrid from '@/components/pages/ProductsGrid'
 import Footer from '@/components/server/Footer'
 import PageContentClient from '@/components/pages/PageContentClient'
 import ProductsProvider from '@/providers/ProductsProvider'
+import { CategoryTrackingProvider } from '@/providers/CategoryTrackingProvider'
 import StorytellingHero from '@/components/StorytellingHero'
 
 interface Product {
@@ -34,29 +35,32 @@ interface PageContentProps {
 export default function PageContent({ initialProducts }: PageContentProps) {
   return (
     <ProductsProvider initialProducts={initialProducts}>
-      <PageContentClient>
-        <Suspense fallback={<div className="h-[70vh] bg-gradient-to-b from-slate-950 via-slate-900 to-black animate-pulse" />}>
-          <StorytellingHero />
-        </Suspense>
-      </PageContentClient>
-      <main className="min-h-screen bg-white dark:bg-slate-950">
+      {/* ✅ Scoped Provider - Only for Menu/Home view */}
+      <CategoryTrackingProvider>
+        <PageContentClient>
+          <Suspense fallback={<div className="h-[70vh] bg-gradient-to-b from-slate-950 via-slate-900 to-black animate-pulse" />}>
+            <StorytellingHero />
+          </Suspense>
+        </PageContentClient>
+        <main className="min-h-screen bg-white dark:bg-slate-950">
 
-        {/* Products Grid */}
-        <Suspense fallback={<div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-96 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
-            ))}
-          </div>
-        </div>}>
-          <ProductsGrid />
-        </Suspense>
+          {/* Products Grid */}
+          <Suspense fallback={<div className="container mx-auto px-4 py-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-96 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+              ))}
+            </div>
+          </div>}>
+            <ProductsGrid />
+          </Suspense>
 
-        {/* Footer */}
-        <Suspense fallback={<div className="h-64 bg-slate-100 dark:bg-slate-900 animate-pulse" />}>
-          <Footer />
-        </Suspense>
-      </main>
+          {/* Footer */}
+          <Suspense fallback={<div className="h-64 bg-slate-100 dark:bg-slate-900 animate-pulse" />}>
+            <Footer />
+          </Suspense>
+        </main>
+      </CategoryTrackingProvider>
     </ProductsProvider>
   )
 }

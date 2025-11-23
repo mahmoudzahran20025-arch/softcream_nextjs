@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { useProductsData } from '@/providers/ProductsProvider'
+import { useWindowEvent } from '@/hooks/useWindowEvent'
 import Header from '@/components/ui/Header'
-import FilterBar from '@/components/ui/FilterBar'
+import FilterBar from '@/components/pages/Home/FilterBar'
 import TrustBanner from '@/components/ui/TrustBanner'
 import ToastContainer from '@/components/ui/ToastContainer'
 
@@ -85,63 +86,36 @@ export default function PageContentClient({ children }: PageContentClientProps) 
   const [successOrder, setSuccessOrder] = useState<any>(null)
 
   // Listen for open-my-orders-modal event
-  useEffect(() => {
-    const handleOpenMyOrders = () => {
-      setShowMyOrders(true)
-    }
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('open-my-orders-modal', handleOpenMyOrders)
-      return () => {
-        window.removeEventListener('open-my-orders-modal', handleOpenMyOrders)
-      }
-    }
+  useWindowEvent('open-my-orders-modal', () => {
+    setShowMyOrders(true)
   }, [])
 
   // ✅ Listen for openTrackingModal event from MyOrdersModal
-  useEffect(() => {
-    const handleOpenTracking = (event: any) => {
-      const { order } = event.detail || {}
-      if (order) {
-        console.log('📍 Opening TrackingModal for order:', order.id)
-        setSelectedOrder(order)
-        setShowTracking(true)
-        setShowMyOrders(false) // Close MyOrdersModal
-      }
-    }
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('openTrackingModal', handleOpenTracking)
-      return () => {
-        window.removeEventListener('openTrackingModal', handleOpenTracking)
-      }
+  useWindowEvent<{ order: any }>('openTrackingModal', (event) => {
+    const { order } = event.detail || {}
+    if (order) {
+      console.log('📍 Opening TrackingModal for order:', order.id)
+      setSelectedOrder(order)
+      setShowTracking(true)
+      setShowMyOrders(false) // Close MyOrdersModal
     }
   }, [])
 
   // ✅ Listen for order status updates from backend (via polling or webhook)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
+  useWindowEvent<{ orderId: string; status: string }>('orderStatusUpdate', async (event) => {
+    const { orderId, status } = event.detail || {}
+    if (!orderId || !status) return
 
-    const handleOrderStatusUpdate = async (event: any) => {
-      const { orderId, status } = event.detail || {}
-      if (!orderId || !status) return
+    console.log('🔄 Order status update received:', { orderId, status })
 
-      console.log('🔄 Order status update received:', { orderId, status })
+    // Update local storage
+    const { storage } = await import('@/lib/storage.client')
+    storage.updateOrderStatus(orderId, status)
 
-      // Update local storage
-      const { storage } = await import('@/lib/storage.client')
-      storage.updateOrderStatus(orderId, status)
-
-      // Trigger ordersUpdated event to update UI
-      window.dispatchEvent(new CustomEvent('ordersUpdated', {
-        detail: { orderId, status, source: 'backend' }
-      }))
-    }
-
-    window.addEventListener('orderStatusUpdate', handleOrderStatusUpdate as EventListener)
-    return () => {
-      window.removeEventListener('orderStatusUpdate', handleOrderStatusUpdate as EventListener)
-    }
+    // Trigger ordersUpdated event to update UI
+    window.dispatchEvent(new CustomEvent('ordersUpdated', {
+      detail: { orderId, status, source: 'backend' }
+    }))
   }, [])
 
   const handleCloseProductModal = () => {

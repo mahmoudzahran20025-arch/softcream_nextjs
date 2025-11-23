@@ -4,7 +4,9 @@
 // CRITICAL: Never send prices from frontend - backend calculates all prices
 // ================================================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://softcream-api.mahmoud-zahran20025.workers.dev'
+import { API_CONFIG, STORAGE_KEYS } from '@/config/constants'
+
+const API_URL = API_CONFIG.BASE_URL
 
 // Log API URL on module load (for debugging)
 if (typeof window !== 'undefined') {
@@ -18,13 +20,12 @@ if (typeof window !== 'undefined') {
 function getOrCreateDeviceId(): string {
   if (typeof window === 'undefined') return 'server-side'
   
-  const DEVICE_ID_KEY = 'softcream_device_id'
-  let deviceId = localStorage.getItem(DEVICE_ID_KEY)
+  let deviceId = localStorage.getItem(STORAGE_KEYS.DEVICE_ID)
   
   if (!deviceId) {
     // Generate unique device ID
     deviceId = `device_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
-    localStorage.setItem(DEVICE_ID_KEY, deviceId)
+    localStorage.setItem(STORAGE_KEYS.DEVICE_ID, deviceId)
     console.log('✅ New device ID created:', deviceId)
   }
   
@@ -139,8 +140,8 @@ async function httpRequest<T>(
     ...options.headers,
   }
 
-  // Add timeout using AbortController (15 seconds default)
-  const timeout = 15000
+  // Add timeout using AbortController
+  const timeout = API_CONFIG.TIMEOUT
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
 

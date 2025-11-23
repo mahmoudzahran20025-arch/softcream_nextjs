@@ -10,6 +10,7 @@ const cairo = Cairo({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   title: 'Soft Cream - Smart Nutrition & Energy',
   description: 'طاقة نقية، طعم غني، تغذية ذكية',
   keywords: ['soft cream', 'energy', 'nutrition', 'سوفت كريم', 'طاقة'],
@@ -61,3 +62,5 @@ export default function RootLayout({
     </html>
   )
 }
+
+// Force rebuild

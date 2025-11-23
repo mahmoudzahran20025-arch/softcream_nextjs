@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { SearchX, IceCream } from 'lucide-react'
 import { useProductsData } from '@/providers/ProductsProvider'
+import { useCategoryTracking } from '@/providers/CategoryTrackingProvider'
 import ProductCardSkeleton from '@/components/ui/skeletons/ProductCardSkeleton'
 
 // Lazy load Swiper (heavy library ~50KB)
@@ -50,6 +51,9 @@ interface ProductsGridProps {
 
 export default function ProductsGrid({ isLoading = false, onClearFilters }: ProductsGridProps) {
   const { filteredProducts } = useProductsData()
+  const { setActiveCategory, isUserInteracting } = useCategoryTracking()
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const hasScrolledRef = useRef(false) // Track if user has scrolled past hero
   const products = filteredProducts
 
   // Group products by category (memoized for performance)
@@ -66,11 +70,103 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
       groups[category].push(product)
     })
 
-    return Object.entries(groups).map(([category, items]) => ({
-      category,
-      products: items
-    }))
+    // ✅ Dynamic ordering: Sort by product count (most products first)
+    // This matches the FilterBar ordering automatically
+    return Object.entries(groups)
+      .sort(([, a], [, b]) => b.length - a.length)
+      .map(([category, items]) => ({
+        category,
+        products: items
+      }))
   }, [products])
+
+  // ✅ Track scroll position to prevent premature activation
+  useEffect(() => {
+    const handleScroll = () => {
+      // ✅ INCREASED threshold: Mark as scrolled once user passes hero section (500px)
+      // This prevents activation when user is still viewing hero
+      if (window.scrollY > 500) {
+        hasScrolledRef.current = true
+      }
+    }
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // ✅ Smart IntersectionObserver for auto-highlighting
+  useEffect(() => {
+    if (isUserInteracting) return // Respect interaction lock
+    
+    // Clean up previous observer
+    if (observerRef.current) {
+      observerRef.current.disconnect()
+    }
+    
+    // Create new observer with multiple thresholds
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (isUserInteracting) return // Double-check during callback
+        
+        // ✅ CRITICAL FIX: Only activate after user scrolls past hero section
+        if (!hasScrolledRef.current) {
+          return // Wait until user scrolls down
+        }
+        
+        // ✅ IMPROVED LOGIC: Find the section that's most prominently in view
+        // Filter entries that are actually visible (intersecting)
+        const visibleEntries = entries.filter(entry => entry.isIntersecting && entry.intersectionRatio > 0)
+        
+        if (visibleEntries.length === 0) return
+        
+        // ✅ Smart selection: Prioritize sections that are crossing the threshold line
+        // The threshold line is at the top of the viewport (after sticky header)
+        const sortedEntries = visibleEntries.sort((a, b) => {
+          const aRect = a.target.getBoundingClientRect()
+          const bRect = b.target.getBoundingClientRect()
+          
+          // Calculate distance from threshold line (top of viewport + header offset)
+          const thresholdLine = 180 // Header (72px) + Category Tabs (60px) + padding
+          const aDistance = Math.abs(aRect.top - thresholdLine)
+          const bDistance = Math.abs(bRect.top - thresholdLine)
+          
+          // Prefer the section closest to the threshold line
+          return aDistance - bDistance
+        })
+        
+        const bestMatch = sortedEntries[0]
+        
+        // ✅ STRICTER: Only update if section is significantly visible (>25%)
+        if (bestMatch && bestMatch.intersectionRatio > 0.25) {
+          const category = bestMatch.target.getAttribute('data-category')
+          if (category) {
+            setActiveCategory(category)
+          }
+        }
+      },
+      {
+        // ✅ REDUCED thresholds to prevent flickering
+        threshold: [0, 0.25, 0.5, 0.75],
+        // ✅ INCREASED top margin to prevent premature activation
+        // Header (72px) + Category Tabs (60px) + buffer (60px) = ~192px
+        rootMargin: '-192px 0px -40% 0px'
+      }
+    )
+    
+    // Observe all category sections
+    const sections = document.querySelectorAll('[data-category]')
+    sections.forEach(section => {
+      if (observerRef.current) {
+        observerRef.current.observe(section)
+      }
+    })
+    
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
+    }
+  }, [isUserInteracting, setActiveCategory, groupedProducts.length])
 
   // Loading State - Skeleton Categories
   if (isLoading) {
@@ -137,7 +233,12 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
   return (
     <section className="container mx-auto px-4 py-12 space-y-8">
       {groupedProducts.map(({ category, products: categoryProducts }) => (
-        <div key={category} className="space-y-4">
+        <section
+          key={category}
+          id={`category-${category}`}        // ✅ For scrollToCategory
+          data-category={category}           // ✅ For IntersectionObserver
+          className="space-y-4"
+        >
           {/* Category Header */}
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -150,7 +251,7 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
 
           {/* Products Swiper - Lazy loaded */}
           <ProductsSwiper products={categoryProducts} category={category} />
-        </div>
+        </section>
       ))}
     </section>
   )

@@ -7,7 +7,7 @@ export const metadata = {
   description: 'اكتشف مجموعة السوفت كريم الغنية بالطاقة الطبيعية',
 }
 
-export const revalidate = 60 // ISR: revalidate every 60 seconds
+export const revalidate = 0 // Disable ISR cache temporarily for testing new categories
 
 // ✅ Separate data fetching component for better error handling and loading states
 async function ProductsData() {

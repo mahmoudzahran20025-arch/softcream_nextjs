@@ -687,6 +687,7 @@ export interface Product {
   ingredients?: string;
   nutrition_facts?: string;
   allergens?: string;
+  allowed_addons?: string; // JSON array of addon IDs
 }
 
 // Get all products

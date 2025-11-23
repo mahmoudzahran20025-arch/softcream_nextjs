@@ -21,10 +21,13 @@ export default function OrdersBadge({ onClick, className = '' }: OrdersBadgeProp
 
   useEffect(() => {
     const updateCount = () => {
-      const count = storage.getActiveOrdersCount()
+      // ✅ Show ALL orders, not just active ones
+      const allOrders = storage.getOrders()
+      const count = allOrders.length
       if (count !== countRef.current) {
         countRef.current = count
         setActiveOrdersCount(count)
+        console.log('🎯 OrdersBadge: Updated count:', count)
       }
     }
 
@@ -63,19 +66,22 @@ export default function OrdersBadge({ onClick, className = '' }: OrdersBadgeProp
     }
   }
 
-  // ✅ NEW: أزل الـ console.log على كل render – مش محتاج بعد الإصلاح
-  // console.log('🎯 OrdersBadge render - count:', activeOrdersCount)
-
-  if (activeOrdersCount === 0) {
-    return null
-  }
+  const isVisible = activeOrdersCount > 0
 
   return (
     <button
       onClick={handleClick}
-      className={`fixed bottom-6 right-6 z-[9000] bg-gradient-to-br from-purple-600 via-pink-600 to-red-500 text-white rounded-full p-4 shadow-2xl hover:shadow-purple-500/50 transition-all hover:scale-110 active:scale-95 group ${className}`}
+      className={`fixed bottom-6 right-6 z-[9000] bg-gradient-to-br from-purple-600 via-pink-600 to-red-500 text-white rounded-full p-4 shadow-2xl hover:shadow-purple-500/50 transition-all hover:scale-110 active:scale-95 group ${className} ${
+        isVisible 
+          ? 'opacity-100 translate-y-0 pointer-events-auto' 
+          : 'opacity-0 translate-y-4 pointer-events-none'
+      }`}
       aria-label={`${activeOrdersCount} active orders`}
-      style={{ zIndex: 9000 }} // ✅ Ensure z-index is applied
+      aria-hidden={!isVisible}
+      style={{ 
+        zIndex: 9000,
+        willChange: 'transform, opacity'
+      }}
     >
       <div className="relative">
         <ShoppingBag className="w-6 h-6 group-hover:rotate-12 transition-transform" />

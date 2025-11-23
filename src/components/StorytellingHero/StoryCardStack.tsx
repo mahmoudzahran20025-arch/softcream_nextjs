@@ -13,7 +13,7 @@ export default function StoryCardStack() {
   })
 
   return (
-    <section ref={containerRef} className="bg-slate-950 text-white">
+    <section ref={containerRef} className="relative bg-slate-950 text-white">
       {stories.map((story, index) => {
         const targetScale = 1 - (stories.length - index) * 0.05
 

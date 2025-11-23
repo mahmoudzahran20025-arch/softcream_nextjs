@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react'
 import { storage } from '@/lib/storage.client'
+import { TIMEOUTS, LIMITS } from '@/config/constants'
 
 /**
  * CartProvider - Isolated Cart State Management for Next.js
@@ -75,7 +76,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     if (typeof window !== 'undefined') {
       storage.setCart(cart)
       
-      // ✅ NEW: Debounce event dispatch - wait 100ms to batch multiple changes
+      // ✅ NEW: Debounce event dispatch - wait to batch multiple changes
       if (debounceRef.current) {
         clearTimeout(debounceRef.current)
       }
@@ -91,7 +92,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         }
         
         console.log('🛒 Cart saved to sessionStorage (debounced):', cart.length, 'items')
-      }, 100)
+      }, TIMEOUTS.DEBOUNCE_CART)
       
     }
 
@@ -144,11 +145,9 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       
       console.log('🔎 Found existing item:', existing)
       
-      const MAX_QUANTITY = 50
-      
       if (existing) {
-        if (existing.quantity + quantity > MAX_QUANTITY) {
-          alert(`Maximum ${MAX_QUANTITY} items allowed`)
+        if (existing.quantity + quantity > LIMITS.MAX_CART_QUANTITY) {
+          alert(`Maximum ${LIMITS.MAX_CART_QUANTITY} items allowed`)
           return prevCart
         }
         console.log('✅ Updating existing item quantity')
@@ -187,9 +186,8 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       return
     }
     
-    const MAX_QUANTITY = 50
-    if (quantity > MAX_QUANTITY) {
-      alert(`Maximum ${MAX_QUANTITY} items allowed`)
+    if (quantity > LIMITS.MAX_CART_QUANTITY) {
+      alert(`Maximum ${LIMITS.MAX_CART_QUANTITY} items allowed`)
       return
     }
     

@@ -4,6 +4,8 @@
 // storage.client.ts - Fixed Event System & Optimized
 // ================================================================
 
+import { STORAGE_KEYS, ORDER_STATUSES, TIMEOUTS } from '@/config/constants'
+
 // ================================================================
 // Event Manager - Single Source of Truth
 // ================================================================
@@ -35,7 +37,7 @@ class OrdersEventManager {
     }
     this.lastEventData = eventKey
 
-    // ✅ Debounce: Batch multiple updates within 100ms
+    // ✅ Debounce: Batch multiple updates
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
     }
@@ -50,11 +52,11 @@ class OrdersEventManager {
       window.dispatchEvent(event)
       console.log('📢 Event dispatched:', data)
       
-      // Clear last event after 500ms to allow new events
+      // Clear last event to allow new events
       setTimeout(() => {
         this.lastEventData = ''
-      }, 500)
-    }, 100)
+      }, TIMEOUTS.EVENT_DEDUP)
+    }, TIMEOUTS.DEBOUNCE_STORAGE)
   }
 
   cleanup() {
@@ -257,54 +259,54 @@ export class StorageManager {
   
   // Cart
   getCart(): any[] {
-    return this.session.get('cart', [])
+    return this.session.get(STORAGE_KEYS.CART, [])
   }
   
   setCart(cart: any[]): boolean {
-    return this.session.set('cart', cart)
+    return this.session.set(STORAGE_KEYS.CART, cart)
   }
   
   clearCart(): boolean {
-    return this.session.remove('cart')
+    return this.session.remove(STORAGE_KEYS.CART)
   }
   
   // Theme
   getTheme(): string {
-    return this.session.get('theme', 'light')
+    return this.session.get(STORAGE_KEYS.THEME, 'light')
   }
   
   setTheme(theme: string): boolean {
-    return this.session.set('theme', theme)
+    return this.session.set(STORAGE_KEYS.THEME, theme)
   }
   
   // Language
   getLang(): string {
-    return this.session.get('language', 'ar')
+    return this.session.get(STORAGE_KEYS.LANGUAGE, 'ar')
   }
   
   setLang(lang: string): boolean {
-    return this.session.set('language', lang)
+    return this.session.set(STORAGE_KEYS.LANGUAGE, lang)
   }
   
   // User Data
   getUserData(): any {
-    return this.session.get('userData', null)
+    return this.session.get(STORAGE_KEYS.USER_DATA, null)
   }
   
   setUserData(userData: any): boolean {
-    return this.session.set('userData', userData)
+    return this.session.set(STORAGE_KEYS.USER_DATA, userData)
   }
   
   clearUserData(): boolean {
-    return this.session.remove('userData')
+    return this.session.remove(STORAGE_KEYS.USER_DATA)
   }
   
   // Device ID
   getDeviceId(): string {
-    let deviceId = this.local.get('deviceId')
+    let deviceId = this.local.get(STORAGE_KEYS.DEVICE_ID)
     if (!deviceId) {
       deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-      this.local.set('deviceId', deviceId)
+      this.local.set(STORAGE_KEYS.DEVICE_ID, deviceId)
     }
     return deviceId
   }
@@ -327,7 +329,7 @@ export class StorageManager {
         savedAt: new Date().toISOString()
       }
       
-      const success = this.local.set('customerProfile', profile)
+      const success = this.local.set(STORAGE_KEYS.CUSTOMER_PROFILE, profile)
       
       if (success) {
         console.log('✅ Customer profile saved:', profile.name)
@@ -346,7 +348,7 @@ export class StorageManager {
    */
   getCustomerProfile(): { name: string; phone: string; address: string; savedAt: string } | null {
     try {
-      const profile = this.local.get('customerProfile', null)
+      const profile = this.local.get(STORAGE_KEYS.CUSTOMER_PROFILE, null)
       
       if (profile) {
         console.log('📋 Customer profile loaded:', profile.name)
@@ -365,7 +367,7 @@ export class StorageManager {
    */
   clearCustomerProfile(): boolean {
     try {
-      const success = this.local.remove('customerProfile')
+      const success = this.local.remove(STORAGE_KEYS.CUSTOMER_PROFILE)
       
       if (success) {
         console.log('🗑️ Customer profile cleared')
@@ -383,7 +385,7 @@ export class StorageManager {
    * @returns Boolean
    */
   hasCustomerProfile(): boolean {
-    return this.local.has('customerProfile')
+    return this.local.has(STORAGE_KEYS.CUSTOMER_PROFILE)
   }
   
   // ================================================================
@@ -391,7 +393,7 @@ export class StorageManager {
   // ================================================================
   
   getOrders(): any[] {
-    return this.local.get('userOrders', [])
+    return this.local.get(STORAGE_KEYS.USER_ORDERS, [])
   }
   
   addOrder(orderData: any): boolean {
@@ -418,15 +420,15 @@ export class StorageManager {
         })
       }
       
-      const success = this.local.set('userOrders', orders)
+      const success = this.local.set(STORAGE_KEYS.USER_ORDERS, orders)
       
       if (success) {
         console.log('✅ Order saved:', orderData.id)
-        // ✅ Single event dispatch
+        // ✅ Single event dispatch with ALL orders count
         this.eventManager.triggerUpdate({
           orderId: orderData.id,
           action: existingIndex !== -1 ? 'updated' : 'added',
-          count: this.getActiveOrdersCount()
+          count: this.getOrders().length // ✅ Changed: Show all orders, not just active
         })
       }
       
@@ -461,15 +463,15 @@ export class StorageManager {
       order.status = newStatus
       order.lastUpdated = new Date().toISOString()
       
-      const success = this.local.set('userOrders', orders)
+      const success = this.local.set(STORAGE_KEYS.USER_ORDERS, orders)
       
       if (success) {
         console.log('✅ Status updated:', orderId, '→', newStatus)
-        // ✅ Single event dispatch
+        // ✅ Single event dispatch with ALL orders count
         this.eventManager.triggerUpdate({
           orderId,
           action: 'updated',
-          count: this.getActiveOrdersCount()
+          count: this.getOrders().length // ✅ Changed: Show all orders
         })
       }
       
@@ -496,15 +498,15 @@ export class StorageManager {
         lastUpdated: new Date().toISOString()
       }
       
-      const success = this.local.set('userOrders', orders)
+      const success = this.local.set(STORAGE_KEYS.USER_ORDERS, orders)
       
       if (success) {
         console.log('✅ Order updated:', orderId)
-        // ✅ Single event dispatch
+        // ✅ Single event dispatch with ALL orders count
         this.eventManager.triggerUpdate({
           orderId,
           action: 'updated',
-          count: this.getActiveOrdersCount()
+          count: this.getOrders().length // ✅ Changed: Show all orders
         })
       }
       
@@ -533,15 +535,15 @@ export class StorageManager {
         lastUpdated: new Date().toISOString()
       }
       
-      const success = this.local.set('userOrders', orders)
+      const success = this.local.set(STORAGE_KEYS.USER_ORDERS, orders)
       
       if (success) {
         console.log('✅ Items updated:', orderId)
-        // ✅ Single event dispatch
+        // ✅ Single event dispatch with ALL orders count
         this.eventManager.triggerUpdate({
           orderId,
           action: 'edited',
-          count: this.getActiveOrdersCount()
+          count: this.getOrders().length // ✅ Changed: Show all orders
         })
       }
       
@@ -562,15 +564,15 @@ export class StorageManager {
         return false
       }
       
-      const success = this.local.set('userOrders', filteredOrders)
+      const success = this.local.set(STORAGE_KEYS.USER_ORDERS, filteredOrders)
       
       if (success) {
         console.log('🗑️ Order deleted:', orderId)
-        // ✅ Single event dispatch
+        // ✅ Single event dispatch with ALL orders count
         this.eventManager.triggerUpdate({
           orderId,
           action: 'deleted',
-          count: this.getActiveOrdersCount()
+          count: this.getOrders().length // ✅ Changed: Show all orders
         })
       }
       
@@ -583,7 +585,7 @@ export class StorageManager {
   
   clearOrders(): boolean {
     try {
-      const success = this.local.remove('userOrders')
+      const success = this.local.remove(STORAGE_KEYS.USER_ORDERS)
       
       if (success) {
         console.log('🗑️ All orders cleared')
@@ -604,12 +606,6 @@ export class StorageManager {
   }
   
   getActiveOrders(): any[] {
-    const activeStatuses = [
-      'pending', 'confirmed', 'preparing', 'out_for_delivery', 'ready',
-      'جديد', 'مؤكد', 'قيد التحضير', 'في الطريق', 'جاهز',
-      'new', 'active', 'processing', 'confirmed (', 'مقبول'
-    ]
-    
     const allOrders = this.getOrders()
     
     const activeOrders = allOrders.filter((o: any) => {
@@ -617,7 +613,7 @@ export class StorageManager {
       
       const orderStatus = o.status.toString().trim()
       
-      return activeStatuses.some(status => {
+      return ORDER_STATUSES.ACTIVE.some(status => {
         if (/^[a-zA-Z]+$/.test(status)) {
           return orderStatus.toLowerCase() === status.toLowerCase() || 
                  orderStatus.toLowerCase().startsWith(status.toLowerCase())
@@ -666,8 +662,7 @@ export class StorageManager {
         return false
       }
       
-      const FINAL_STATUSES = ['delivered', 'cancelled', 'تم التوصيل', 'ملغي', 'مكتمل', 'completed']
-      const isFinalStatus = FINAL_STATUSES.includes(trackingData.status)
+      const isFinalStatus = ORDER_STATUSES.FINAL.includes(trackingData.status)
       
       orders[orderIndex] = {
         ...orders[orderIndex],
@@ -679,7 +674,7 @@ export class StorageManager {
         isFinal: isFinalStatus // Mark as final to prevent further polling
       }
       
-      const success = this.local.set('userOrders', orders)
+      const success = this.local.set(STORAGE_KEYS.USER_ORDERS, orders)
       
       if (success) {
         console.log('🎯 Tracking data updated:', orderId, {
@@ -694,7 +689,7 @@ export class StorageManager {
           this.eventManager.triggerUpdate({
             orderId,
             action: 'updated',
-            count: this.getActiveOrdersCount()
+            count: this.getOrders().length // ✅ Changed: Show all orders
           })
         } else {
           console.log('🏁 Final status - no event triggered')
@@ -728,15 +723,15 @@ export class StorageManager {
   
   // Checkout Form
   getCheckoutFormData(): any {
-    return this.session.get('checkoutFormData', null)
+    return this.session.get(STORAGE_KEYS.CHECKOUT_FORM, null)
   }
   
   setCheckoutFormData(formData: any): boolean {
-    return this.session.set('checkoutFormData', formData)
+    return this.session.set(STORAGE_KEYS.CHECKOUT_FORM, formData)
   }
   
   clearCheckoutFormData(): boolean {
-    return this.session.remove('checkoutFormData')
+    return this.session.remove(STORAGE_KEYS.CHECKOUT_FORM)
   }
   
   // Session ID

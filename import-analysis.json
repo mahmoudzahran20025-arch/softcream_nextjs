@@ -1,0 +1,730 @@
+﻿{
+    "imports":  {
+                    "src/components/modals/ProductModal/ActionFooter.tsx":  [
+                                                                                "@/components/ui/common/QuantitySelector",
+                                                                                "@/components/ui/common/PriceDisplay"
+                                                                            ],
+                    "src/components/pages/PageContent.tsx":  [
+                                                                 "@/components/pages/ProductsGrid",
+                                                                 "@/components/server/Footer",
+                                                                 "@/components/pages/PageContentClient",
+                                                                 "@/providers/ProductsProvider",
+                                                                 "@/providers/CategoryTrackingProvider",
+                                                                 "@/components/StorytellingHero"
+                                                             ],
+                    "src/components/modals/CartModal/index.tsx":  [
+                                                                      "@/providers/CartProvider",
+                                                                      "./CartItem",
+                                                                      "./CartSummary",
+                                                                      "@/components/ui/NutritionCard"
+                                                                  ],
+                    "src/components/ui/common/index.ts":  [
+
+                                                          ],
+                    "src/components/ui/common/QuantitySelector.tsx":  [
+
+                                                                      ],
+                    "src/components/admin/LoginPage.tsx":  [
+                                                               "@/lib/adminApi"
+                                                           ],
+                    "src/components/modals/TrackingModal/components/StatusTimeline.tsx":  [
+                                                                                              "@/lib/orderTracking",
+                                                                                              "../useOrderTracking"
+                                                                                          ],
+                    "src/components/modals/ProductModal/index.tsx":  [
+                                                                         "@/providers/CartProvider",
+                                                                         "@/components/ui/ProductCard",
+                                                                         "@/lib/api",
+                                                                         "./ProductImage",
+                                                                         "./ProductHeader",
+                                                                         "./NutritionInfo",
+                                                                         "./AddonsList",
+                                                                         "./ActionFooter",
+                                                                         "./useProductLogic"
+                                                                     ],
+                    "src/components/ui/common/NutritionIcon.tsx":  [
+
+                                                                   ],
+                    "src/components/pages/ProductsSwiperWrapper.tsx":  [
+                                                                           "@/components/ui/ProductCard"
+                                                                       ],
+                    "src/components/modals/ProductModal/AddonsList.tsx":  [
+                                                                              "@/components/ui/common/PriceDisplay",
+                                                                              "@/lib/api"
+                                                                          ],
+                    "src/components/modals/CheckoutModal/DeliveryOptions.tsx":  [
+                                                                                    "@/lib/utils"
+                                                                                ],
+                    "src/components/admin/CouponsPage.tsx":  [
+                                                                 "@/lib/adminApi",
+                                                                 "@/lib/adminRealtime",
+                                                                 "@/lib/adminApi"
+                                                             ],
+                    "src/components/admin/OrdersPage.tsx":  [
+                                                                "@/lib/adminApi",
+                                                                "@/lib/orderTracking"
+                                                            ],
+                    "src/utils/batch-dom.ts":  [
+
+                                               ],
+                    "src/components/StorytellingHero/IconComponent.tsx":  [
+                                                                              "./data/stories"
+                                                                          ],
+                    "src/components/server/Footer.tsx":  [
+
+                                                         ],
+                    "src/components/admin/AnalyticsPage.tsx":  [
+                                                                   "@/lib/adminApi"
+                                                               ],
+                    "src/components/admin/SettingsPage.tsx":  [
+                                                                  "@/lib/adminRealtime"
+                                                              ],
+                    "src/components/ui/skeletons/ProductCardSkeleton.tsx":  [
+
+                                                                            ],
+                    "src/providers/CategoryTrackingProvider.tsx":  [
+
+                                                                   ],
+                    "src/app/not-found.tsx":  [
+
+                                              ],
+                    "src/components/ui/NutritionSummary.tsx":  [
+                                                                   "@/providers/CartProvider",
+                                                                   "@/providers/ProductsProvider",
+                                                                   "./common/NutritionIcon",
+                                                                   "./common/QuantitySelector",
+                                                                   "./common/PriceDisplay"
+                                                               ],
+                    "src/components/modals/MyOrdersModal/index.tsx":  [
+                                                                          "@/lib/storage.client",
+                                                                          "@/providers/ThemeProvider"
+                                                                      ],
+                    "src/components/pages/ProductsGrid.tsx":  [
+                                                                  "@/providers/ProductsProvider",
+                                                                  "@/providers/CategoryTrackingProvider",
+                                                                  "@/components/ui/skeletons/ProductCardSkeleton"
+                                                              ],
+                    "src/lib/adminApi.ts":  [
+
+                                            ],
+                    "src/hooks/useOrderStatusSSE.ts":  [
+
+                                                       ],
+                    "src/components/ui/OrdersBadge.tsx":  [
+                                                              "@/lib/storage.client"
+                                                          ],
+                    "src/components/modals/CheckoutModal/CheckoutForm.tsx":  [
+                                                                                 "@/providers/ThemeProvider"
+                                                                             ],
+                    "src/components/ui/SimpleOrderTimer.tsx":  [
+
+                                                               ],
+                    "src/components/modals/TrackingModal/components/OrderSummary.tsx":  [
+                                                                                            "../useOrderTracking"
+                                                                                        ],
+                    "src/components/StorytellingHero/StoryCardStack.tsx":  [
+                                                                               "@/lib/motion-shared",
+                                                                               "./StoryCard",
+                                                                               "./data/stories"
+                                                                           ],
+                    "src/app/error.tsx":  [
+
+                                          ],
+                    "src/components/pages/PageContentClient.tsx":  [
+                                                                       "@/providers/ProductsProvider",
+                                                                       "@/components/ui/Header",
+                                                                       "@/components/pages/Home/FilterBar",
+                                                                       "@/components/ui/TrustBanner",
+                                                                       "@/components/ui/ToastContainer"
+                                                                   ],
+                    "src/components/ui/TrustBanner.tsx":  [
+
+                                                          ],
+                    "src/components/StorytellingHero/index.tsx":  [
+                                                                      "./HeroIntro",
+                                                                      "./InteractiveSections"
+                                                                  ],
+                    "src/providers/CartProvider.tsx":  [
+                                                           "@/lib/storage.client"
+                                                       ],
+                    "src/app/page.tsx":  [
+                                             "@/components/pages/PageContent",
+                                             "@/lib/api"
+                                         ],
+                    "src/config/categoryIcons.ts":  [
+
+                                                    ],
+                    "src/data/translations-data-additions.ts":  [
+
+                                                                ],
+                    "src/providers/Providers.tsx":  [
+                                                        "@/lib/queryClient",
+                                                        "./CartProvider",
+                                                        "./ThemeProvider"
+                                                    ],
+                    "src/components/StorytellingHero/HeroIntro.tsx":  [
+                                                                          "@/hooks/useHydrated"
+                                                                      ],
+                    "src/components/admin/ProductsPage.tsx":  [
+                                                                  "@/lib/adminApi",
+                                                                  "@/lib/adminApi"
+                                                              ],
+                    "src/components/StorytellingHero/InteractiveSections.tsx":  [
+
+                                                                                ],
+                    "src/components/modals/TrackingModal/index.OLD.tsx":  [
+                                                                              "@/components/ui/SimpleOrderTimer",
+                                                                              "@/lib/storage.client",
+                                                                              "@/providers/ThemeProvider",
+                                                                              "@/lib/orderPoller",
+                                                                              "@/lib/orderTracking",
+                                                                              "@/lib/utils"
+                                                                          ],
+                    "src/lib/api.ts":  [
+
+                                       ],
+                    "src/components/server/Hero.tsx":  [
+
+                                                       ],
+                    "src/components/pages/Home/FilterBar.tsx":  [
+                                                                    "@/providers/ProductsProvider",
+                                                                    "@/providers/CategoryTrackingProvider",
+                                                                    "@/config/categoryIcons"
+                                                                ],
+                    "src/components/modals/CheckoutModal/useCheckoutLogic.ts":  [
+                                                                                    "@/providers/CartProvider",
+                                                                                    "@/providers/ProductsProvider",
+                                                                                    "@/providers/ThemeProvider",
+                                                                                    "@/lib/api",
+                                                                                    "./validation",
+                                                                                    "@/lib/storage.client"
+                                                                                ],
+                    "src/components/admin/Sidebar.tsx":  [
+
+                                                         ],
+                    "src/components/modals/ProductModal/NutritionInfo.tsx":  [
+                                                                                 "@/components/ui/common/NutritionIcon"
+                                                                             ],
+                    "src/lib/orderTracking.ts":  [
+
+                                                 ],
+                    "src/components/StorytellingHero/HeroFooter.tsx":  [
+                                                                           "@/lib/motion-shared"
+                                                                       ],
+                    "src/components/modals/TrackingModal/useOrderTracking.ts":  [
+                                                                                    "@/lib/storage.client",
+                                                                                    "@/providers/ThemeProvider",
+                                                                                    "@/lib/orderPoller",
+                                                                                    "@/lib/orderTracking"
+                                                                                ],
+                    "src/hooks/useHydrated.ts":  [
+
+                                                 ],
+                    "src/components/modals/ProductModal/ProductHeader.tsx":  [
+                                                                                 "@/components/ui/common/PriceDisplay"
+                                                                             ],
+                    "src/components/ui/ToastContainer.tsx":  [
+                                                                 "@/providers/ThemeProvider"
+                                                             ],
+                    "src/lib/adminRealtime.ts":  [
+
+                                                 ],
+                    "src/providers/ProductsProvider.tsx":  [
+                                                               "@/providers/ThemeProvider",
+                                                               "@/lib/api"
+                                                           ],
+                    "src/lib/utils.ts":  [
+
+                                         ],
+                    "src/components/ui/MarqueeSwiper.tsx":  [
+
+                                                            ],
+                    "src/components/StorytellingHero/data/stories.ts":  [
+
+                                                                        ],
+                    "src/app/admin/page.tsx":  [
+                                                   "@/lib/adminRealtime"
+                                               ],
+                    "src/components/modals/CheckoutModal/OrderSummary.tsx":  [
+
+                                                                             ],
+                    "src/app/loading.tsx":  [
+
+                                            ],
+                    "src/components/modals/TrackingModal/views/PickupView.tsx":  [
+                                                                                     "@/lib/utils",
+                                                                                     "../useOrderTracking"
+                                                                                 ],
+                    "src/components/admin/AdminApp.tsx":  [
+                                                              "./Header",
+                                                              "./Sidebar",
+                                                              "./DashboardPage",
+                                                              "./OrdersPage",
+                                                              "./ProductsPage",
+                                                              "./CouponsPage",
+                                                              "./AnalyticsPage",
+                                                              "./SettingsPage",
+                                                              "./LoginPage"
+                                                          ],
+                    "src/components/modals/TrackingModal/components/OrderHeader.tsx":  [
+                                                                                           "../useOrderTracking"
+                                                                                       ],
+                    "src/components/server/ProductsGrid.tsx":  [
+                                                                   "@/components/ui/ProductCard"
+                                                               ],
+                    "src/components/modals/TrackingModal/views/DeliveryView.tsx":  [
+                                                                                       "../useOrderTracking"
+                                                                                   ],
+                    "src/components/ui/common/PriceDisplay.tsx":  [
+
+                                                                  ],
+                    "src/components/modals/ProductModal/useProductLogic.ts":  [
+                                                                                  "@/lib/api"
+                                                                              ],
+                    "src/lib/storage.client.ts":  [
+
+                                                  ],
+                    "src/components/modals/CheckoutModal/index.tsx":  [
+                                                                          "@/providers/ThemeProvider",
+                                                                          "@/providers/ProductsProvider",
+                                                                          "./DeliveryOptions",
+                                                                          "./CheckoutForm",
+                                                                          "./OrderSummary",
+                                                                          "./useCheckoutLogic"
+                                                                      ],
+                    "src/components/ui/NutritionCard.tsx":  [
+                                                                "./common/NutritionIcon"
+                                                            ],
+                    "src/components/pages/Sidebar.tsx":  [
+                                                             "@/providers/CartProvider",
+                                                             "@/providers/ThemeProvider",
+                                                             "@/lib/storage.client"
+                                                         ],
+                    "src/data/translations-data.ts":  [
+
+                                                      ],
+                    "src/components/modals/EditOrderModal/index.tsx":  [
+                                                                           "@/providers/ThemeProvider",
+                                                                           "@/providers/ProductsProvider",
+                                                                           "@/lib/orderTracking",
+                                                                           "@/lib/storage.client",
+                                                                           "@/lib/api"
+                                                                       ],
+                    "src/components/StorytellingHero/StoryCard.tsx":  [
+                                                                          "@/lib/motion-shared",
+                                                                          "@/lib/motion-shared",
+                                                                          "@/hooks/useHydrated",
+                                                                          "./IconComponent",
+                                                                          "./data/stories"
+                                                                      ],
+                    "src/components/admin/DashboardPage.tsx":  [
+                                                                   "@/lib/adminRealtime"
+                                                               ],
+                    "src/components/modals/ProductModal/ProductImage.tsx":  [
+
+                                                                            ],
+                    "src/providers/ThemeProvider.tsx":  [
+                                                            "@/lib/storage.client"
+                                                        ],
+                    "src/hooks/useApiClient.ts":  [
+                                                      "@/lib/storage.client"
+                                                  ],
+                    "src/lib/motion-shared.ts":  [
+
+                                                 ],
+                    "src/components/modals/OrderSuccessModal/index.tsx":  [
+
+                                                                          ],
+                    "src/lib/orderPoller.ts":  [
+                                                   "./orderTracking"
+                                               ],
+                    "src/components/ui/ProductCard.tsx":  [
+                                                              "@/providers/CartProvider",
+                                                              "@/providers/ProductsProvider",
+                                                              "./common/QuantitySelector",
+                                                              "./common/PriceDisplay"
+                                                          ],
+                    "src/components/modals/CartModal/CartSummary.tsx":  [
+                                                                            "@/components/ui/common/PriceDisplay"
+                                                                        ],
+                    "src/components/modals/CartModal/CartItem.tsx":  [
+                                                                         "@/components/ui/common/QuantitySelector",
+                                                                         "@/components/ui/common/PriceDisplay"
+                                                                     ],
+                    "src/app/layout.tsx":  [
+                                               "@/providers/Providers"
+                                           ],
+                    "src/components/ui/Header.tsx":  [
+                                                         "@/providers/ThemeProvider",
+                                                         "@/providers/CartProvider"
+                                                     ],
+                    "src/components/modals/CheckoutModal/validation.ts":  [
+
+                                                                          ],
+                    "src/lib/queryClient.ts":  [
+
+                                               ],
+                    "src/components/modals/TrackingModal/index.tsx":  [
+                                                                          "./useOrderTracking",
+                                                                          "./components/OrderHeader",
+                                                                          "./components/StatusTimeline",
+                                                                          "./components/OrderSummary",
+                                                                          "./views/PickupView",
+                                                                          "./views/DeliveryView",
+                                                                          "@/providers/ThemeProvider"
+                                                                      ],
+                    "src/components/admin/Header.tsx":  [
+                                                            "@/lib/adminRealtime"
+                                                        ]
+                },
+    "exports":  {
+                    "src/components/modals/ProductModal/ActionFooter.tsx":  [
+                                                                                "ActionFooter"
+                                                                            ],
+                    "src/components/pages/PageContent.tsx":  [
+                                                                 "PageContent"
+                                                             ],
+                    "src/components/modals/CartModal/index.tsx":  [
+                                                                      "CartModal"
+                                                                  ],
+                    "src/components/ui/common/index.ts":  [
+
+                                                          ],
+                    "src/components/ui/common/QuantitySelector.tsx":  [
+                                                                          "QuantitySelector"
+                                                                      ],
+                    "src/components/admin/LoginPage.tsx":  [
+
+                                                           ],
+                    "src/components/modals/TrackingModal/components/StatusTimeline.tsx":  [
+                                                                                              "StatusTimeline"
+                                                                                          ],
+                    "src/components/modals/ProductModal/index.tsx":  [
+                                                                         "ProductModal"
+                                                                     ],
+                    "src/components/ui/common/NutritionIcon.tsx":  [
+                                                                       "NutritionIcon"
+                                                                   ],
+                    "src/components/pages/ProductsSwiperWrapper.tsx":  [
+                                                                           "ProductsSwiperWrapper"
+                                                                       ],
+                    "src/components/modals/ProductModal/AddonsList.tsx":  [
+                                                                              "AddonsList"
+                                                                          ],
+                    "src/components/modals/CheckoutModal/DeliveryOptions.tsx":  [
+
+                                                                                ],
+                    "src/components/admin/CouponsPage.tsx":  [
+
+                                                             ],
+                    "src/components/admin/OrdersPage.tsx":  [
+
+                                                            ],
+                    "src/utils/batch-dom.ts":  [
+                                                   "batchRead",
+                                                   "batchWrite",
+                                                   "measure",
+                                                   "updateStyles",
+                                                   "flushBatch"
+                                               ],
+                    "src/components/StorytellingHero/IconComponent.tsx":  [
+                                                                              "IconComponent"
+                                                                          ],
+                    "src/components/server/Footer.tsx":  [
+                                                             "Footer"
+                                                         ],
+                    "src/components/admin/AnalyticsPage.tsx":  [
+
+                                                               ],
+                    "src/components/admin/SettingsPage.tsx":  [
+
+                                                              ],
+                    "src/components/ui/skeletons/ProductCardSkeleton.tsx":  [
+                                                                                "ProductCardSkeleton"
+                                                                            ],
+                    "src/providers/CategoryTrackingProvider.tsx":  [
+                                                                       "CategoryTrackingProvider",
+                                                                       "useCategoryTracking"
+                                                                   ],
+                    "src/app/not-found.tsx":  [
+                                                  "NotFound"
+                                              ],
+                    "src/components/ui/NutritionSummary.tsx":  [
+                                                                   "NutritionSummary"
+                                                               ],
+                    "src/components/modals/MyOrdersModal/index.tsx":  [
+                                                                          "MyOrdersModal"
+                                                                      ],
+                    "src/components/pages/ProductsGrid.tsx":  [
+                                                                  "ProductsGrid"
+                                                              ],
+                    "src/lib/adminApi.ts":  [
+                                                "getAdminToken",
+                                                "setAdminToken",
+                                                "clearAdminToken",
+                                                "Order",
+                                                "OrderItem",
+                                                "OrderTimeline",
+                                                "BatchDataRequest",
+                                                "OrdersListResponse",
+                                                "SmartPollingManager",
+                                                "smartPolling",
+                                                "Coupon",
+                                                "CreateCouponData",
+                                                "DashboardAnalytics",
+                                                "Product",
+                                                "Branch",
+                                                "OrdersPolling",
+                                                "OrderTrackingData",
+                                                "OrderOverrideRequest",
+                                                "TrackingStatistics"
+                                            ],
+                    "src/hooks/useOrderStatusSSE.ts":  [
+                                                           "useOrderStatusSSE",
+                                                           "useOrderStatusSSE"
+                                                       ],
+                    "src/components/ui/OrdersBadge.tsx":  [
+                                                              "OrdersBadge"
+                                                          ],
+                    "src/components/modals/CheckoutModal/CheckoutForm.tsx":  [
+
+                                                                             ],
+                    "src/components/ui/SimpleOrderTimer.tsx":  [
+                                                                   "SimpleOrderTimer"
+                                                               ],
+                    "src/components/modals/TrackingModal/components/OrderSummary.tsx":  [
+                                                                                            "OrderSummary"
+                                                                                        ],
+                    "src/components/StorytellingHero/StoryCardStack.tsx":  [
+                                                                               "StoryCardStack"
+                                                                           ],
+                    "src/app/error.tsx":  [
+                                              "Error"
+                                          ],
+                    "src/components/pages/PageContentClient.tsx":  [
+                                                                       "PageContentClient"
+                                                                   ],
+                    "src/components/ui/TrustBanner.tsx":  [
+                                                              "TrustBanner"
+                                                          ],
+                    "src/components/StorytellingHero/index.tsx":  [
+                                                                      "StorytellingHero"
+                                                                  ],
+                    "src/providers/CartProvider.tsx":  [
+                                                           "useCart",
+                                                           "CartProvider"
+                                                       ],
+                    "src/app/page.tsx":  [
+                                             "metadata",
+                                             "revalidate"
+                                         ],
+                    "src/config/categoryIcons.ts":  [
+                                                        "CATEGORY_ICON_MAP",
+                                                        "getCategoryIcon",
+                                                        "getCategoryColor"
+                                                    ],
+                    "src/data/translations-data-additions.ts":  [
+                                                                    "translationsDataAdditions"
+                                                                ],
+                    "src/providers/Providers.tsx":  [
+                                                        "Providers"
+                                                    ],
+                    "src/components/StorytellingHero/HeroIntro.tsx":  [
+                                                                          "HeroIntro"
+                                                                      ],
+                    "src/components/admin/ProductsPage.tsx":  [
+
+                                                              ],
+                    "src/components/StorytellingHero/InteractiveSections.tsx":  [
+                                                                                    "InteractiveSections"
+                                                                                ],
+                    "src/components/modals/TrackingModal/index.OLD.tsx":  [
+                                                                              "TrackingModal"
+                                                                          ],
+                    "src/lib/api.ts":  [
+                                           "ApiResponse",
+                                           "Addon",
+                                           "Product",
+                                           "OrderItem",
+                                           "OrderData",
+                                           "CalculatedPrices",
+                                           "CouponValidationResult"
+                                       ],
+                    "src/components/server/Hero.tsx":  [
+                                                           "Hero"
+                                                       ],
+                    "src/components/pages/Home/FilterBar.tsx":  [
+                                                                    "FilterBar"
+                                                                ],
+                    "src/components/modals/CheckoutModal/useCheckoutLogic.ts":  [
+                                                                                    "useCheckoutLogic"
+                                                                                ],
+                    "src/components/admin/Sidebar.tsx":  [
+
+                                                         ],
+                    "src/components/modals/ProductModal/NutritionInfo.tsx":  [
+                                                                                 "NutritionInfo"
+                                                                             ],
+                    "src/lib/orderTracking.ts":  [
+                                                     "OrderStatus",
+                                                     "Order",
+                                                     "StatusTransition",
+                                                     "STATUS_TRANSITIONS",
+                                                     "STATUS_CONFIG",
+                                                     "TimeManager",
+                                                     "StatusManager",
+                                                     "TelegramManager",
+                                                     "POLLING_CONFIG",
+                                                     "FINAL_STATUSES",
+                                                     "PICKUP_STAGES",
+                                                     "DELIVERY_STAGES"
+                                                 ],
+                    "src/components/StorytellingHero/HeroFooter.tsx":  [
+                                                                           "HeroFooter"
+                                                                       ],
+                    "src/components/modals/TrackingModal/useOrderTracking.ts":  [
+                                                                                    "Order",
+                                                                                    "useOrderTracking"
+                                                                                ],
+                    "src/hooks/useHydrated.ts":  [
+                                                     "useHydrated"
+                                                 ],
+                    "src/components/modals/ProductModal/ProductHeader.tsx":  [
+                                                                                 "ProductHeader"
+                                                                             ],
+                    "src/components/ui/ToastContainer.tsx":  [
+                                                                 "ToastContainer"
+                                                             ],
+                    "src/lib/adminRealtime.ts":  [
+                                                     "AdminRealtimeManager",
+                                                     "getAdminRealtime",
+                                                     "adminRealtime"
+                                                 ],
+                    "src/providers/ProductsProvider.tsx":  [
+                                                               "useProductsData",
+                                                               "ProductsProvider"
+                                                           ],
+                    "src/lib/utils.ts":  [
+                                             "openBranchDirections",
+                                             "formatPhoneForCall",
+                                             "getWhatsAppUrl",
+                                             "isValidCoordinates",
+                                             "formatDateArabic",
+                                             "formatCurrency",
+                                             "debounce",
+                                             "throttle"
+                                         ],
+                    "src/components/ui/MarqueeSwiper.tsx":  [
+                                                                "MarqueeSwiper"
+                                                            ],
+                    "src/components/StorytellingHero/data/stories.ts":  [
+                                                                            "IconName",
+                                                                            "StoryData",
+                                                                            "stories"
+                                                                        ],
+                    "src/app/admin/page.tsx":  [
+                                                   "AdminPage"
+                                               ],
+                    "src/components/modals/CheckoutModal/OrderSummary.tsx":  [
+
+                                                                             ],
+                    "src/app/loading.tsx":  [
+                                                "Loading"
+                                            ],
+                    "src/components/modals/TrackingModal/views/PickupView.tsx":  [
+                                                                                     "PickupView"
+                                                                                 ],
+                    "src/components/admin/AdminApp.tsx":  [
+
+                                                          ],
+                    "src/components/modals/TrackingModal/components/OrderHeader.tsx":  [
+                                                                                           "OrderHeader"
+                                                                                       ],
+                    "src/components/server/ProductsGrid.tsx":  [
+                                                                   "ProductsGrid"
+                                                               ],
+                    "src/components/modals/TrackingModal/views/DeliveryView.tsx":  [
+                                                                                       "DeliveryView"
+                                                                                   ],
+                    "src/components/ui/common/PriceDisplay.tsx":  [
+                                                                      "PriceDisplay"
+                                                                  ],
+                    "src/components/modals/ProductModal/useProductLogic.ts":  [
+                                                                                  "useProductLogic"
+                                                                              ],
+                    "src/lib/storage.client.ts":  [
+                                                      "StorageManager",
+                                                      "storage",
+                                                      "getOrCreateDeviceId"
+                                                  ],
+                    "src/components/modals/CheckoutModal/index.tsx":  [
+
+                                                                      ],
+                    "src/components/ui/NutritionCard.tsx":  [
+                                                                "NutritionCard"
+                                                            ],
+                    "src/components/pages/Sidebar.tsx":  [
+                                                             "Sidebar"
+                                                         ],
+                    "src/data/translations-data.ts":  [
+                                                          "translationsData"
+                                                      ],
+                    "src/components/modals/EditOrderModal/index.tsx":  [
+                                                                           "EditOrderModal"
+                                                                       ],
+                    "src/components/StorytellingHero/StoryCard.tsx":  [
+                                                                          "StoryCard"
+                                                                      ],
+                    "src/components/admin/DashboardPage.tsx":  [
+
+                                                               ],
+                    "src/components/modals/ProductModal/ProductImage.tsx":  [
+                                                                                "ProductImage"
+                                                                            ],
+                    "src/providers/ThemeProvider.tsx":  [
+                                                            "useTheme",
+                                                            "useGlobal",
+                                                            "ThemeProvider"
+                                                        ],
+                    "src/hooks/useApiClient.ts":  [
+                                                      "useApiClient"
+                                                  ],
+                    "src/lib/motion-shared.ts":  [
+
+                                                 ],
+                    "src/components/modals/OrderSuccessModal/index.tsx":  [
+
+                                                                          ],
+                    "src/lib/orderPoller.ts":  [
+
+                                               ],
+                    "src/components/ui/ProductCard.tsx":  [
+                                                              "ProductCard"
+                                                          ],
+                    "src/components/modals/CartModal/CartSummary.tsx":  [
+                                                                            "CartSummary"
+                                                                        ],
+                    "src/components/modals/CartModal/CartItem.tsx":  [
+                                                                         "CartItem"
+                                                                     ],
+                    "src/app/layout.tsx":  [
+                                               "metadata",
+                                               "RootLayout"
+                                           ],
+                    "src/components/ui/Header.tsx":  [
+                                                         "Header"
+                                                     ],
+                    "src/components/modals/CheckoutModal/validation.ts":  [
+                                                                              "validateCheckoutForm"
+                                                                          ],
+                    "src/lib/queryClient.ts":  [
+                                                   "queryClient"
+                                               ],
+                    "src/components/modals/TrackingModal/index.tsx":  [
+                                                                          "TrackingModal"
+                                                                      ],
+                    "src/components/admin/Header.tsx":  [
+
+                                                        ]
+                }
+}

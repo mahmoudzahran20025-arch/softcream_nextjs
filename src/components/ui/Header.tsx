@@ -28,8 +28,8 @@ export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: Hea
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40 min-h-[70px]">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center justify-between gap-2">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between gap-2 max-w-7xl mx-auto">
           
           {/* Menu Button - Toggle Sidebar */}
           <button
@@ -97,16 +97,16 @@ export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: Hea
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            {/* Cart Button */}
+            {/* Cart Button - Brand Pink */}
             <button
               onClick={onOpenCart}
-              className="relative p-3 bg-primary text-white rounded-full hover:bg-primary-dark transition-colors shadow-lg"
+              className="relative p-3 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white rounded-full hover:from-[#FF5A8E] hover:to-[#FF4979] transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
               aria-label="Open cart"
             >
-              <ShoppingCart className="w-6 h-6" />
+              <ShoppingCart className="w-6 h-6" strokeWidth={2.5} />
               {mounted && displayCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                  {displayCount}
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[24px] h-6 px-1.5 flex items-center justify-center animate-pulse shadow-lg border-2 border-white">
+                  {displayCount > 9 ? '9+' : displayCount}
                 </span>
               )}
             </button>
@@ -116,3 +116,4 @@ export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: Hea
     </header>
   )
 }
+

@@ -1,8 +1,8 @@
 'use client'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
-import { FreeMode, Pagination } from 'swiper/modules'
 import ProductCard from '@/components/ui/ProductCard'
+import { productSwiperConfig } from '@/config/swiperConfig'
 
 import 'swiper/css'
 import 'swiper/css/free-mode'
@@ -36,27 +36,16 @@ interface ProductsSwiperWrapperProps {
 }
 
 export default function ProductsSwiperWrapper({ products, category }: ProductsSwiperWrapperProps) {
-  // تم الاحتفاظ بـ category للاستخدام المستقبلي - قد يُستخدم لإضافة aria-label أو data attributes
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  void category
-  
   return (
     <Swiper
-      modules={[FreeMode, Pagination]}
-      spaceBetween={16}
-      slidesPerView="auto"
-      freeMode={{
-        enabled: true,
-        sticky: false,
-        momentum: true,
-        momentumRatio: 0.5
-      }}
-      pagination={{
-        clickable: true,
-        dynamicBullets: true
-      }}
-      dir="rtl"
-      className="!pb-12"
+      modules={productSwiperConfig.modules}
+      spaceBetween={productSwiperConfig.spaceBetween}
+      slidesPerView={productSwiperConfig.slidesPerView}
+      freeMode={productSwiperConfig.freeMode}
+      pagination={productSwiperConfig.pagination}
+      dir={productSwiperConfig.dir}
+      className="!pb-16 md:!pb-12 products-swiper"
+      aria-label={`Products in ${category} category`}
     >
       {products.map(product => (
         <SwiperSlide

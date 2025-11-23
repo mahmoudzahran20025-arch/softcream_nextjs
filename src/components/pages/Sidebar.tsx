@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useCart } from '@/providers/CartProvider'
 import { useTheme } from '@/providers/ThemeProvider'
+import { useWindowEvent } from '@/hooks/useWindowEvent'
 import { storage } from '@/lib/storage.client'
 import {
   X, ShoppingCart, Package, Moon, Sun, Globe, Phone, Clock, Sparkles, 
@@ -33,22 +34,16 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
     updateOrdersCount()
   }, [])
 
-  useEffect(() => {
-    const handleOrdersUpdated = () => {
-      updateOrdersCount()
-      updateCustomerProfile() // ✅ Update profile when orders change
-    }
-    const handleUserDataUpdated = () => updateUserData()
+  // Listen for orders updates
+  useWindowEvent('ordersUpdated', (event) => {
+    console.log('📢 Sidebar: ordersUpdated event received:', event?.detail)
+    updateOrdersCount()
+    updateCustomerProfile() // ✅ Update profile when orders change
+  }, [])
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('ordersUpdated', handleOrdersUpdated)
-      window.addEventListener('userDataUpdated', handleUserDataUpdated)
-      
-      return () => {
-        window.removeEventListener('ordersUpdated', handleOrdersUpdated)
-        window.removeEventListener('userDataUpdated', handleUserDataUpdated)
-      }
-    }
+  // Listen for user data updates
+  useWindowEvent('userDataUpdated', () => {
+    updateUserData()
   }, [])
 
   const updateUserData = () => {
@@ -69,7 +64,10 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
 
   const updateOrdersCount = () => {
     if (typeof window !== 'undefined') {
-      const count = storage.getActiveOrdersCount()
+      // ✅ Show ALL orders, not just active ones
+      const allOrders = storage.getOrders()
+      const count = allOrders.length
+      console.log('📊 Sidebar: Updating orders count:', count)
       setActiveOrdersCount(count)
     }
   }
@@ -130,7 +128,26 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
       icon: Package, 
       label: t('navMenu') || 'المنيو', 
       id: 'menu', 
-      onClick: () => handleNavClick('menu') 
+      onClick: () => {
+        onClose()
+        // ✅ Scroll to first category section
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            // Find first category section
+            const firstCategory = document.querySelector('[data-category]')
+            if (firstCategory) {
+              const headerOffset = 200 // Header + FilterBar
+              const elementPosition = firstCategory.getBoundingClientRect().top
+              const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+              
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              })
+            }
+          }
+        }, 300)
+      }
     },
     { 
       icon: ShoppingCart, 
@@ -277,15 +294,15 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
                   : 'hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 ${
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                 item.highlight
                   ? 'bg-gradient-to-br from-orange-400 to-amber-500 shadow-lg'
-                  : 'bg-gray-100 dark:bg-gray-800 group-hover:bg-gradient-to-br group-hover:from-[#A3164D] group-hover:to-purple-600'
+                  : 'bg-gradient-to-br from-pink-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 group-hover:from-[#FF6B9D] group-hover:to-[#A3164D] group-hover:shadow-md'
               }`}>
                 <item.icon className={`w-5 h-5 transition-colors ${
                   item.highlight
                     ? 'text-white'
-                    : 'text-gray-600 dark:text-gray-400 group-hover:text-white'
+                    : 'text-[#A3164D] dark:text-pink-300 group-hover:text-white'
                 }`} />
               </div>
               
@@ -298,14 +315,14 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
               </span>
               
               {item.badge && item.badge > 0 && (
-                <span className={`${item.badgeColor || 'bg-[#A3164D]'} text-white text-xs font-bold rounded-full min-w-[22px] h-5 px-2 flex items-center justify-center shadow-sm`}>
+                <span className={`${item.badgeColor || 'bg-gradient-to-r from-[#FF6B9D] to-[#A3164D]'} text-white text-xs font-bold rounded-full min-w-[22px] h-5 px-2 flex items-center justify-center shadow-md`}>
                   {item.badge}
                 </span>
               )}
               
-              <ChevronRight className={`w-4 h-4 text-gray-400 transition-all flex-shrink-0 ${
+              <ChevronRight className={`w-4 h-4 text-pink-300 dark:text-pink-400 transition-all flex-shrink-0 ${
                 isRTL ? 'rotate-180' : ''
-              } group-hover:text-[#A3164D] ${isRTL ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
+              } group-hover:text-[#FF6B9D] ${isRTL ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
             </button>
           ))}
         </nav>

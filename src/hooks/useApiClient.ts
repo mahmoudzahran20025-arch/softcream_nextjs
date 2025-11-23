@@ -7,6 +7,7 @@
 // (analytics, device detection, etc.)
 
 import { storage } from '@/lib/storage.client'
+import { API_CONFIG } from '@/config/constants'
 
 /**
  * Client-side API utilities that require browser APIs
@@ -37,8 +38,7 @@ export const useApiClient = () => {
         }
       }
       
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://softcream-api.mahmoud-zahran20025.workers.dev'
-      const url = `${API_URL}?path=${encodeURIComponent('/analytics/event')}`
+      const url = `${API_CONFIG.BASE_URL}?path=${encodeURIComponent('/analytics/event')}`
       
       const response = await fetch(url, {
         method: 'POST',
@@ -96,17 +96,17 @@ export const useApiClient = () => {
    */
   const detectBaseURL = () => {
     if (typeof window === 'undefined') {
-      return process.env.NEXT_PUBLIC_API_URL || 'https://softcream-api.mahmoud-zahran20025.workers.dev'
+      return API_CONFIG.BASE_URL
     }
     
     const hostname = window.location.hostname
     if (hostname.includes('netlify.app')) {
-      return 'https://softcream-api.mahmoud-zahran20025.workers.dev'
+      return API_CONFIG.BASE_URL
     }
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:8787'
     }
-    return 'https://softcream-api.mahmoud-zahran20025.workers.dev'
+    return API_CONFIG.BASE_URL
   }
 
   /**

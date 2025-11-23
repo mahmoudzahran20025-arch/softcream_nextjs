@@ -38,17 +38,31 @@ export function useProductLogic({ product, isOpen }: UseProductLogicProps) {
   const [selectedAddons, setSelectedAddons] = useState<string[]>([])
 
   // Fetch expanded product data with optimistic UI
-  const { data: displayProduct, isFetching } = useQuery({
+  const { data: displayProduct, isFetching, isFetched } = useQuery({
     queryKey: ['product', product?.id, 'detailed'],
-    queryFn: () => {
+    queryFn: async () => {
       if (!product) throw new Error('No product')
-      return getProduct(product.id, { expand: ['addons', 'ingredients', 'allergens'] })
+      console.log(`🔄 Fetching product ${product.id} from API...`)
+      const result = await getProduct(product.id, { expand: ['addons', 'ingredients', 'allergens'] })
+      console.log(`✅ Product ${product.id} fetched successfully`)
+      return result
     },
-    initialData: product || undefined,
+    // ✅ FIX: Don't use initialData - always fetch to get addons
+    // initialData causes the query to think it has data and skips fetching
+    placeholderData: product || undefined, // Use placeholderData instead for optimistic UI
     enabled: !!product && isOpen,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   })
+
+  // Log cache status
+  useEffect(() => {
+    if (product && isOpen) {
+      if (isFetched && !isFetching) {
+        console.log(`💾 Product ${product.id} loaded from CACHE (no API call)`)
+      }
+    }
+  }, [product, isOpen, isFetched, isFetching])
 
   // Reset state when modal closes
   useEffect(() => {
