@@ -6,7 +6,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useCart } from '@/providers/CartProvider'
 import { useProductsData } from '@/providers/ProductsProvider'
-import { useTheme } from '@/providers/ThemeProvider'
+import { useToast } from '@/providers/ToastProvider'
+import { useLanguage } from '@/providers/LanguageProvider'
 import { calculateOrderPrices, validateCoupon, getBranches, submitOrder } from '@/lib/api'
 import { validateCheckoutForm } from './validation'
 import { storage } from '@/lib/storage.client'
@@ -20,7 +21,8 @@ interface UseCheckoutLogicProps {
 export const useCheckoutLogic = ({ isOpen, onClose, onCheckoutSuccess }: UseCheckoutLogicProps) => {
   const { cart, clearCart } = useCart()
   const { productsMap } = useProductsData()
-  const { showToast, language } = useTheme()
+  const { language } = useLanguage()
+  const { showToast } = useToast()
   
   // ===================================
   // STATE MANAGEMENT

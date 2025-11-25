@@ -11,7 +11,7 @@ import StatusTimeline from './components/StatusTimeline'
 import OrderSummary from './components/OrderSummary'
 import PickupView from './views/PickupView'
 import DeliveryView from './views/DeliveryView'
-import { useTheme } from '@/providers/ThemeProvider'
+import { useToast } from '@/providers/ToastProvider'
 
 interface TrackingModalProps {
   isOpen: boolean
@@ -21,7 +21,7 @@ interface TrackingModalProps {
 }
 
 export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: TrackingModalProps) {
-  const { showToast } = useTheme()
+  const { showToast } = useToast()
   
   // ✅ ALL LOGIC IN CUSTOM HOOK
   const {

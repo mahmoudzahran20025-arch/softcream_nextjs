@@ -4,7 +4,7 @@
 'use client'
 
 import { X, ShoppingCart, Loader2 } from 'lucide-react'
-import { useTheme } from '@/providers/ThemeProvider'
+import { useLanguage } from '@/providers/LanguageProvider'
 import { useProductsData } from '@/providers/ProductsProvider'
 import DeliveryOptions from './DeliveryOptions'
 import CheckoutForm from './CheckoutForm'
@@ -20,7 +20,7 @@ interface CheckoutModalProps {
 }
 
 const CheckoutModal = ({ isOpen, onClose, onCheckoutSuccess, onOpenTracking }: CheckoutModalProps) => {
-  const { language } = useTheme()
+  const { language } = useLanguage()
   const { productsMap } = useProductsData()
   
   void onOpenTracking

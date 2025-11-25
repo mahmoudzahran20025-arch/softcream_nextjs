@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useCart } from '@/providers/CartProvider'
 import { useTheme } from '@/providers/ThemeProvider'
+import { useLanguage } from '@/providers/LanguageProvider'
 import { useWindowEvent } from '@/hooks/useWindowEvent'
 import { storage } from '@/lib/storage.client'
 import {
@@ -19,7 +20,8 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }: SidebarProps) {
   const { getCartCount } = useCart()
-  const { language, toggleLanguage, theme, toggleTheme, t } = useTheme()
+  const { theme, toggleTheme } = useTheme()
+  const { language, toggleLanguage, t } = useLanguage()
   
   const [userData, setUserData] = useState<any>(null)
   const [activeOrdersCount, setActiveOrdersCount] = useState(0)

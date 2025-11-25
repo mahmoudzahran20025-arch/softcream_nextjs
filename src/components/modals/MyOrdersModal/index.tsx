@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { X, Package, Clock, CheckCircle2, Truck, MapPin, Phone, Calendar, Store, Edit, PhoneCall, ChevronLeft } from 'lucide-react'
+import { X, Package, Clock, CheckCircle2, Truck, MapPin, Phone, Store, Edit, PhoneCall, ChevronLeft } from 'lucide-react'
 import { storage } from '@/lib/storage.client'
-import { useTheme } from '@/providers/ThemeProvider'
+import { useToast } from '@/providers/ToastProvider'
+import { useLanguage } from '@/providers/LanguageProvider'
 
 interface MyOrdersModalProps {
   isOpen: boolean
@@ -60,25 +61,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
 }
 
 export default function MyOrdersModal({ isOpen, onClose, onEditOrder }: MyOrdersModalProps) {
-  const { language, showToast } = useTheme()
+  const { language } = useLanguage()
+  const { showToast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(false)
-  const [timerKey, setTimerKey] = useState(0)
 
   useEffect(() => {
     if (isOpen) {
       loadOrders()
     }
   }, [isOpen])
-
-  useEffect(() => {
-    if (!isOpen || !selectedOrder) return
-    const interval = setInterval(() => {
-      setTimerKey(prev => prev + 1)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [isOpen, selectedOrder])
   
   useEffect(() => {
     const handleOrdersUpdated = (event: any) => {

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { X, CheckCircle2, AlertCircle, Info, AlertTriangle } from 'lucide-react'
-import { useTheme } from '@/providers/ThemeProvider'
+import { useToast } from '@/providers/ToastProvider'
 
 export default function ToastContainer() {
-  const { toasts, removeToast } = useTheme()
+  const { toasts, removeToast } = useToast()
   const [exitingToasts, setExitingToasts] = useState<Set<string>>(new Set())
 
   useEffect(() => {

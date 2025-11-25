@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { X, Plus, Minus, Trash2, ShoppingCart, Loader2, Save } from 'lucide-react'
-import { useTheme } from '@/providers/ThemeProvider'
+import { useToast } from '@/providers/ToastProvider'
+import { useLanguage } from '@/providers/LanguageProvider'
 import { useProductsData } from '@/providers/ProductsProvider'
 import { TimeManager } from '@/lib/orderTracking'
 import { storage } from '@/lib/storage.client'
@@ -44,7 +45,8 @@ interface EditOrderModalProps {
 }
 
 export default function EditOrderModal({ isOpen, onClose, order, onSuccess }: EditOrderModalProps) {
-  const { language, showToast } = useTheme()
+  const { language } = useLanguage()
+  const { showToast } = useToast()
   const { products } = useProductsData()
   const [editedItems, setEditedItems] = useState<OrderItem[]>([])
   const [isSaving, setIsSaving] = useState(false)

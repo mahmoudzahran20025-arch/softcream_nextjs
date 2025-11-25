@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { storage } from '@/lib/storage.client'
-import { useTheme } from '@/providers/ThemeProvider'
+import { useToast } from '@/providers/ToastProvider'
 import { OrderPollerManager } from '@/lib/orderPoller'
 import { FINAL_STATUSES } from '@/lib/orderTracking'
 
@@ -63,7 +63,7 @@ interface UseOrderTrackingProps {
 }
 
 export const useOrderTracking = ({ isOpen, order }: UseOrderTrackingProps) => {
-  const { showToast } = useTheme()
+  const { showToast } = useToast()
   const [currentOrder, setCurrentOrder] = useState(order)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const pollerRef = useRef<any>(null)

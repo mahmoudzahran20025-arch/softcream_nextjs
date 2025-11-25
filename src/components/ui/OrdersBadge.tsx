@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'  // ✅ NEW: أضف useRef
+import { useEffect } from 'react'
 import { ShoppingBag } from 'lucide-react'
-import { storage } from '@/lib/storage.client'
+import { useOrdersStore } from '@/stores/ordersStore'
 
 interface OrdersBadgeProps {
   onClick?: () => void
@@ -10,60 +10,25 @@ interface OrdersBadgeProps {
 }
 
 /**
- * OrdersBadge Component
+ * OrdersBadge Component - REFACTORED with OrdersStore
  * Displays active orders count badge as a floating button
- * Listens to 'ordersUpdated' event for real-time updates
+ * Uses Zustand store instead of custom events
  */
 export default function OrdersBadge({ onClick, className = '' }: OrdersBadgeProps) {
-  const [activeOrdersCount, setActiveOrdersCount] = useState(0)
-  const countRef = useRef(0)
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const { orders, loadOrders } = useOrdersStore()
+  const activeOrdersCount = orders.length
 
   useEffect(() => {
-    const updateCount = () => {
-      // ✅ Show ALL orders, not just active ones
-      const allOrders = storage.getOrders()
-      const count = allOrders.length
-      if (count !== countRef.current) {
-        countRef.current = count
-        setActiveOrdersCount(count)
-        console.log('🎯 OrdersBadge: Updated count:', count)
-      }
-    }
-
     // Initial load
-    updateCount()
-
-    // Debounced update handler - prevents rapid re-renders
-    const handleOrdersUpdated = () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
-      debounceTimerRef.current = setTimeout(() => {
-        updateCount()
-      }, 300)
-    }
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('ordersUpdated', handleOrdersUpdated as EventListener)
-      return () => {
-        window.removeEventListener('ordersUpdated', handleOrdersUpdated as EventListener)
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current)
-        }
-      }
-    }
-  }, [])
+    loadOrders()
+  }, [loadOrders])
 
   const handleClick = () => {
     if (onClick) {
       onClick()
-    } else {
-      // Dispatch custom event to open MyOrdersModal
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('open-my-orders-modal'))
-      }
     }
+    // Note: onClick now uses ModalStore in PageContentClient
+    // No need for custom events anymore
   }
 
   const isVisible = activeOrdersCount > 0

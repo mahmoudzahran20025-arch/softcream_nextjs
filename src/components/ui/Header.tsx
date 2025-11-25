@@ -2,6 +2,7 @@
 
 import { ShoppingCart, Menu, Sun, Moon, Globe } from 'lucide-react'
 import { useTheme } from '@/providers/ThemeProvider'
+import { useLanguage } from '@/providers/LanguageProvider'
 import { useCart } from '@/providers/CartProvider'
 import { useState, useEffect } from 'react'
 
@@ -12,7 +13,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: HeaderProps) {
-  const { language, toggleLanguage, toggleTheme, isDark, isRTL } = useTheme()
+  const { toggleTheme, isDark } = useTheme()
+  const { language, toggleLanguage, isRTL } = useLanguage()
   const { getCartCount } = useCart()
   
   // Fix hydration error: only show count on client side

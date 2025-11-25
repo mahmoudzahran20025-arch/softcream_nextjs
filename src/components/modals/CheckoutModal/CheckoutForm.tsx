@@ -3,7 +3,7 @@
 'use client'
 
 import { User, Phone, MapPin, MessageSquare, Tag, Navigation, CheckCircle, XCircle, Loader2, AlertCircle, Edit3 } from 'lucide-react'
-import { useTheme } from '@/providers/ThemeProvider'
+import { useLanguage } from '@/providers/LanguageProvider'
 
 interface CheckoutFormProps {
   formData: any
@@ -44,7 +44,7 @@ const CheckoutForm = ({
   onApplyCoupon,
   onRemoveCoupon
 }: CheckoutFormProps) => {
-  const { language } = useTheme()
+  const { language } = useLanguage()
   const isArabic = language === 'ar'
 
   // ✅ Helper: Format phone number display
