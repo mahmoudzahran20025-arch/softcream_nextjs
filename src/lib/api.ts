@@ -255,6 +255,21 @@ export async function getNutritionSummary(productIds: string[]): Promise<any> {
 }
 
 // ================================================================
+// SEO Helper - Get product with full details
+// ================================================================
+
+export async function getProductForSEO(productId: string): Promise<Product | null> {
+  try {
+    return await getProduct(productId, {
+      expand: ['ingredients', 'nutrition', 'allergens', 'addons']
+    })
+  } catch (error) {
+    console.error('❌ Failed to fetch product for SEO:', productId, error)
+    return null
+  }
+}
+
+// ================================================================
 // Branches API (Server-Safe)
 // ================================================================
 

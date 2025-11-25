@@ -1,12 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  
+  poweredByHeader: false,
+
   // ✅ Turbopack configuration (Next.js 16 default)
   turbopack: {
     root: '.', // Set workspace root to current directory
   },
-  
+
   // ✅ Performance optimizations
   // Note: swcMinify is enabled by default in Next.js 13+ and removed in Next.js 16
   compiler: {
@@ -14,7 +15,7 @@ const nextConfig = {
       exclude: ['error', 'warn'], // Keep errors and warnings in production
     } : false,
   },
-  
+
   // ✅ Experimental features for better performance
   experimental: {
     optimizePackageImports: ['lucide-react', 'swiper'], // Tree-shake unused exports
@@ -30,7 +31,7 @@ const nextConfig = {
     'http://127.0.0.1:3000',
     'http://192.168.1.132:3000', // Local network IP access (add more IPs as needed)
   ],
-  
+
   // Image optimization
   images: {
     remotePatterns: [

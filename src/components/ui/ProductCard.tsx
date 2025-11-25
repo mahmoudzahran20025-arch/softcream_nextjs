@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useCart } from '@/providers/CartProvider'
 import { useProductsData } from '@/providers/ProductsProvider'
 import { ShoppingCart, Sparkles, Brain, Activity, Zap } from 'lucide-react'
+import Image from 'next/image'
 import QuantitySelector from './common/QuantitySelector'
 import PriceDisplay from './common/PriceDisplay'
 import { useRotatingText } from '@/hooks/useRotatingText'
@@ -140,8 +141,11 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
 
   const energyConfig = getEnergyConfig()
 
-  const handleCardClick = () => {
+  const handleCardClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    // Open modal and update URL without navigation
     openProduct(product)
+    window.history.pushState({}, '', `/products/${product.id}`)
   }
 
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -168,13 +172,13 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       {/* Image Container - Fixed Aspect Ratio for CLS Prevention */}
       <div className="relative w-full aspect-[4/5] bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-800 dark:to-slate-700 rounded-lg mb-3 overflow-hidden group">
         {product.image ? (
-          <img
+          <Image
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            loading="lazy"
-            width={200}
-            height={250}
+            className="object-cover group-hover:scale-110 transition-transform duration-300"
+            fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            priority={false}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-600">
@@ -218,8 +222,8 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
           <span className="text-sm">{currentIcon}</span>
           <p
             className={`text-xs font-semibold transition-all duration-300 ${isTransitioning
-                ? 'opacity-0 translate-y-1'
-                : 'opacity-100 translate-y-0'
+              ? 'opacity-0 translate-y-1'
+              : 'opacity-100 translate-y-0'
               } ${currentColor}`}
           >
             {currentInfo}
@@ -267,11 +271,13 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
               <ShoppingCart size={18} strokeWidth={2.5} />
             </button>
 
-            {/* Learn More Button - Brand Color */}
+            {/* Learn More Button - Opens modal */}
             <button
               onClick={(e) => {
                 e.stopPropagation()
+                // Open modal and update URL without navigation
                 openProduct(product)
+                window.history.pushState({}, '', `/products/${product.id}`)
               }}
               className="flex-1 py-2 text-xs font-bold text-[#FF6B9D] hover:text-white dark:text-[#FF6B9D] dark:hover:text-white flex items-center justify-center gap-1.5 transition-all duration-300 group hover:bg-gradient-to-r hover:from-[#FF6B9D] hover:to-[#FF5A8E] rounded-lg border border-[#FF6B9D]/30 hover:border-transparent"
             >

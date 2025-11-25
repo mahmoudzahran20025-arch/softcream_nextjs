@@ -85,12 +85,18 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
   const handleAddToCart = () => {
     const addonsToSend = selectedAddons.length > 0 ? selectedAddons : undefined
     addToCart(product, quantity, addonsToSend)
+    handleClose()
+  }
+
+  const handleClose = () => {
+    // Reset URL to home
+    window.history.pushState({}, '', '/')
     onClose()
   }
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
-      onClose()
+      handleClose()
     }
   }
 
@@ -117,7 +123,7 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
           >
             {/* Close Button */}
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="absolute top-4 right-4 md:left-4 md:right-auto z-20 w-11 h-11 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-full shadow-xl flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 transition-all hover:scale-110 active:scale-95"
               aria-label="إغلاق"
             >
