@@ -37,7 +37,7 @@ export default function ProductHeader({ product }: ProductHeaderProps) {
             </p>
           )}
         </div>
-        <div className="flex-shrink-0 whitespace-nowrap pt-1">
+        <div className="flex-shrink-0 whitespace-nowrap pt-1 pl-2 md:pl-4">
           <PriceDisplay price={product.price} size="lg" />
         </div>
       </div>

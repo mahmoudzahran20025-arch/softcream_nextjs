@@ -4,6 +4,7 @@ import Footer from '@/components/server/Footer'
 import PageContentClient from '@/components/pages/PageContentClient'
 import ProductsProvider from '@/providers/ProductsProvider'
 import StorytellingHero from '@/components/StorytellingHero'
+import ScrollProgressButton from '@/components/ui/ScrollProgressButton'
 
 interface Product {
   id: string
@@ -57,6 +58,9 @@ export default function PageContent({ initialProducts }: PageContentProps) {
           <Footer />
         </Suspense>
       </main>
+      
+      {/* Scroll Progress Button */}
+      <ScrollProgressButton />
     </ProductsProvider>
   )
 }

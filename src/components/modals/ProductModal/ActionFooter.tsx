@@ -42,14 +42,15 @@ export default function ActionFooter({
           size="lg"
         />
 
-        {/* Add to Cart Button */}
+        {/* Add to Cart Button - Responsive with proper sizing for medium screens */}
         <button
           onClick={onAddToCart}
-          className="flex-1 py-3.5 px-6 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] hover:from-[#FF5A8E] hover:to-[#FF4979] text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-pink-500/25 hover:shadow-xl hover:shadow-pink-500/30 transition-all active:scale-[0.98]"
+          className="flex-1 min-h-[48px] max-h-[56px] py-3 px-4 md:px-6 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] hover:from-[#FF5A8E] hover:to-[#FF4979] text-white rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-1.5 md:gap-2 shadow-lg shadow-pink-500/25 hover:shadow-xl hover:shadow-pink-500/30 transition-all active:scale-[0.98]"
         >
-          <ShoppingCart className="w-5 h-5" />
-          <span>أضف للسلة • </span>
-          <PriceDisplay price={totalPrice} size="md" className="text-white" />
+          <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+          <span className="hidden sm:inline whitespace-nowrap">أضف للسلة • </span>
+          <span className="sm:hidden whitespace-nowrap">أضف • </span>
+          <PriceDisplay price={totalPrice} size="md" className="text-white flex-shrink-0" />
         </button>
       </div>
 

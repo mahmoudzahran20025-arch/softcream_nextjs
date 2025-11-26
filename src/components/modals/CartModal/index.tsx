@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, ShoppingCart } from 'lucide-react'
 import { useCart } from '@/providers/CartProvider'
+import { getProduct } from '@/lib/api'
 import CartItem from './CartItem'
 import CartSummary from './CartSummary'
 import NutritionCard from '@/components/ui/NutritionCard'
@@ -26,8 +27,37 @@ interface CartModalProps {
 }
 
 export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [] }: CartModalProps) {
-  const { cart, updateCartQuantity, removeFromCart, getCartCount } = useCart()
+  const { cart, updateCartQuantity, removeFromCart, getCartCount, getCartTotal } = useCart()
   const [nutritionData, setNutritionData] = useState<any>(null)
+  const [productsWithAddons, setProductsWithAddons] = useState<Map<string, any>>(new Map())
+
+  // ✅ FIX: Fetch products with addons for cart items
+  useEffect(() => {
+    if (!isOpen || cart.length === 0) return
+
+    const fetchProductsWithAddons = async () => {
+      const newProductsMap = new Map()
+      
+      for (const item of cart) {
+        // Skip if already fetched
+        if (productsWithAddons.has(item.productId)) {
+          newProductsMap.set(item.productId, productsWithAddons.get(item.productId))
+          continue
+        }
+
+        try {
+          const productWithAddons = await getProduct(item.productId, { expand: ['addons'] })
+          newProductsMap.set(item.productId, productWithAddons)
+        } catch (error) {
+          console.error(`Failed to fetch addons for product ${item.productId}:`, error)
+        }
+      }
+
+      setProductsWithAddons(newProductsMap)
+    }
+
+    fetchProductsWithAddons()
+  }, [cart, isOpen])
 
   // Calculate nutrition summary from cart items
   useEffect(() => {
@@ -68,10 +98,15 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
   if (!isOpen) return null
 
   const totalItems = getCartCount()
-  const total = cart.reduce((sum, item) => {
-    const product = allProducts.find(p => p.id === item.productId)
-    return sum + ((product?.price || 0) * item.quantity)
-  }, 0)
+  
+  // ✅ FIX: Build products map for getCartTotal
+  const productsMap = allProducts.reduce((map, product) => {
+    map[product.id] = product
+    return map
+  }, {} as Record<string, Product>)
+  
+  // ✅ FIX: Use getCartTotal which includes addons prices
+  const total = getCartTotal(productsMap)
 
   const isEmpty = cart.length === 0
 
@@ -144,6 +179,10 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                   const product = allProducts.find(p => p.id === item.productId)
                   if (!product) return null
 
+                  // ✅ FIX: Get addons list from fetched product with addons
+                  const productWithAddons = productsWithAddons.get(item.productId)
+                  const productAddons = productWithAddons?.addonsList || []
+
                   // Create unique key combining productId and addons
                   const itemKey = `${item.productId}-${(item.selectedAddons || []).sort().join('-')}-${index}`
 
@@ -152,6 +191,7 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                       key={itemKey}
                       item={item}
                       product={product}
+                      addons={productAddons}
                       onUpdateQuantity={updateCartQuantity}
                       onRemove={removeFromCart}
                     />

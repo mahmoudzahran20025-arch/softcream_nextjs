@@ -41,7 +41,7 @@ export default function NutritionInfo({ product, ingredients, allergens }: Nutri
               type="calories"
               value={product.calories}
               size="sm"
-              variant="subtle"
+              variant="colored"
             />
           )}
           {product.protein && (
@@ -49,7 +49,7 @@ export default function NutritionInfo({ product, ingredients, allergens }: Nutri
               type="protein"
               value={product.protein}
               size="sm"
-              variant="subtle"
+              variant="colored"
             />
           )}
           {product.carbs && (
@@ -57,7 +57,7 @@ export default function NutritionInfo({ product, ingredients, allergens }: Nutri
               type="carbs"
               value={product.carbs}
               size="sm"
-              variant="subtle"
+              variant="colored"
             />
           )}
           {product.sugar && (
@@ -65,7 +65,7 @@ export default function NutritionInfo({ product, ingredients, allergens }: Nutri
               type="sugar"
               value={product.sugar}
               size="sm"
-              variant="subtle"
+              variant="colored"
             />
           )}
         </motion.div>
