@@ -18,25 +18,56 @@ interface CartItemData {
   productId: string
   quantity: number
   selectedAddons?: string[]
+  selections?: Record<string, string[]> // BYO customization selections
 }
 
 interface CartItemProps {
   item: CartItemData
   product: Product
   addons?: any[] // Array of addon objects with id, name, price
-  onUpdateQuantity: (productId: string, quantity: number, addons?: string[]) => void
-  onRemove: (productId: string, addons?: string[]) => void
+  customizationOptions?: any[] // Array of BYO options with id, name, price, groupIcon
+  onUpdateQuantity: (productId: string, quantity: number, addons?: string[], selections?: Record<string, string[]>) => void
+  onRemove: (productId: string, addons?: string[], selections?: Record<string, string[]>) => void
 }
 
-export default function CartItem({ item, product, addons = [], onUpdateQuantity, onRemove }: CartItemProps) {
-  // ✅ FIX: Calculate addons total properly
+export default function CartItem({ item, product, addons = [], customizationOptions = [], onUpdateQuantity, onRemove }: CartItemProps) {
+  // ✅ Check for pre-calculated price (BYO products with sizes)
+  const hasCalculatedPrice = item.selections?._calculatedPrice && parseFloat(item.selections._calculatedPrice[0]) > 0
+  const calculatedPrice = hasCalculatedPrice ? parseFloat(item.selections!._calculatedPrice![0]) : 0
+  
+  // ✅ Extract container and size info
+  const containerInfo = item.selections?._container
+  const sizeInfo = item.selections?._size
+  const containerPrice = containerInfo ? parseFloat(containerInfo[2] || '0') : 0
+  const sizePrice = sizeInfo ? parseFloat(sizeInfo[2] || '0') : 0
+  
+  // ✅ Calculate legacy addons total
   const addonsTotal = (item.selectedAddons || []).reduce((sum, addonId) => {
     const addon = addons.find(a => a.id === addonId)
     return sum + (addon?.price || 0)
   }, 0)
   
-  // ✅ FIX: Calculate item total: (base price + addons) * quantity
-  const itemTotal = (product.price + addonsTotal) * item.quantity
+  // ✅ Calculate BYO customization total (excluding special keys)
+  const customizationTotal = item.selections 
+    ? Object.entries(item.selections)
+        .filter(([key]) => !key.startsWith('_')) // Exclude _container, _size, _calculatedPrice
+        .flatMap(([, values]) => values)
+        .reduce((sum, optionId) => {
+          const option = customizationOptions.find(o => o.id === optionId)
+          return sum + (option?.price || 0)
+        }, 0)
+    : 0
+  
+  // ✅ Calculate item total
+  const itemTotal = hasCalculatedPrice
+    ? calculatedPrice * item.quantity
+    : (product.price + containerPrice + sizePrice + addonsTotal + customizationTotal) * item.quantity
+  
+  // ✅ Check if this is a customizable product (has selections other than special keys)
+  const customSelections = item.selections 
+    ? Object.entries(item.selections).filter(([key]) => !key.startsWith('_'))
+    : []
+  const isCustomizable = customSelections.length > 0 || !!containerInfo || !!sizeInfo
 
   return (
     <div className="flex gap-4 p-4 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-700 dark:to-slate-600 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
@@ -59,8 +90,59 @@ export default function CartItem({ item, product, addons = [], onUpdateQuantity,
           <PriceDisplay price={product.price} size="sm" />
         </div>
         
-        {/* Show selected addons with names and prices */}
-        {item.selectedAddons && item.selectedAddons.length > 0 && (
+        {/* Show container and size info */}
+        {(containerInfo || sizeInfo) && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {containerInfo && (
+              <span className="text-xs px-2 py-1 rounded-full border font-medium flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700">
+                <span>🥤</span>
+                <span>{containerInfo[1]}</span>
+                {containerPrice > 0 && <span className="text-[10px] opacity-75">(+{containerPrice} ج.م)</span>}
+              </span>
+            )}
+            {sizeInfo && (
+              <span className="text-xs px-2 py-1 rounded-full border font-medium flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700">
+                <span>📏</span>
+                <span>{sizeInfo[1]}</span>
+                {sizePrice > 0 && <span className="text-[10px] opacity-75">({sizePrice} ج.م)</span>}
+              </span>
+            )}
+          </div>
+        )}
+        
+        {/* Show BYO customization selections */}
+        {customSelections.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {customSelections.flatMap(([, values]) => values).map((optionId) => {
+              const option = customizationOptions.find(o => o.id === optionId)
+              if (!option) return null
+              
+              const isFree = option.price === 0
+              
+              return (
+                <span
+                  key={optionId}
+                  className={`text-xs px-2 py-1 rounded-full border font-medium flex items-center gap-1 ${
+                    isFree
+                      ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700'
+                      : 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700'
+                  }`}
+                >
+                  {option.groupIcon && <span>{option.groupIcon}</span>}
+                  <span>{option.name}</span>
+                  {isFree ? (
+                    <span className="text-[10px] opacity-75">✨ مجاناً</span>
+                  ) : (
+                    <span className="text-[10px] opacity-75">(+{option.price} ج.م)</span>
+                  )}
+                </span>
+              )
+            })}
+          </div>
+        )}
+        
+        {/* Show legacy addons (for non-customizable products) */}
+        {!isCustomizable && item.selectedAddons && item.selectedAddons.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {item.selectedAddons.map((addonId) => {
               const addon = addons.find(a => a.id === addonId)
@@ -83,13 +165,13 @@ export default function CartItem({ item, product, addons = [], onUpdateQuantity,
         <div className="flex items-center gap-3 mt-3">
           <QuantitySelector
             quantity={item.quantity}
-            onIncrease={() => onUpdateQuantity(item.productId, item.quantity + 1, item.selectedAddons)}
-            onDecrease={() => onUpdateQuantity(item.productId, item.quantity - 1, item.selectedAddons)}
+            onIncrease={() => onUpdateQuantity(item.productId, item.quantity + 1, item.selectedAddons, item.selections)}
+            onDecrease={() => onUpdateQuantity(item.productId, item.quantity - 1, item.selectedAddons, item.selections)}
             size="sm"
           />
           
           <button
-            onClick={() => onRemove(item.productId, item.selectedAddons)}
+            onClick={() => onRemove(item.productId, item.selectedAddons, item.selections)}
             className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-colors"
             aria-label="حذف المنتج"
           >

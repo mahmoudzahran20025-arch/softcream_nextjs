@@ -182,10 +182,18 @@ export const useCheckoutLogic = ({ isOpen, onClose, onCheckoutSuccess }: UseChec
         
         const phoneForCalc = formData.phone.replace(/\D/g, '') || undefined
         
+        console.log('🛒 Cart items before price calculation:', cart.map(item => ({
+          productId: item.productId,
+          hasSelections: !!item.selections,
+          selections: item.selections
+        })))
+        
         const pricesData = await calculateOrderPrices(
           cart.map(item => ({
             productId: item.productId,
-            quantity: item.quantity
+            quantity: item.quantity,
+            selectedAddons: item.selectedAddons, // Legacy addons
+            selections: item.selections // ✅ BYO customization selections
           })),
           (couponStatus === 'valid' && formData.couponCode) ? formData.couponCode.trim() : null,
           deliveryMethod,
@@ -517,7 +525,9 @@ export const useCheckoutLogic = ({ isOpen, onClose, onCheckoutSuccess }: UseChec
       const orderData = {
         items: cart.map(item => ({
           productId: item.productId,
-          quantity: item.quantity
+          quantity: item.quantity,
+          selectedAddons: item.selectedAddons, // Legacy addons
+          selections: item.selections // ✅ BYO customization selections
         })),
         customer: {
           name: formData.name.trim(),

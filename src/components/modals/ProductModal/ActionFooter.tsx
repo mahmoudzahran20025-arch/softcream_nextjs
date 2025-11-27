@@ -55,20 +55,24 @@ export default function ActionFooter({
       </div>
 
       {/* Price Breakdown */}
-      {addonsPrice > 0 && (
+      {(addonsPrice > 0 || basePrice === 0) && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700"
         >
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-            <span>السعر الأساسي ({quantity}×)</span>
-            <PriceDisplay price={basePrice * quantity} size="sm" />
-          </div>
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>الإضافات ({selectedAddonsCount})</span>
-            <PriceDisplay price={addonsPrice * quantity} size="sm" />
-          </div>
+          {basePrice > 0 && (
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+              <span>السعر الأساسي ({quantity}×)</span>
+              <PriceDisplay price={basePrice * quantity} size="sm" />
+            </div>
+          )}
+          {addonsPrice > 0 && (
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <span>{basePrice === 0 ? 'المقاس + الإضافات' : `الإضافات (${selectedAddonsCount})`}</span>
+              <PriceDisplay price={addonsPrice * quantity} size="sm" />
+            </div>
+          )}
         </motion.div>
       )}
     </motion.div>

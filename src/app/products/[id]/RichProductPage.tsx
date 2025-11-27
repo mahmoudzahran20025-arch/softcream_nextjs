@@ -7,6 +7,10 @@ import ProductHeader from '@/components/modals/ProductModal/ProductHeader'
 import NutritionInfo from '@/components/modals/ProductModal/NutritionInfo'
 import AddonsList from '@/components/modals/ProductModal/AddonsList'
 import ActionFooter from '@/components/modals/ProductModal/ActionFooter'
+import { useCustomization } from '@/components/modals/ProductModal/useCustomization'
+import { useProductConfiguration } from '@/hooks/useProductConfiguration'
+import { ProductTemplateRenderer } from '@/components/modals/ProductModal/templates'
+
 import { useProductLogic } from '@/components/modals/ProductModal/useProductLogic'
 import { useCart } from '@/providers/CartProvider'
 import ProductsProvider from '@/providers/ProductsProvider'
@@ -37,11 +41,15 @@ interface Props {
 }
 
 function RichProductPageContent({ product, allProducts }: Props) {
+  console.log('🎬 RichProductPage Render:', {
+    productId: product?.id,
+    isCustomizable: product?.is_customizable
+  })
+
   const { addToCart } = useCart()
   const { current, data, open, close } = useModalStore()
-  const [showHeader, setShowHeader] = useState(true)
-  const [showFilterBar, setShowFilterBar] = useState(true)
-  const [lastScrollY, setLastScrollY] = useState(0)
+  const [showHeader] = useState(true)
+  const [showFilterBar] = useState(true)
   const productHeroRef = useRef<HTMLDivElement>(null)
 
   const {
@@ -59,57 +67,101 @@ function RichProductPageContent({ product, allProducts }: Props) {
     allergens,
   } = useProductLogic({ product, isOpen: true })
 
-  // Scroll behavior: hide/show header and filter bar
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      const productHeroHeight = productHeroRef.current?.offsetHeight || 800
-      
-      // Header behavior: hide/show based on scroll direction
-      if (currentScrollY > 100) {
-        if (currentScrollY > lastScrollY && currentScrollY > 200) {
-          // Scrolling down - hide header
-          setShowHeader(false)
-        } else {
-          // Scrolling up - show header
-          setShowHeader(true)
-        }
-      } else {
-        // Always show when near top
-        setShowHeader(true)
-      }
-      
-      // Filter bar behavior: hide/show after product hero
-      if (currentScrollY > productHeroHeight) {
-        if (currentScrollY > lastScrollY) {
-          // Scrolling down - hide filter
-          setShowFilterBar(false)
-        } else {
-          // Scrolling up - show filter
-          setShowFilterBar(true)
-        }
-      } else {
-        // Always show when in product hero area
-        setShowFilterBar(true)
-      }
-      
-      setLastScrollY(currentScrollY)
-    }
+  // Initialize Customization Hook
+  // ⚠️ IMPORTANT: Use displayProduct first because it has the full data including is_customizable
+  const customization = useCustomization({
+    productId: displayProduct?.id || product?.id || null,
+    isOpen: true,
+    basePrice: displayProduct?.price || product?.price || 0
+  })
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [lastScrollY])
+  // ✅ NEW: Use product configuration hook for sizes & containers
+  const productConfig = useProductConfiguration({
+    productId: displayProduct?.id || product?.id || null,
+    isOpen: true
+  })
+
+  // Debug: Log customization state
+  useEffect(() => {
+    console.log('🔍 RichProductPage Customization State:', {
+      productId: product?.id,
+      displayProductId: displayProduct?.id,
+      isCustomizable: displayProduct?.is_customizable,
+      hasRules: customization.customizationRules.length > 0,
+      isLoading: customization.isLoadingRules
+    })
+  }, [product?.id, displayProduct?.id, displayProduct?.is_customizable, customization.customizationRules, customization.isLoadingRules])
+
+  // ... scroll behavior ...
 
   const handleAddToCart = () => {
-    const addonsToSend = selectedAddons.length > 0 ? selectedAddons : undefined
-    addToCart(product, quantity, addonsToSend)
+    // ✅ NEW: Handle products with containers/sizes
+    if (productConfig.hasContainers || productConfig.hasSizes) {
+      // Validate customization if applicable
+      if (productConfig.hasCustomization && !productConfig.validationResult.isValid) {
+        alert(productConfig.validationResult.errors.join('\n'))
+        return
+      }
+      
+      // Build selections with container and size info
+      const selectionsWithConfig: Record<string, string[]> = {
+        ...productConfig.selections
+      }
+      
+      // Add container and size as special selection groups (with prices for cart calculation)
+      if (productConfig.selectedContainer) {
+        selectionsWithConfig['_container'] = [
+          productConfig.selectedContainer, 
+          productConfig.containerObj?.name || '',
+          String(productConfig.containerObj?.priceModifier || 0) // ✅ Include price
+        ]
+      }
+      if (productConfig.selectedSize) {
+        selectionsWithConfig['_size'] = [
+          productConfig.selectedSize, 
+          productConfig.sizeObj?.name || '',
+          String(productConfig.sizeObj?.priceModifier || 0) // ✅ Include price
+        ]
+      }
+      
+      // ✅ Store total calculated price for cart display
+      selectionsWithConfig['_calculatedPrice'] = [String(productConfig.totalPrice)]
+      
+      console.log('🛒 Adding product with config to cart:', { selectionsWithConfig, totalPrice: productConfig.totalPrice })
+      addToCart(product, quantity, undefined, selectionsWithConfig)
+      showSuccessFeedback()
+      return
+    }
     
+    if (displayProduct?.is_customizable === 1) {
+      // For customizable products: convert selectedOptions to selections format
+      const selections: Record<string, string[]> = {}
+      customization.selectedOptions.forEach(option => {
+        if (!selections[option.groupId]) {
+          selections[option.groupId] = []
+        }
+        selections[option.groupId].push(option.id)
+      })
+      
+      console.log('🛒 Adding customizable product to cart:', { selections })
+      addToCart(product, quantity, undefined, selections)
+    } else {
+      // For legacy products: send addon IDs
+      const legacyAddons = selectedAddons.length > 0 ? selectedAddons : undefined
+      console.log('🛒 Adding legacy product to cart:', { legacyAddons })
+      addToCart(product, quantity, legacyAddons, undefined)
+    }
+
+    showSuccessFeedback()
+  }
+
+  const showSuccessFeedback = () => {
     // Show success feedback
     const successDiv = document.createElement('div')
     successDiv.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-gradient-to-r from-[#ff6b9d] to-[#ff5a8e] text-white px-6 py-3 rounded-full shadow-2xl font-semibold animate-bounce'
     successDiv.textContent = '✓ تم الإضافة للسلة'
     document.body.appendChild(successDiv)
-    
+
     setTimeout(() => {
       successDiv.remove()
     }, 1500)
@@ -119,27 +171,14 @@ function RichProductPageContent({ product, allProducts }: Props) {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
-      {/* Header with hide/show animation - Full Header (same as home page) */}
-      <AnimatePresence>
-        {showHeader && (
-          <motion.div
-            initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -100, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed top-0 left-0 right-0 z-50"
-          >
-            <Header
-              onOpenSidebar={() => open('sidebar')}
-              isSidebarOpen={current === 'sidebar'}
-              onOpenCart={() => open('cart')}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Header */}
+      <Header 
+        onOpenCart={() => open('cart')}
+        onOpenSidebar={() => open('sidebar')}
+      />
 
       {/* Product Hero Section */}
-      <section 
+      <section
         ref={productHeroRef}
         className="relative bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 pt-20"
       >
@@ -148,7 +187,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
         <div className="container mx-auto px-4 pt-8 md:pt-12 pb-0">
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 lg:grid-cols-[45%_55%] gap-6 md:gap-8 items-start">
-              {/* Product Image with Badges - Responsive Height */}
+              {/* Product Image ... */}
               <div className="relative h-[600px] md:aspect-[3/4] lg:aspect-[4/5] md:h-auto rounded-2xl overflow-hidden bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-800 dark:to-slate-700 group md:sticky md:top-24">
                 {displayProduct.image ? (
                   <img
@@ -161,7 +200,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
                     🍦
                   </div>
                 )}
-                
+
                 {/* Energy Type Badge */}
                 {displayProduct.energy_type && (
                   <div className="absolute top-4 left-4 bg-gradient-to-r from-amber-400 to-orange-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5">
@@ -169,7 +208,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
                     <span>{displayProduct.energy_type}</span>
                   </div>
                 )}
-                
+
                 {/* Badge */}
                 {displayProduct.badge && (
                   <div className="absolute top-4 right-4 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
@@ -181,27 +220,58 @@ function RichProductPageContent({ product, allProducts }: Props) {
               {/* Product Details */}
               <div className="space-y-4 md:space-y-6">
                 <ProductHeader product={displayProduct} />
-                <NutritionInfo product={displayProduct} ingredients={ingredients} allergens={allergens} />
-                <AddonsList 
-                  addons={addons} 
-                  tags={tags} 
-                  selectedAddons={selectedAddons} 
-                  onToggleAddon={toggleAddon} 
-                  isLoading={isFetchingAddons} 
+                {/* ✅ NOW WITH DYNAMIC NUTRITION! */}
+                <NutritionInfo 
+                  product={displayProduct} 
+                  ingredients={ingredients} 
+                  allergens={allergens}
+                  customizationNutrition={productConfig.hasContainers ? productConfig.totalNutrition : customization.customizationNutrition}
                 />
-                
-                {/* Action Footer - Inline with proper spacing and responsive sizing */}
-                <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 p-4 md:p-6 rounded-t-2xl shadow-2xl -mx-4 md:-mx-6">
+
+                {/* Product Template System - Dynamic based on product type */}
+                {(displayProduct?.is_customizable === 1 || productConfig.hasContainers || productConfig.hasSizes) ? (
+                  <ProductTemplateRenderer
+                    product={displayProduct}
+                    productConfig={productConfig}
+                  />
+                ) : (
+                  <AddonsList
+                    addons={addons}
+                    tags={tags}
+                    selectedAddons={selectedAddons}
+                    onToggleAddon={toggleAddon}
+                    isLoading={isFetchingAddons}
+                  />
+                )}
+
+                {/* Action Footer */}
+                <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 p-4 md:p-6 rounded-t-2xl shadow-2xl -mx-4 md:-mx-6 z-30">
                   <div className="max-w-md mx-auto">
                     <ActionFooter
                       quantity={quantity}
                       onIncrease={() => setQuantity(quantity + 1)}
                       onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
                       onAddToCart={handleAddToCart}
-                      totalPrice={totalPrice}
-                      basePrice={displayProduct.price}
-                      addonsPrice={addonsTotal}
-                      selectedAddonsCount={selectedAddons.length}
+                      totalPrice={
+                        (productConfig.hasContainers || productConfig.hasSizes)
+                          ? productConfig.totalPrice * quantity 
+                          : ((displayProduct?.is_customizable === 1) ? customization.totalPrice * quantity : totalPrice)
+                      }
+                      basePrice={
+                        (productConfig.hasContainers || productConfig.hasSizes)
+                          ? (productConfig.config?.product.basePrice || displayProduct.price)
+                          : displayProduct.price
+                      }
+                      addonsPrice={
+                        (productConfig.hasContainers || productConfig.hasSizes)
+                          ? (productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal
+                          : ((displayProduct?.is_customizable === 1) ? customization.customizationTotal : addonsTotal)
+                      }
+                      selectedAddonsCount={
+                        (productConfig.hasContainers || productConfig.hasSizes)
+                          ? productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)
+                          : ((displayProduct?.is_customizable === 1) ? customization.selectedOptions.length : selectedAddons.length)
+                      }
                     />
                   </div>
                 </div>
@@ -213,7 +283,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
       </section>
 
       {/* Scroll Down Section - Professional Design */}
-      <ScrollDownSection 
+      <ScrollDownSection
         title="اكتشف المزيد"
         subtitle="تصفح منتجاتنا المميزة واختر ما يناسبك"
         variant="gradient"
@@ -256,7 +326,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
             </div>
           </motion.div>
         </div>
-        
+
         <ProductsGrid />
       </section>
 
@@ -350,7 +420,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
 
 export default function RichProductPage(props: Props) {
   const { allProducts } = props
-  
+
   return (
     <ProductsProvider initialProducts={allProducts}>
       <CategoryTrackingProvider>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Soft Serve Cup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-center">🍦 اختبار كوب سوفت سيرف مخصص</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">1️⃣ اختبار جلب المنتج</h2>
+            <button onclick="testGetProduct()" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
+                جلب المنتج
+            </button>
+            <pre id="product-result" class="mt-4 bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96"></pre>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">2️⃣ اختبار قواعد التخصيص</h2>
+            <button onclick="testGetRules()" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600">
+                جلب قواعد التخصيص
+            </button>
+            <pre id="rules-result" class="mt-4 bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96"></pre>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold mb-4">3️⃣ اختبار جميع المنتجات</h2>
+            <button onclick="testGetAllProducts()" class="bg-purple-500 text-white px-6 py-2 rounded-lg hover:bg-purple-600">
+                جلب جميع المنتجات
+            </button>
+            <pre id="all-products-result" class="mt-4 bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96"></pre>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://softcream-api.mahmoud-zahran20025.workers.dev';
+
+        async function testGetProduct() {
+            const resultEl = document.getElementById('product-result');
+            resultEl.textContent = 'جاري التحميل...';
+            
+            try {
+                const response = await fetch(`${API_URL}/products/soft_serve_cup`);
+                const data = await response.json();
+                
+                resultEl.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.data) {
+                    console.log('✅ المنتج موجود:', data.data);
+                    console.log('is_customizable:', data.data.is_customizable);
+                }
+            } catch (error) {
+                resultEl.textContent = `❌ خطأ: ${error.message}`;
+                console.error(error);
+            }
+        }
+
+        async function testGetRules() {
+            const resultEl = document.getElementById('rules-result');
+            resultEl.textContent = 'جاري التحميل...';
+            
+            try {
+                const response = await fetch(`${API_URL}/products/soft_serve_cup/customization-rules?lang=ar`);
+                const data = await response.json();
+                
+                resultEl.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.data && data.data.length > 0) {
+                    console.log('✅ قواعد التخصيص موجودة:', data.data.length, 'مجموعات');
+                    data.data.forEach(group => {
+                        console.log(`  ${group.groupIcon} ${group.groupName}: ${group.options.length} خيارات`);
+                    });
+                }
+            } catch (error) {
+                resultEl.textContent = `❌ خطأ: ${error.message}`;
+                console.error(error);
+            }
+        }
+
+        async function testGetAllProducts() {
+            const resultEl = document.getElementById('all-products-result');
+            resultEl.textContent = 'جاري التحميل...';
+            
+            try {
+                const response = await fetch(`${API_URL}/products`);
+                const data = await response.json();
+                
+                const products = data.data || [];
+                const softServeCup = products.find(p => p.id === 'soft_serve_cup');
+                
+                if (softServeCup) {
+                    resultEl.textContent = `✅ المنتج موجود في القائمة!\n\n` + 
+                        JSON.stringify(softServeCup, null, 2) + 
+                        `\n\n📊 إجمالي المنتجات: ${products.length}`;
+                    console.log('✅ soft_serve_cup موجود في القائمة');
+                } else {
+                    resultEl.textContent = `❌ المنتج غير موجود في القائمة!\n\n` +
+                        `📊 إجمالي المنتجات: ${products.length}\n\n` +
+                        `المنتجات المتاحة:\n` +
+                        products.map(p => `- ${p.id}: ${p.name}`).join('\n');
+                    console.error('❌ soft_serve_cup غير موجود في القائمة');
+                }
+            } catch (error) {
+                resultEl.textContent = `❌ خطأ: ${error.message}`;
+                console.error(error);
+            }
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            console.log('🧪 بدء الاختبارات التلقائية...');
+            testGetProduct();
+            setTimeout(testGetRules, 1000);
+            setTimeout(testGetAllProducts, 2000);
+        });
+    </script>
+</body>
+</html>

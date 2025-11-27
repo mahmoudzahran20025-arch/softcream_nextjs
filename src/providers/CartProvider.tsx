@@ -18,7 +18,8 @@ import { TIMEOUTS, LIMITS } from '@/config/constants'
 interface CartItem {
   productId: string
   quantity: number
-  selectedAddons?: string[] // Array of addon IDs
+  selectedAddons?: string[] // Array of addon IDs (legacy)
+  selections?: Record<string, string[]> // BYO customization selections { groupId: [optionIds] }
 }
 
 interface Product {
@@ -37,12 +38,12 @@ interface Addon {
 
 interface CartContextType {
   cart: CartItem[]
-  addToCart: (product: Product, quantity?: number, selectedAddons?: string[]) => void
-  removeFromCart: (productId: string, selectedAddons?: string[]) => void
-  updateCartQuantity: (productId: string, quantity: number, selectedAddons?: string[]) => void
+  addToCart: (product: Product, quantity?: number, selectedAddons?: string[], selections?: Record<string, string[]>) => void
+  removeFromCart: (productId: string, selectedAddons?: string[], selections?: Record<string, string[]>) => void
+  updateCartQuantity: (productId: string, quantity: number, selectedAddons?: string[], selections?: Record<string, string[]>) => void
   clearCart: () => void
   getCartCount: () => number
-  getCartTotal: (productsMap: Record<string, Product>, addonsMap?: Record<string, Addon>) => number
+  getCartTotal: (productsMap: Record<string, Product>, addonsMap?: Record<string, Addon>, optionsMap?: Record<string, Addon>) => number
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -126,21 +127,37 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     return isEqual
   }
 
-  const addToCart = useCallback((product: Product, quantity = 1, selectedAddons?: string[]) => {
+  // Helper function to compare BYO selections
+  const areSelectionsEqual = (sel1?: Record<string, string[]>, sel2?: Record<string, string[]>) => {
+    if (!sel1 && !sel2) return true
+    if (!sel1 || !sel2) return false
+    
+    const keys1 = Object.keys(sel1).sort()
+    const keys2 = Object.keys(sel2).sort()
+    
+    if (keys1.length !== keys2.length) return false
+    if (!keys1.every((key, i) => key === keys2[i])) return false
+    
+    return keys1.every(key => areAddonsEqual(sel1[key], sel2[key]))
+  }
+
+  const addToCart = useCallback((product: Product, quantity = 1, selectedAddons?: string[], selections?: Record<string, string[]>) => {
     console.log('➕ Adding to cart:', {
       productId: product.id,
       productName: product.name || product.nameEn,
       quantity,
-      selectedAddons: selectedAddons || []
+      selectedAddons: selectedAddons || [],
+      selections: selections || {}
     })
     
     setCart(prevCart => {
       console.log('📦 Current cart before add:', prevCart)
       
-      // Find existing item with same product AND same addons
+      // Find existing item with same product AND same addons/selections
       const existing = prevCart.find(item => 
         item.productId === product.id && 
-        areAddonsEqual(item.selectedAddons, selectedAddons)
+        areAddonsEqual(item.selectedAddons, selectedAddons) &&
+        areSelectionsEqual(item.selections, selections)
       )
       
       console.log('🔎 Found existing item:', existing)
@@ -152,37 +169,44 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         }
         console.log('✅ Updating existing item quantity')
         return prevCart.map(item =>
-          item.productId === product.id && areAddonsEqual(item.selectedAddons, selectedAddons)
+          item.productId === product.id && 
+          areAddonsEqual(item.selectedAddons, selectedAddons) &&
+          areSelectionsEqual(item.selections, selections)
             ? { ...item, quantity: item.quantity + quantity }
             : item
         )
       }
       
-      // Add as new item (different addons = different item)
+      // Add as new item (different addons/selections = different item)
       console.log('✅ Adding as new item')
       return [...prevCart, { 
         productId: product.id, 
         quantity,
-        selectedAddons: selectedAddons || []
+        selectedAddons: selectedAddons || [],
+        selections: selections || undefined
       }]
     })
     
     const addonsText = selectedAddons && selectedAddons.length > 0 
       ? ` with ${selectedAddons.length} addon(s)` 
+      : selections 
+      ? ` with customizations`
       : ''
     console.log('🛒 Product added to cart:', product.name || product.nameEn, addonsText)
   }, [])
 
-  const removeFromCart = useCallback((productId: string, selectedAddons?: string[]) => {
+  const removeFromCart = useCallback((productId: string, selectedAddons?: string[], selections?: Record<string, string[]>) => {
     setCart(prevCart => prevCart.filter(item => 
-      !(item.productId === productId && areAddonsEqual(item.selectedAddons, selectedAddons))
+      !(item.productId === productId && 
+        areAddonsEqual(item.selectedAddons, selectedAddons) &&
+        areSelectionsEqual(item.selections, selections))
     ))
     console.log('🗑️ Product removed from cart:', productId)
   }, [])
 
-  const updateCartQuantity = useCallback((productId: string, quantity: number, selectedAddons?: string[]) => {
+  const updateCartQuantity = useCallback((productId: string, quantity: number, selectedAddons?: string[], selections?: Record<string, string[]>) => {
     if (quantity <= 0) {
-      removeFromCart(productId, selectedAddons)
+      removeFromCart(productId, selectedAddons, selections)
       return
     }
     
@@ -193,7 +217,9 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     
     setCart(prevCart =>
       prevCart.map(item =>
-        item.productId === productId && areAddonsEqual(item.selectedAddons, selectedAddons)
+        item.productId === productId && 
+        areAddonsEqual(item.selectedAddons, selectedAddons) &&
+        areSelectionsEqual(item.selections, selections)
           ? { ...item, quantity } 
           : item
       )
@@ -214,20 +240,56 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     return cart.reduce((sum, item) => sum + item.quantity, 0)
   }, [cart])
 
-  const getCartTotal = useCallback((productsMap: Record<string, Product>, addonsMap?: Record<string, Addon>) => {
+  const getCartTotal = useCallback((productsMap: Record<string, Product>, addonsMap?: Record<string, Addon>, optionsMap?: Record<string, Addon>) => {
     return cart.reduce((total, item) => {
       const product = productsMap[item.productId]
       if (!product) return total
       
       let itemPrice = product.price
       
-      // Add addon prices if provided
+      // ✅ NEW: Check for pre-calculated price (BYO products)
+      if (item.selections?._calculatedPrice) {
+        const calculatedPrice = parseFloat(item.selections._calculatedPrice[0]) || 0
+        if (calculatedPrice > 0) {
+          console.log('💰 Using pre-calculated price for', item.productId, ':', calculatedPrice)
+          return total + (calculatedPrice * item.quantity)
+        }
+      }
+      
+      // ✅ NEW: Add container price if present
+      if (item.selections?._container && item.selections._container[2]) {
+        const containerPrice = parseFloat(item.selections._container[2]) || 0
+        itemPrice += containerPrice
+      }
+      
+      // ✅ NEW: Add size price if present
+      if (item.selections?._size && item.selections._size[2]) {
+        const sizePrice = parseFloat(item.selections._size[2]) || 0
+        itemPrice += sizePrice
+      }
+      
+      // Add legacy addon prices if provided
       if (addonsMap && item.selectedAddons && item.selectedAddons.length > 0) {
         const addonsTotal = item.selectedAddons.reduce((sum, addonId) => {
           const addon = addonsMap[addonId]
           return sum + (addon?.price || 0)
         }, 0)
         itemPrice += addonsTotal
+      }
+      
+      // Add BYO customization prices if provided
+      if (optionsMap && item.selections) {
+        // Filter out special keys (_container, _size, _calculatedPrice)
+        const customizationSelections = Object.entries(item.selections)
+          .filter(([key]) => !key.startsWith('_'))
+          .flatMap(([, values]) => values)
+        
+        const customizationTotal = customizationSelections.reduce((sum, optionId) => {
+          const option = optionsMap[optionId]
+          return sum + (option?.price || 0)
+        }, 0)
+        itemPrice += customizationTotal
+        console.log('💰 Customization total for', item.productId, ':', customizationTotal)
       }
       
       return total + (itemPrice * item.quantity)

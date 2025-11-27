@@ -19,16 +19,16 @@ if (typeof window !== 'undefined') {
 
 function getOrCreateDeviceId(): string {
   if (typeof window === 'undefined') return 'server-side'
-  
+
   let deviceId = localStorage.getItem(STORAGE_KEYS.DEVICE_ID)
-  
+
   if (!deviceId) {
     // Generate unique device ID
     deviceId = `device_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
     localStorage.setItem(STORAGE_KEYS.DEVICE_ID, deviceId)
     console.log('✅ New device ID created:', deviceId)
   }
-  
+
   return deviceId
 }
 
@@ -77,6 +77,7 @@ export interface Product {
   ingredientsList?: string[]
   allergensList?: string[]
   nutritionData?: any
+  is_customizable?: number
 }
 
 export interface OrderItem {
@@ -186,11 +187,11 @@ async function httpRequest<T>(
     // ✅ FIXED: Don't throw error for validation endpoints (they return 200 with valid: false)
     // Only throw for actual server errors (500, 401, 403, etc.)
     const isValidationEndpoint = endpoint.includes('/validate') || endpoint.includes('/coupons')
-    
+
     if (!response.ok && !isValidationEndpoint) {
       const error = new Error(result.error || `HTTP ${response.status}: ${response.statusText}`)
-      ;(error as any).status = response.status
-      ;(error as any).data = result
+        ; (error as any).status = response.status
+        ; (error as any).data = result
       throw error
     }
 
@@ -205,21 +206,21 @@ async function httpRequest<T>(
       message: error.message,
       stack: error.stack?.split('\n').slice(0, 3).join('\n')
     })
-    
+
     // Enhance error message for timeout/connection issues
     if (error.name === 'AbortError' || error.message?.includes('timeout')) {
       const timeoutError = new Error('Request timeout. Please check your connection and try again.')
-      ;(timeoutError as any).isTimeout = true
+        ; (timeoutError as any).isTimeout = true
       throw timeoutError
     }
-    
+
     if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
       const networkError = new Error('Network error. Please check your connection.')
-      ;(networkError as any).isNetworkError = true
-      ;(networkError as any).originalError = error
+        ; (networkError as any).isNetworkError = true
+        ; (networkError as any).originalError = error
       throw networkError
     }
-    
+
     throw error
   }
 }
@@ -237,12 +238,12 @@ export async function getProduct(
   options?: { expand?: string[] }
 ): Promise<Product> {
   let endpoint = `/products/${productId}`
-  
+
   // Add expand parameter if provided
   if (options?.expand && options.expand.length > 0) {
     endpoint += `?expand=${options.expand.join(',')}`
   }
-  
+
   return httpRequest<Product>('GET', endpoint)
 }
 
@@ -267,6 +268,109 @@ export async function getProductForSEO(productId: string): Promise<Product | nul
     console.error('❌ Failed to fetch product for SEO:', productId, error)
     return null
   }
+}
+
+// ================================================================
+// Customization API (Server-Safe)
+// ================================================================
+
+export async function getCustomizationRules(productId: string, lang: 'ar' | 'en' = 'ar'): Promise<any[]> {
+  // Use query params for GET request
+  return httpRequest<any[]>('GET', `/products/${productId}/customization-rules?lang=${lang}`)
+}
+
+// ================================================================
+// Product Configuration API (Sizes, Containers, Customization)
+// ================================================================
+
+export interface ContainerType {
+  id: string
+  name: string
+  nameAr: string
+  nameEn: string
+  description?: string
+  priceModifier: number
+  image?: string
+  maxSizes: number
+  isDefault: boolean
+  nutrition: {
+    calories: number
+    protein: number
+    carbs: number
+    sugar: number
+    fat: number
+    fiber: number
+  }
+}
+
+export interface ProductSize {
+  id: string
+  name: string
+  nameAr: string
+  nameEn: string
+  priceModifier: number
+  nutritionMultiplier: number
+  isDefault: boolean
+  containerId?: string
+}
+
+export interface ProductConfiguration {
+  product: {
+    id: string
+    name: string
+    nameAr: string
+    nameEn: string
+    basePrice: number
+    productType: 'byo_ice_cream' | 'preset_ice_cream' | 'milkshake' | 'dessert' | 'standard'
+    isCustomizable: boolean
+    baseNutrition: {
+      calories: number
+      protein: number
+      carbs: number
+      sugar: number
+      fat: number
+      fiber: number
+    }
+  }
+  hasContainers: boolean
+  containers: ContainerType[]
+  hasSizes: boolean
+  sizes: ProductSize[]
+  hasCustomization: boolean
+  customizationRules: any[]
+}
+
+export async function getProductConfiguration(productId: string, lang: 'ar' | 'en' = 'ar'): Promise<ProductConfiguration | null> {
+  try {
+    return await httpRequest<ProductConfiguration>('GET', `/products/${productId}/configuration?lang=${lang}`)
+  } catch (error) {
+    console.error('❌ Failed to fetch product configuration:', productId, error)
+    return null
+  }
+}
+
+export async function getProductContainers(productId: string, lang: 'ar' | 'en' = 'ar'): Promise<ContainerType[]> {
+  return httpRequest<ContainerType[]>('GET', `/products/${productId}/containers?lang=${lang}`)
+}
+
+export async function getProductSizes(productId: string, containerId?: string, lang: 'ar' | 'en' = 'ar'): Promise<ProductSize[]> {
+  let endpoint = `/products/${productId}/sizes?lang=${lang}`
+  if (containerId) {
+    endpoint += `&container=${containerId}`
+  }
+  return httpRequest<ProductSize[]>('GET', endpoint)
+}
+
+export async function calculateProductPrice(
+  productId: string,
+  options: {
+    containerId?: string
+    sizeId?: string
+    selections?: Record<string, string[]>
+    quantity?: number
+  }
+): Promise<any> {
+  return httpRequest<any>('POST', `/products/${productId}/calculate-price`, options)
 }
 
 // ================================================================
@@ -339,7 +443,7 @@ export async function calculateOrderPrices(
   addressInputType?: string
 ): Promise<CalculatedPrices> {
   const inputType = addressInputType || (location?.lat ? 'gps' : 'manual')
-  
+
   // ✅ Add device ID
   const deviceId = getOrCreateDeviceId()
 
@@ -374,7 +478,7 @@ export async function validateCoupon(
   try {
     // ✅ Get device ID
     const deviceId = getOrCreateDeviceId()
-    
+
     console.log('🎟️ Validating coupon:', {
       code: code.trim().toUpperCase(),
       phone: phone.replace(/\D/g, ''),
@@ -407,10 +511,10 @@ export async function validateCoupon(
       coupon: result.coupon,
       message: result.message || result.coupon?.messageAr
     }
-    
+
   } catch (error: any) {
     console.error('❌ Coupon validation failed:', error)
-    
+
     // Return validation error structure instead of throwing
     return {
       valid: false,

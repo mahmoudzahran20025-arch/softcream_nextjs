@@ -31,7 +31,7 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
   const [nutritionData, setNutritionData] = useState<any>(null)
   const [productsWithAddons, setProductsWithAddons] = useState<Map<string, any>>(new Map())
 
-  // ✅ FIX: Fetch products with addons for cart items
+  // ✅ FIX: Fetch products with addons AND customization rules for cart items
   useEffect(() => {
     if (!isOpen || cart.length === 0) return
 
@@ -47,6 +47,14 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
 
         try {
           const productWithAddons = await getProduct(item.productId, { expand: ['addons'] })
+          
+          // If product has customization selections, fetch customization rules
+          if (item.selections) {
+            const { getCustomizationRules } = await import('@/lib/api')
+            const customizationRules = await getCustomizationRules(item.productId, 'ar')
+            ;(productWithAddons as any).customizationRules = customizationRules
+          }
+          
           newProductsMap.set(item.productId, productWithAddons)
         } catch (error) {
           console.error(`Failed to fetch addons for product ${item.productId}:`, error)
@@ -105,8 +113,41 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
     return map
   }, {} as Record<string, Product>)
   
-  // ✅ FIX: Use getCartTotal which includes addons prices
-  const total = getCartTotal(productsMap)
+  // ✅ Build addons map and options map from fetched products
+  const addonsMap: Record<string, any> = {}
+  const optionsMap: Record<string, any> = {}
+  
+  productsWithAddons.forEach((productData) => {
+    // Add legacy addons
+    if (productData.addonsList) {
+      productData.addonsList.forEach((addon: any) => {
+        addonsMap[addon.id] = addon
+      })
+    }
+    
+    // Add BYO customization options
+    if (productData.customizationRules) {
+      productData.customizationRules.forEach((group: any) => {
+        group.options.forEach((option: any) => {
+          optionsMap[option.id] = {
+            id: option.id,
+            name: option.name_ar,
+            name_en: option.name_en,
+            price: option.price || option.base_price || 0
+          }
+        })
+      })
+    }
+  })
+  
+  console.log('💰 Cart calculation:', {
+    productsCount: Object.keys(productsMap).length,
+    addonsCount: Object.keys(addonsMap).length,
+    optionsCount: Object.keys(optionsMap).length
+  })
+  
+  // ✅ FIX: Use getCartTotal with addons and options maps
+  const total = getCartTotal(productsMap, addonsMap, optionsMap)
 
   const isEmpty = cart.length === 0
 
@@ -179,12 +220,31 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                   const product = allProducts.find(p => p.id === item.productId)
                   if (!product) return null
 
-                  // ✅ FIX: Get addons list from fetched product with addons
+                  // ✅ Get addons list from fetched product with addons
                   const productWithAddons = productsWithAddons.get(item.productId)
                   const productAddons = productWithAddons?.addonsList || []
+                  
+                  // ✅ Get customization options from fetched customization rules
+                  const customizationRules = (productWithAddons as any)?.customizationRules || []
+                  const customizationOptions: any[] = []
+                  
+                  customizationRules.forEach((group: any) => {
+                    group.options.forEach((option: any) => {
+                      customizationOptions.push({
+                        id: option.id,
+                        name: option.name_ar,
+                        name_en: option.name_en,
+                        price: option.price || option.base_price || 0,
+                        groupIcon: group.groupIcon
+                      })
+                    })
+                  })
 
-                  // Create unique key combining productId and addons
-                  const itemKey = `${item.productId}-${(item.selectedAddons || []).sort().join('-')}-${index}`
+                  // Create unique key combining productId, addons, and selections
+                  const selectionsKey = item.selections 
+                    ? Object.entries(item.selections).map(([k, v]) => `${k}:${v.sort().join(',')}`).join('|')
+                    : ''
+                  const itemKey = `${item.productId}-${(item.selectedAddons || []).sort().join('-')}-${selectionsKey}-${index}`
 
                   return (
                     <CartItem
@@ -192,6 +252,7 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                       item={item}
                       product={product}
                       addons={productAddons}
+                      customizationOptions={customizationOptions}
                       onUpdateQuantity={updateCartQuantity}
                       onRemove={removeFromCart}
                     />

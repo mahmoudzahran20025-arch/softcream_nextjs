@@ -1,32 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getProduct, Addon } from '@/lib/api'
-
-interface Product {
-  id: string
-  name: string
-  nameEn?: string
-  price: number
-  image?: string
-  category?: string
-  description?: string
-  tags?: string
-  ingredients?: string
-  allergens?: string
-  calories?: number
-  protein?: number
-  carbs?: number
-  sugar?: number
-  fat?: number
-  fiber?: number
-  energy_type?: string
-  energy_score?: number
-  badge?: string
-  addonsList?: Addon[]
-  allowed_addons?: string
-  ingredientsList?: string[]
-  allergensList?: string[]
-}
+import { getProduct, Product } from '@/lib/api'
 
 interface UseProductLogicProps {
   product: Product | null
@@ -73,7 +47,7 @@ export function useProductLogic({ product, isOpen }: UseProductLogicProps) {
   }, [isOpen])
 
   const toggleAddon = (addonId: string) => {
-    setSelectedAddons(prev => 
+    setSelectedAddons(prev =>
       prev.includes(addonId)
         ? prev.filter(id => id !== addonId)
         : [...prev, addonId]
@@ -90,9 +64,9 @@ export function useProductLogic({ product, isOpen }: UseProductLogicProps) {
 
   // Parse JSON fields safely
   const tags = displayProduct?.tags ? JSON.parse(displayProduct.tags) : []
-  const ingredients = displayProduct?.ingredientsList || 
+  const ingredients = displayProduct?.ingredientsList ||
     (displayProduct?.ingredients ? JSON.parse(displayProduct.ingredients) : [])
-  const allergens = displayProduct?.allergensList || 
+  const allergens = displayProduct?.allergensList ||
     (displayProduct?.allergens ? JSON.parse(displayProduct.allergens) : [])
 
   return {
