@@ -45,7 +45,7 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
       setSelectedSize(null)
       setSelections({})
     }
-  }, [isOpen])
+  }, [isOpen, productId])
 
   // Set defaults when config loads
   useEffect(() => {

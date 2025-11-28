@@ -1,7 +1,8 @@
 'use client'
 
-import { Sparkles } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { Sparkles, Star, ChevronDown, ChevronUp } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import PriceDisplay from '@/components/ui/common/PriceDisplay'
 
 interface Product {
@@ -11,49 +12,142 @@ interface Product {
   price: number
   description?: string
   energy_score?: number
+  category?: string
+  rating?: number
+  reviewCount?: number
 }
 
 interface ProductHeaderProps {
   product: Product
+  displayPrice?: number
 }
 
-export default function ProductHeader({ product, displayPrice }: ProductHeaderProps & { displayPrice?: number }) {
+export default function ProductHeader({ product, displayPrice }: ProductHeaderProps) {
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
+  
+  // Check if description is long enough to need expansion
+  const descriptionLength = product.description?.length || 0
+  const needsExpansion = descriptionLength > 120
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="space-y-2"
+      className="space-y-3"
     >
+      {/* Quick Info Bar - Category & Rating */}
+      <div className="flex items-center justify-between gap-2">
+        {/* Category Badge */}
+        {product.category && (
+          <motion.span
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400 rounded-lg text-xs font-medium"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-pink-500" />
+            {product.category}
+          </motion.span>
+        )}
+
+        {/* Rating */}
+        {product.rating && (
+          <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-1 text-sm"
+          >
+            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+            <span className="font-bold text-slate-900 dark:text-white">{product.rating}</span>
+            {product.reviewCount && (
+              <span className="text-slate-400 dark:text-slate-500 text-xs">
+                ({product.reviewCount})
+              </span>
+            )}
+          </motion.div>
+        )}
+      </div>
+
       {/* Title and Price Row */}
-      <div className="flex items-start justify-between gap-4 w-full mb-2">
+      <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white font-cairo leading-tight">
+          {/* Arabic Name */}
+          <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white font-cairo leading-tight">
             {product.name}
           </h2>
+          
+          {/* English Name */}
           {product.nameEn && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-medium">
               {product.nameEn}
             </p>
           )}
         </div>
-        <div className="flex-shrink-0 whitespace-nowrap pt-1 pl-2 md:pl-4">
-          <PriceDisplay price={displayPrice ?? product.price} size="lg" />
+
+        {/* Price + Energy Badge */}
+        <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+          <PriceDisplay 
+            price={displayPrice ?? product.price} 
+            size="lg" 
+            className="text-pink-600 dark:text-pink-400"
+          />
+          
+          {/* Energy Score Badge */}
+          {product.energy_score && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: 'spring' }}
+              className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full text-[10px] font-bold shadow-sm"
+            >
+              <Sparkles className="w-2.5 h-2.5" />
+              {product.energy_score}%
+            </motion.span>
+          )}
         </div>
       </div>
 
-      {/* Description with Energy Badge Inline */}
-      <div className="flex items-start gap-2 flex-wrap">
-        <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed flex-1">
-          {product.description}
-        </p>
-        {product.energy_score && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full text-xs font-bold shadow-sm whitespace-nowrap">
-            <Sparkles className="w-3 h-3" />
-            {product.energy_score}% طاقة
-          </span>
-        )}
-      </div>
+      {/* Description - Expandable */}
+      {product.description && (
+        <div className="relative">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={isDescriptionExpanded ? 'expanded' : 'collapsed'}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={`text-slate-500 dark:text-slate-400 text-sm leading-relaxed ${
+                !isDescriptionExpanded && needsExpansion ? 'line-clamp-2' : ''
+              }`}
+            >
+              {product.description}
+            </motion.p>
+          </AnimatePresence>
+
+          {/* Expand/Collapse Button */}
+          {needsExpansion && (
+            <button
+              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              className="mt-1 flex items-center gap-1 text-xs text-pink-600 dark:text-pink-400 font-medium hover:text-pink-700 dark:hover:text-pink-300 transition-colors"
+            >
+              {isDescriptionExpanded ? (
+                <>
+                  <span>عرض أقل</span>
+                  <ChevronUp className="w-3.5 h-3.5" />
+                </>
+              ) : (
+                <>
+                  <span>عرض المزيد</span>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent" />
     </motion.div>
   )
 }

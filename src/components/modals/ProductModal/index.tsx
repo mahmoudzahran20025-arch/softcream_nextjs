@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode } from 'swiper/modules'
 import ProductCard from '@/components/ui/ProductCard'
@@ -11,6 +11,7 @@ import ProductHeader from './ProductHeader'
 import NutritionInfo from './NutritionInfo'
 import AddonsList from './AddonsList'
 import ActionFooter from './ActionFooter'
+import StickyMiniHeader from './StickyMiniHeader'
 import { useProductLogic } from './useProductLogic'
 import { useCustomization } from './useCustomization'
 import { useProductConfiguration } from '@/hooks/useProductConfiguration'
@@ -31,6 +32,24 @@ interface ProductModalProps {
 
 export default function ProductModal({ product, isOpen, onClose, allProducts = [] }: ProductModalProps) {
   const [recommendations, setRecommendations] = useState<Product[]>([])
+  const [showMiniHeader, setShowMiniHeader] = useState(false)
+  const [showFooter, setShowFooter] = useState(false)
+  const [isWishlisted, setIsWishlisted] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // Handle scroll to show/hide mini header and footer
+  const handleScroll = useCallback(() => {
+    if (contentRef.current) {
+      const scrollTop = contentRef.current.scrollTop
+      const scrollHeight = contentRef.current.scrollHeight
+      const clientHeight = contentRef.current.clientHeight
+      const scrollProgress = scrollTop / (scrollHeight - clientHeight)
+      
+      setShowMiniHeader(scrollTop > 100)
+      // Show footer after scrolling 15% of the content
+      setShowFooter(scrollProgress > 0.15 || scrollTop > 150)
+    }
+  }, [])
 
   // Use optimized product logic hook
   const {
@@ -152,18 +171,83 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
               <X className="w-5 h-5 text-slate-700 dark:text-slate-200" />
             </button>
 
+            {/* Side Action Buttons (Share & Wishlist) */}
+            <div className="absolute top-20 right-4 lg:left-4 lg:right-auto z-20 flex flex-col gap-2">
+              {/* Share Button */}
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: displayProduct?.name || 'منتج من سوفت كريم',
+                      text: displayProduct?.description || 'جرب هذا المنتج اللذيذ!',
+                      url: window.location.href
+                    })
+                  } else {
+                    navigator.clipboard.writeText(window.location.href)
+                    // Could add toast notification here
+                  }
+                }}
+                className="w-10 h-10 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 transition-all hover:scale-110 active:scale-95 group"
+                aria-label="مشاركة"
+              >
+                <svg className="w-4.5 h-4.5 text-slate-600 dark:text-slate-300 group-hover:text-pink-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              </motion.button>
+
+              {/* Wishlist Button (placeholder for future) */}
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+                onClick={() => setIsWishlisted(!isWishlisted)}
+                className={`w-10 h-10 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${
+                  isWishlisted 
+                    ? 'bg-pink-500 text-white' 
+                    : 'bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700'
+                }`}
+                aria-label="إضافة للمفضلة"
+              >
+                <svg className={`w-4.5 h-4.5 transition-colors ${isWishlisted ? 'text-white fill-white' : 'text-slate-600 dark:text-slate-300'}`} fill={isWishlisted ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </motion.button>
+            </div>
+
             {/* Left Column (Desktop) / Top (Mobile) - Product Image */}
-            <ProductImage product={displayProduct} />
+            <ProductImage 
+              product={displayProduct}
+              isWishlisted={isWishlisted}
+              onWishlistToggle={() => setIsWishlisted(!isWishlisted)}
+            />
 
             {/* Right Column (Desktop) / Bottom (Mobile) - Content */}
-            <div className="flex-1 flex flex-col lg:w-1/2 overflow-hidden relative z-10 -mt-16 lg:mt-0 rounded-t-[2.5rem] lg:rounded-none bg-white dark:bg-slate-900 shadow-2xl lg:shadow-none">
+            <div className="flex-1 flex flex-col lg:w-1/2 overflow-hidden relative z-10 -mt-12 lg:mt-0 rounded-t-[2.5rem] lg:rounded-none bg-white dark:bg-slate-900 shadow-2xl lg:shadow-none">
+              {/* Sticky Mini Header (appears on scroll) */}
+              <StickyMiniHeader
+                productName={displayProduct.name}
+                totalPrice={
+                  (productConfig.hasContainers || productConfig.hasSizes)
+                    ? productConfig.totalPrice * quantity
+                    : (customization.isCustomizable ? customization.totalPrice * quantity : totalPrice)
+                }
+                isVisible={showMiniHeader}
+              />
+
               {/* Mobile Handle Bar */}
               <div className="w-full flex justify-center pt-3 pb-2 lg:hidden">
                 <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full" />
               </div>
 
               {/* Scrollable Content Area */}
-              <div className="flex-1 overflow-y-auto px-6 lg:px-8 pt-2 lg:pt-8 pb-24 space-y-4 scrollbar-thin scrollbar-thumb-pink-300 dark:scrollbar-thumb-pink-700 scrollbar-track-transparent">
+              <div 
+                ref={contentRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto px-5 lg:px-8 pt-2 lg:pt-8 pb-28 space-y-5 scrollbar-thin scrollbar-thumb-pink-300 dark:scrollbar-thumb-pink-700 scrollbar-track-transparent min-h-[50vh]"
+              >
                 {/* Product Header (Title, Price, Description) */}
                 <ProductHeader product={displayProduct} />
 
@@ -223,8 +307,16 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                 )}
               </div>
 
-              {/* Sticky Action Footer */}
-              <ActionFooter
+              {/* Sticky Action Footer - Appears after scrolling */}
+              <AnimatePresence>
+                {showFooter && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 50 }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                  >
+                    <ActionFooter
                 quantity={quantity}
                 onIncrease={() => setQuantity(quantity + 1)}
                 onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
@@ -251,7 +343,55 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                     ? productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)
                     : (customization.isCustomizable ? customization.selectedOptions.length : selectedAddons.length)
                 }
+                selectedOptions={
+                  (productConfig.hasContainers || productConfig.hasSizes)
+                    ? productConfig.selectedOptions
+                    : customization.selectedOptions
+                }
+                containerName={productConfig.containerObj?.name}
+                sizeName={productConfig.sizeObj?.name}
+                isValid={
+                  (productConfig.hasContainers || productConfig.hasSizes)
+                    ? productConfig.validationResult.isValid
+                    : (customization.isCustomizable ? customization.validationResult.isValid : true)
+                }
+                validationMessage={
+                  (productConfig.hasContainers || productConfig.hasSizes)
+                    ? productConfig.validationResult.errors[0]
+                    : (customization.isCustomizable ? customization.validationResult.errors[0] : undefined)
+                }
               />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Scroll Hint - Shows when footer is hidden */}
+              <AnimatePresence>
+                {!showFooter && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500"
+                  >
+                    <motion.div
+                      animate={{ y: [0, 5, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                      className="text-xs"
+                    >
+                      اسحب للأسفل لرؤية الخيارات
+                    </motion.div>
+                    <motion.div
+                      animate={{ y: [0, 3, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         </motion.div>

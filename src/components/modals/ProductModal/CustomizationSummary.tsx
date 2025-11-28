@@ -1,13 +1,16 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Sparkles, X } from 'lucide-react'
+import { Sparkles, X, Flame } from 'lucide-react'
 
 interface SelectedOption {
     id: string
     name: string
     price: number
     groupIcon?: string
+    nutrition?: {
+        calories?: number
+    }
 }
 
 interface CustomizationSummaryProps {
@@ -92,16 +95,12 @@ export default function CustomizationSummary({
                                     <span className="text-xs md:text-[11px] font-bold text-pink-600 dark:text-pink-400 whitespace-nowrap">
                                         +{item.price} ج.م
                                     </span>
-                                ) : (
-                                    <motion.span
-                                        animate={{ scale: [1, 1.1, 1] }}
-                                        transition={{ repeat: Infinity, duration: 2 }}
-                                        className="text-xs md:text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-full flex items-center gap-1"
-                                    >
-                                        <span>✨</span>
-                                        مجاناً
-                                    </motion.span>
-                                )}
+                                ) : item.nutrition?.calories ? (
+                                    <span className="text-xs md:text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                        <Flame className="w-3 h-3" />
+                                        {item.nutrition.calories} سعرة
+                                    </span>
+                                ) : null}
 
                                 {onRemove && (
                                     <motion.button

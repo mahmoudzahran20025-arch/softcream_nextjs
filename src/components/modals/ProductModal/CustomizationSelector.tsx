@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, Sparkles } from 'lucide-react'
+import { Check } from 'lucide-react'
 
 interface Option {
     id: string
@@ -113,15 +113,15 @@ export default function CustomizationSelector({
                 </div>
             </div>
 
-            {/* Free with size label for BYO */}
+            {/* Included with size label for BYO */}
             {showFreeLabel && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1.5 rounded-lg inline-flex items-center gap-1 w-fit"
+                    className="text-xs text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg inline-flex items-center gap-1 w-fit"
                 >
-                    <span>✨</span>
-                    مجاناً مع المقاس
+                    <span>🍦</span>
+                    مشمولة مع المقاس
                 </motion.div>
             )}
 
@@ -175,16 +175,7 @@ export default function CustomizationSelector({
                                 )}
                             </AnimatePresence>
 
-                            {/* Sparkle Effect for Free Items */}
-                            {option.price === 0 && isSelected && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="absolute top-2 right-2"
-                                >
-                                    <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300" />
-                                </motion.div>
-                            )}
+
 
                             {/* Option Content */}
                             <div className="space-y-1.5">
@@ -202,7 +193,7 @@ export default function CustomizationSelector({
                                     </div>
                                 )}
 
-                                {/* Price Tag */}
+                                {/* Price Tag or Calories */}
                                 {option.price > 0 ? (
                                     <div className={`text-xs md:text-[11px] font-bold flex items-center gap-1 justify-end mt-auto ${isSelected
                                         ? 'text-white'
@@ -211,19 +202,7 @@ export default function CustomizationSelector({
                                         <span>+{option.price}</span>
                                         <span className="text-[10px]">ج.م</span>
                                     </div>
-                                ) : (
-                                    <motion.div
-                                        animate={{ scale: isSelected ? [1, 1.1, 1] : 1 }}
-                                        transition={{ repeat: isSelected ? Infinity : 0, duration: 2 }}
-                                        className={`text-[11px] font-semibold inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isSelected
-                                            ? 'bg-yellow-400/20 text-yellow-200'
-                                            : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
-                                            }`}
-                                    >
-                                        <span className="text-[10px]">✨</span>
-                                        مجاناً
-                                    </motion.div>
-                                )}
+                                ) : null}
                             </div>
                         </motion.button>
                     )

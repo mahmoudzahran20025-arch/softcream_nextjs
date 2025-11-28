@@ -1,9 +1,10 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
-import { Check, IceCream, AlertCircle } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Check, Sparkles, ChevronRight } from 'lucide-react'
 import ContainerSelector from '../ContainerSelector'
 import SizeSelector from '../SizeSelector'
+import { OptionsGrid } from './shared'
 
 interface Option {
   id: string
@@ -53,23 +54,58 @@ export default function BYOTemplate({
   const flavorsGroup = customizationRules.find(g => 
     g.groupId === 'flavors' || g.groupId === 'ice_cream_flavors'
   )
-  const addonsGroups = customizationRules.filter(g => 
-    g.groupId !== 'flavors' && g.groupId !== 'ice_cream_flavors'
+  const saucesGroup = customizationRules.find(g => g.groupId === 'sauces')
+  const toppingsGroup = customizationRules.find(g => g.groupId === 'toppings')
+  const otherGroups = customizationRules.filter(g => 
+    !['flavors', 'ice_cream_flavors', 'sauces', 'toppings'].includes(g.groupId)
   )
 
   const selectedFlavors = flavorsGroup ? (selections[flavorsGroup.groupId] || []) : []
   const hasSelectedFlavors = selectedFlavors.length > 0
-  const minFlavorsRequired = flavorsGroup?.minSelections || 1
+
+  // Calculate progress
+  const totalSteps = [
+    containers.length > 0,
+    sizes.length > 0,
+    !!flavorsGroup
+  ].filter(Boolean).length
+  
+  const completedSteps = [
+    containers.length > 0 && selectedContainer,
+    sizes.length > 0 && selectedSize,
+    flavorsGroup && hasSelectedFlavors
+  ].filter(Boolean).length
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-5"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-6"
     >
+      {/* Progress Indicator */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${(completedSteps / totalSteps) * 100}%` }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full"
+          />
+        </div>
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          {completedSteps}/{totalSteps}
+        </span>
+      </div>
+
       {/* Step 1: Container */}
       {containers.length > 0 && (
-        <StepSection step={1} title="اختر الحاوية" icon="🥤">
+        <StepSection 
+          step={1} 
+          title="اختر الحاوية" 
+          icon="🥤"
+          isComplete={!!selectedContainer}
+          isActive={!selectedContainer}
+        >
           <ContainerSelector
             containers={containers}
             selectedContainer={selectedContainer}
@@ -80,7 +116,13 @@ export default function BYOTemplate({
 
       {/* Step 2: Size */}
       {sizes.length > 0 && (
-        <StepSection step={2} title="اختر المقاس" icon="📏">
+        <StepSection 
+          step={containers.length > 0 ? 2 : 1} 
+          title="اختر المقاس" 
+          icon="📏"
+          isComplete={!!selectedSize}
+          isActive={!!selectedContainer && !selectedSize}
+        >
           <SizeSelector
             sizes={sizes}
             selectedSize={selectedSize}
@@ -91,57 +133,137 @@ export default function BYOTemplate({
         </StepSection>
       )}
 
-      {/* Step 3: Flavors - Main Selection */}
+      {/* Step 3: Flavors - Cards Grid */}
       {flavorsGroup && (
         <StepSection 
-          step={3} 
+          step={(containers.length > 0 ? 1 : 0) + (sizes.length > 0 ? 1 : 0) + 1}
           title="اختر النكهات" 
           icon="🍦"
           badge={`${selectedFlavors.length}/${flavorsGroup.maxSelections}`}
           isComplete={hasSelectedFlavors}
+          isActive={!!selectedSize && !hasSelectedFlavors}
+          highlight
+          hint={!hasSelectedFlavors ? `اختر ${flavorsGroup.minSelections} نكهة على الأقل لإضافة المنتج للسلة` : undefined}
         >
-          <FlavorSelector
+          <OptionsGrid
             group={flavorsGroup}
             selections={selectedFlavors}
             onSelectionChange={(ids) => onSelectionChange(flavorsGroup.groupId, ids)}
+            columns={3}
+            cardSize="md"
+            accentColor="pink"
+            showSelectionOrder={true}
+            showImages={true}
+            showDescriptions={true}
+            showNutrition={true}
           />
-          
-          {/* Hint if no flavors selected */}
-          <AnimatePresence>
-            {!hasSelectedFlavors && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 rounded-xl text-sm mt-3"
-              >
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>اختر {minFlavorsRequired} نكهة على الأقل لإكمال طلبك</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </StepSection>
       )}
 
-      {/* Step 4: Add-ons (Optional) */}
-      {addonsGroups.length > 0 && (
-        <StepSection 
-          step={4} 
-          title="إضافات اختيارية" 
-          icon="✨"
-          optional
+      {/* Optional Add-ons Section - Always visible for exploration */}
+      {(saucesGroup || toppingsGroup || otherGroups.length > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-5 pt-2"
         >
-          <div className="space-y-4">
-            {addonsGroups.map(group => (
-              <AddonsGroup
-                key={group.groupId}
-                group={group}
-                selections={selections[group.groupId] || []}
-                onSelectionChange={(ids) => onSelectionChange(group.groupId, ids)}
-              />
-            ))}
+          {/* Section Header with Quick Nav */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-pink-500" />
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm">إضافات اختيارية</h3>
+              <div className="flex-1 h-px bg-gradient-to-r from-pink-200 to-transparent dark:from-pink-800" />
+              {!hasSelectedFlavors && (
+                <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                  (اختر النكهات أولاً)
+                </span>
+              )}
+            </div>
+            
+            {/* Quick Navigation Pills */}
+            <div className="flex flex-wrap gap-2">
+              {saucesGroup && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => document.getElementById('section-sauces')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                  className={`text-xs px-3 py-1.5 rounded-full transition-all ${
+                    (selections[saucesGroup.groupId] || []).length > 0
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-700'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-950/20'
+                  }`}
+                >
+                  🍯 صوصات {(selections[saucesGroup.groupId] || []).length > 0 && `(${(selections[saucesGroup.groupId] || []).length})`}
+                </motion.button>
+              )}
+              {toppingsGroup && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => document.getElementById('section-toppings')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                  className={`text-xs px-3 py-1.5 rounded-full transition-all ${
+                    (selections[toppingsGroup.groupId] || []).length > 0
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 ring-1 ring-purple-300 dark:ring-purple-700'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-purple-50 dark:hover:bg-purple-950/20'
+                  }`}
+                >
+                  🍫 إضافات {(selections[toppingsGroup.groupId] || []).length > 0 && `(${(selections[toppingsGroup.groupId] || []).length})`}
+                </motion.button>
+              )}
+            </div>
           </div>
-        </StepSection>
+
+          {/* Sauces - Cards */}
+          {saucesGroup && (
+            <div id="section-sauces">
+              <OptionsGrid
+                group={saucesGroup}
+                selections={selections[saucesGroup.groupId] || []}
+                onSelectionChange={(ids) => onSelectionChange(saucesGroup.groupId, ids)}
+                columns={3}
+                cardSize="sm"
+                accentColor="amber"
+                showImages={true}
+                showDescriptions={false}
+                showNutrition={true}
+              />
+            </div>
+          )}
+
+          {/* Toppings - Cards */}
+          {toppingsGroup && (
+            <div id="section-toppings">
+              <OptionsGrid
+                group={toppingsGroup}
+                selections={selections[toppingsGroup.groupId] || []}
+                onSelectionChange={(ids) => onSelectionChange(toppingsGroup.groupId, ids)}
+                columns={3}
+                cardSize="sm"
+                accentColor="purple"
+                showImages={true}
+                showDescriptions={false}
+                showNutrition={true}
+              />
+            </div>
+          )}
+
+          {/* Other Groups - Cards */}
+          {otherGroups.map(group => (
+            <OptionsGrid
+              key={group.groupId}
+              group={group}
+              selections={selections[group.groupId] || []}
+              onSelectionChange={(ids) => onSelectionChange(group.groupId, ids)}
+              columns={3}
+              cardSize="sm"
+              accentColor="pink"
+              showImages={true}
+              showDescriptions={false}
+              showNutrition={true}
+            />
+          ))}
+        </motion.div>
       )}
     </motion.div>
   )
@@ -154,7 +276,9 @@ function StepSection({
   icon, 
   badge,
   isComplete,
-  optional,
+  isActive,
+  highlight,
+  hint,
   children 
 }: { 
   step: number
@@ -162,173 +286,83 @@ function StepSection({
   icon: string
   badge?: string
   isComplete?: boolean
-  optional?: boolean
+  isActive?: boolean
+  highlight?: boolean
+  hint?: string
   children: React.ReactNode 
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: -20 }}
+      initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: step * 0.1 }}
-      className="space-y-3"
+      transition={{ delay: step * 0.08 }}
+      className={`space-y-3 p-4 rounded-2xl transition-all duration-300 ${
+        highlight && isActive
+          ? 'bg-gradient-to-br from-pink-50 to-purple-50 dark:from-pink-950/20 dark:to-purple-950/20 border border-pink-200 dark:border-pink-800/50'
+          : isActive
+            ? 'bg-slate-50 dark:bg-slate-800/50'
+            : ''
+      }`}
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${
-            isComplete 
-              ? 'bg-emerald-500 text-white' 
-              : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400'
-          }`}>
-            {isComplete ? <Check className="w-4 h-4" /> : step}
-          </div>
-          <span className="text-lg">{icon}</span>
+        <div className="flex items-center gap-2.5">
+          {/* Step Number/Check */}
+          <motion.div 
+            animate={isComplete ? { scale: [1, 1.2, 1] } : {}}
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+              isComplete 
+                ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30' 
+                : isActive
+                  ? 'bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            {isComplete ? <Check className="w-4 h-4" strokeWidth={3} /> : step}
+          </motion.div>
+          
+          {/* Icon & Title */}
+          <span className="text-xl">{icon}</span>
           <h3 className="font-bold text-slate-900 dark:text-white">{title}</h3>
-          {optional && (
-            <span className="text-xs text-slate-400 dark:text-slate-500">(اختياري)</span>
+          
+          {/* Active Indicator */}
+          {isActive && !isComplete && (
+            <motion.div
+              animate={{ x: [0, 4, 0] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+            >
+              <ChevronRight className="w-4 h-4 text-pink-500" />
+            </motion.div>
           )}
         </div>
+        
+        {/* Badge */}
         {badge && (
-          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-            isComplete 
-              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-          }`}>
+          <motion.span 
+            animate={isComplete ? { scale: [1, 1.1, 1] } : {}}
+            className={`text-xs font-bold px-2.5 py-1 rounded-full transition-all ${
+              isComplete 
+                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}
+          >
             {badge}
-          </span>
+          </motion.span>
         )}
       </div>
+      
+      {/* Hint Message */}
+      {hint && isActive && (
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 text-sm text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/20 px-3 py-2 rounded-xl border border-pink-200 dark:border-pink-800/50"
+        >
+          <span className="text-base">💡</span>
+          <span>{hint}</span>
+        </motion.div>
+      )}
+      
       {children}
     </motion.div>
-  )
-}
-
-// Flavor Selector - Clean design without "مجاناً"
-function FlavorSelector({
-  group,
-  selections,
-  onSelectionChange
-}: {
-  group: CustomizationGroup
-  selections: string[]
-  onSelectionChange: (ids: string[]) => void
-}) {
-  const handleToggle = (optionId: string) => {
-    const isSelected = selections.includes(optionId)
-    if (isSelected) {
-      onSelectionChange(selections.filter(id => id !== optionId))
-    } else if (selections.length < group.maxSelections) {
-      onSelectionChange([...selections, optionId])
-    } else if (group.maxSelections === 1) {
-      onSelectionChange([optionId])
-    }
-  }
-
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-      {group.options.map((option) => {
-        const isSelected = selections.includes(option.id)
-        const canSelect = !isSelected && selections.length < group.maxSelections
-
-        return (
-          <motion.button
-            key={option.id}
-            onClick={() => handleToggle(option.id)}
-            disabled={!canSelect && !isSelected}
-            whileHover={canSelect || isSelected ? { scale: 1.02 } : {}}
-            whileTap={{ scale: 0.98 }}
-            className={`
-              relative p-3 rounded-xl text-right transition-all duration-200
-              ${isSelected
-                ? 'bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
-                : canSelect
-                  ? 'bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-pink-300 dark:hover:border-pink-600'
-                  : 'bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed'
-              }
-            `}
-          >
-            {/* Selection indicator */}
-            {isSelected && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute top-2 left-2 w-5 h-5 bg-white/20 rounded-full flex items-center justify-center"
-              >
-                <Check className="w-3 h-3 text-white" strokeWidth={3} />
-              </motion.div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <IceCream className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-pink-500'}`} />
-              <span className={`font-semibold text-sm ${isSelected ? 'text-white' : 'text-slate-800 dark:text-white'}`}>
-                {option.name_ar}
-              </span>
-            </div>
-          </motion.button>
-        )
-      })}
-    </div>
-  )
-}
-
-// Add-ons Group - Shows prices for paid items
-function AddonsGroup({
-  group,
-  selections,
-  onSelectionChange
-}: {
-  group: CustomizationGroup
-  selections: string[]
-  onSelectionChange: (ids: string[]) => void
-}) {
-  const handleToggle = (optionId: string) => {
-    const isSelected = selections.includes(optionId)
-    if (isSelected) {
-      onSelectionChange(selections.filter(id => id !== optionId))
-    } else if (selections.length < group.maxSelections) {
-      onSelectionChange([...selections, optionId])
-    }
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        {group.groupIcon && <span className="text-lg">{group.groupIcon}</span>}
-        <h4 className="font-semibold text-slate-800 dark:text-white text-sm">{group.groupName}</h4>
-        <span className="text-xs text-slate-400">({selections.length}/{group.maxSelections})</span>
-      </div>
-      
-      <div className="flex flex-wrap gap-2">
-        {group.options.map((option) => {
-          const isSelected = selections.includes(option.id)
-          const canSelect = !isSelected && selections.length < group.maxSelections
-
-          return (
-            <motion.button
-              key={option.id}
-              onClick={() => handleToggle(option.id)}
-              disabled={!canSelect && !isSelected}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`
-                px-3 py-2 rounded-xl text-sm font-medium transition-all
-                ${isSelected
-                  ? 'bg-pink-500 text-white'
-                  : canSelect
-                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-pink-100 dark:hover:bg-pink-900/30'
-                    : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed'
-                }
-              `}
-            >
-              <span>{option.name_ar}</span>
-              {option.price > 0 && (
-                <span className={`mr-1 ${isSelected ? 'text-white/80' : 'text-pink-600 dark:text-pink-400'}`}>
-                  +{option.price}
-                </span>
-              )}
-            </motion.button>
-          )
-        })}
-      </div>
-    </div>
   )
 }

@@ -1,8 +1,9 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Check, Plus } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Check, Sparkles, Star } from 'lucide-react'
 import SizeSelector from '../SizeSelector'
+import { OptionsGrid } from './shared'
 
 interface Option {
   id: string
@@ -47,124 +48,119 @@ export default function PresetTemplate({
     g.groupId !== 'flavors' && g.groupId !== 'ice_cream_flavors'
   )
 
+  const totalAddons = Object.values(selections).flat().length
+  const hasSizes = sizes.length > 0
+  const hasAddons = addonsGroups.length > 0
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="space-y-5"
     >
+      {/* Preset Badge - Shows this is a ready-made flavor */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30 rounded-xl border border-cyan-200 dark:border-cyan-800/50"
+      >
+        <Star className="w-4 h-4 text-cyan-500 fill-cyan-500" />
+        <span className="text-sm font-medium text-cyan-700 dark:text-cyan-300">
+          نكهة جاهزة - فقط اختر الحجم!
+        </span>
+      </motion.div>
+
       {/* Size Selection */}
-      {sizes.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>📏</span> اختر الحجم
-          </h3>
-          <SizeSelector
-            sizes={sizes}
-            selectedSize={selectedSize}
-            onSelect={onSizeSelect}
-            basePrice={product.price}
-          />
-        </div>
+      {hasSizes && (
+        <SizeSelector
+          sizes={sizes}
+          selectedSize={selectedSize}
+          onSelect={onSizeSelect}
+          basePrice={product.price}
+          showHeader={true}
+        />
       )}
 
-      {/* Add-ons */}
-      {addonsGroups.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>✨</span> إضافات اختيارية
-          </h3>
+      {/* Add-ons Section - Cards */}
+      {hasAddons && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-5"
+        >
+          {/* Section Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-500" />
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm">إضافات اختيارية</h3>
+            </div>
+            {totalAddons > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="text-xs font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/30 px-2 py-1 rounded-full"
+              >
+                {totalAddons} مختارة
+              </motion.span>
+            )}
+          </div>
           
           {addonsGroups.map(group => (
-            <AddonsGroup
+            <OptionsGrid
               key={group.groupId}
               group={group}
               selections={selections[group.groupId] || []}
               onSelectionChange={(ids) => onSelectionChange(group.groupId, ids)}
+              columns={3}
+              cardSize="sm"
+              accentColor="cyan"
+              showImages={true}
+              showDescriptions={false}
+              showNutrition={true}
             />
           ))}
-        </div>
-      )}
-
-      {/* No customization message */}
-      {sizes.length === 0 && addonsGroups.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-6 text-slate-500 dark:text-slate-400"
-        >
-          <span className="text-3xl mb-2 block">🍨</span>
-          <p>هذا المنتج جاهز للطلب!</p>
         </motion.div>
       )}
-    </motion.div>
-  )
-}
 
-// Add-ons Group Component
-function AddonsGroup({
-  group,
-  selections,
-  onSelectionChange
-}: {
-  group: CustomizationGroup
-  selections: string[]
-  onSelectionChange: (ids: string[]) => void
-}) {
-  const handleToggle = (optionId: string) => {
-    const isSelected = selections.includes(optionId)
-    if (isSelected) {
-      onSelectionChange(selections.filter(id => id !== optionId))
-    } else if (selections.length < group.maxSelections) {
-      onSelectionChange([...selections, optionId])
-    }
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {group.groupIcon && <span className="text-lg">{group.groupIcon}</span>}
-          <h4 className="font-medium text-slate-700 dark:text-slate-300 text-sm">{group.groupName}</h4>
-        </div>
-        <span className="text-xs text-slate-400">
-          {selections.length}/{group.maxSelections}
-        </span>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {group.options.map((option) => {
-          const isSelected = selections.includes(option.id)
-          const canSelect = !isSelected && selections.length < group.maxSelections
-
-          return (
-            <motion.button
-              key={option.id}
-              onClick={() => handleToggle(option.id)}
-              disabled={!canSelect && !isSelected}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`
-                flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all
-                ${isSelected
-                  ? 'bg-cyan-500 text-white'
-                  : canSelect
-                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
-                    : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed'
-                }
-              `}
+      {/* Ready to Order State */}
+      <AnimatePresence>
+        {!hasSizes && !hasAddons && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="text-center py-8"
+          >
+            <motion.div
+              animate={{ y: [0, -5, 0] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="text-5xl mb-4"
             >
-              {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-              <span>{option.name_ar}</span>
-              {option.price > 0 && (
-                <span className={isSelected ? 'text-white/80' : 'text-cyan-600 dark:text-cyan-400'}>
-                  +{option.price}
-                </span>
-              )}
-            </motion.button>
-          )
-        })}
-      </div>
-    </div>
+              🍨
+            </motion.div>
+            <h4 className="font-bold text-slate-900 dark:text-white mb-1">جاهز للطلب!</h4>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              أضفه للسلة مباشرة
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Size Selected Confirmation */}
+      <AnimatePresence>
+        {selectedSize && !hasAddons && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 rounded-xl"
+          >
+            <Check className="w-5 h-5" />
+            <span className="font-medium">جاهز للإضافة للسلة!</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

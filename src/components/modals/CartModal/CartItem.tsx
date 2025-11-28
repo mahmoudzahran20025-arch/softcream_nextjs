@@ -133,9 +133,7 @@ export default function CartItem({ item, product, addons = [], customizationOpti
                 >
                   {option.groupIcon && <span>{option.groupIcon}</span>}
                   <span>{option.name}</span>
-                  {isFree ? (
-                    <span className="text-[10px] opacity-75">✨ مجاناً</span>
-                  ) : (
+                  {!isFree && (
                     <span className="text-[10px] opacity-75">(+{option.price} ج.م)</span>
                   )}
                 </span>

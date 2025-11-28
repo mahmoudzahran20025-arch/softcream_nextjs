@@ -1,8 +1,9 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Check, Plus } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { AlertCircle, ShoppingBag } from 'lucide-react'
 import SizeSelector from '../SizeSelector'
+import { OptionsGrid } from './shared'
 
 interface Option {
   id: string
@@ -45,145 +46,103 @@ export default function StandardTemplate({
   const hasCustomization = customizationRules.length > 0
   const hasSizes = sizes.length > 0
 
+  // Check if all required groups are satisfied
+  const requiredGroups = customizationRules.filter(g => g.isRequired)
+  const allRequiredMet = requiredGroups.every(g => 
+    (selections[g.groupId]?.length || 0) >= g.minSelections
+  )
+
+  const totalSelections = Object.values(selections).flat().length
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="space-y-5"
     >
       {/* Size Selection */}
       {hasSizes && (
-        <div className="space-y-2">
-          <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>📏</span> اختر الحجم
-          </h3>
-          <SizeSelector
-            sizes={sizes}
-            selectedSize={selectedSize}
-            onSelect={onSizeSelect}
-            basePrice={product.price}
-          />
-        </div>
+        <SizeSelector
+          sizes={sizes}
+          selectedSize={selectedSize}
+          onSelect={onSizeSelect}
+          basePrice={product.price}
+          showHeader={true}
+        />
       )}
 
-      {/* Customization Groups */}
+      {/* Customization Groups - Cards */}
       {hasCustomization && (
-        <div className="space-y-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="space-y-5"
+        >
+          {/* Section Header with Counter */}
+          {totalSelections > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-500 dark:text-slate-400">خصص طلبك</span>
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
+                {totalSelections} مختارة
+              </span>
+            </div>
+          )}
+
           {customizationRules.map(group => (
-            <CustomizationGroup
+            <OptionsGrid
               key={group.groupId}
               group={group}
               selections={selections[group.groupId] || []}
               onSelectionChange={(ids) => onSelectionChange(group.groupId, ids)}
+              columns={3}
+              cardSize="md"
+              accentColor="pink"
+              showImages={true}
+              showDescriptions={true}
             />
           ))}
-        </div>
-      )}
-
-      {/* No customization message */}
-      {!hasSizes && !hasCustomization && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-8 text-slate-500 dark:text-slate-400"
-        >
-          <span className="text-4xl mb-3 block">🍽️</span>
-          <p className="font-medium">هذا المنتج جاهز للطلب!</p>
-          <p className="text-sm mt-1">أضفه للسلة مباشرة</p>
         </motion.div>
       )}
-    </motion.div>
-  )
-}
 
-// Customization Group Component
-function CustomizationGroup({
-  group,
-  selections,
-  onSelectionChange
-}: {
-  group: CustomizationGroup
-  selections: string[]
-  onSelectionChange: (ids: string[]) => void
-}) {
-  const handleToggle = (optionId: string) => {
-    const isSelected = selections.includes(optionId)
-    if (isSelected) {
-      onSelectionChange(selections.filter(id => id !== optionId))
-    } else if (selections.length < group.maxSelections) {
-      onSelectionChange([...selections, optionId])
-    } else if (group.maxSelections === 1) {
-      onSelectionChange([optionId])
-    }
-  }
-
-  const requirementMet = selections.length >= group.minSelections
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {group.groupIcon && <span className="text-lg">{group.groupIcon}</span>}
-          <h4 className="font-semibold text-slate-800 dark:text-white">{group.groupName}</h4>
-          {group.isRequired && (
-            <span className={`text-xs px-2 py-0.5 rounded-full ${
-              requirementMet 
-                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
-                : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400'
-            }`}>
-              {requirementMet ? '✓' : 'إجباري'}
-            </span>
-          )}
-        </div>
-        <span className="text-xs text-slate-500">
-          {selections.length}/{group.maxSelections}
-        </span>
-      </div>
-
-      {group.groupDescription && (
-        <p className="text-xs text-slate-500 dark:text-slate-400">{group.groupDescription}</p>
-      )}
-
-      <div className="flex flex-wrap gap-2">
-        {group.options.map((option) => {
-          const isSelected = selections.includes(option.id)
-          const canSelect = !isSelected && selections.length < group.maxSelections
-
-          return (
-            <motion.button
-              key={option.id}
-              onClick={() => handleToggle(option.id)}
-              disabled={!canSelect && !isSelected}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`
-                flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all
-                ${isSelected
-                  ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-800 shadow-md'
-                  : canSelect
-                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed'
-                }
-              `}
+      {/* Ready State - No customization needed */}
+      <AnimatePresence>
+        {!hasSizes && !hasCustomization && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="text-center py-10"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-2xl flex items-center justify-center"
             >
-              {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              <span>{option.name_ar}</span>
-              {option.price > 0 && (
-                <span className={isSelected ? 'opacity-80' : 'text-pink-600 dark:text-pink-400'}>
-                  +{option.price}
-                </span>
-              )}
-            </motion.button>
-          )
-        })}
-      </div>
+              <ShoppingBag className="w-8 h-8 text-slate-400" />
+            </motion.div>
+            <h4 className="font-bold text-slate-900 dark:text-white mb-1">جاهز للطلب!</h4>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              أضفه للسلة مباشرة
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Validation hint */}
-      {group.isRequired && !requirementMet && (
-        <p className="text-xs text-amber-600 dark:text-amber-400">
-          اختر {group.minSelections} على الأقل
-        </p>
-      )}
-    </div>
+      {/* Validation Warning */}
+      <AnimatePresence>
+        {hasCustomization && !allRequiredMet && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 rounded-xl border border-amber-200 dark:border-amber-800/50"
+          >
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <span className="text-sm">أكمل الاختيارات الإجبارية للمتابعة</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

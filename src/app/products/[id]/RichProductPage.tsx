@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import ProductHeader from '@/components/modals/ProductModal/ProductHeader'
@@ -29,6 +29,70 @@ import ModalOrchestrator from '@/components/modals/ModalOrchestrator'
 // Lazy load remaining components
 const OrdersBadge = dynamic(() => import('@/components/ui/OrdersBadge'), { ssr: false })
 
+// Custom hook for smart scroll behavior - Header only
+function useSmartScroll() {
+  const [showHeader, setShowHeader] = useState(true)
+  const scrollDirection = useRef<'up' | 'down' | 'idle'>('idle')
+  const lastScrollY = useRef(0)
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null)
+  const headerShowTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  const handleScroll = useCallback(() => {
+    const currentScrollY = window.scrollY
+    const scrollDelta = currentScrollY - lastScrollY.current
+    
+    // Determine scroll direction
+    if (Math.abs(scrollDelta) > 5) {
+      const direction = scrollDelta > 0 ? 'down' : 'up'
+      scrollDirection.current = direction
+      
+      // Hide header on scroll down
+      if (direction === 'down' && currentScrollY > 100) {
+        setShowHeader(false)
+        // Clear any pending show timeout
+        if (headerShowTimeout.current) {
+          clearTimeout(headerShowTimeout.current)
+          headerShowTimeout.current = null
+        }
+      } else if (direction === 'up') {
+        setShowHeader(true)
+      }
+    }
+    
+    lastScrollY.current = currentScrollY
+    
+    // Set to idle after scroll stops
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current)
+    }
+    scrollTimeout.current = setTimeout(() => {
+      scrollDirection.current = 'idle'
+      // Delay showing header when scroll stops (500ms delay)
+      if (headerShowTimeout.current) {
+        clearTimeout(headerShowTimeout.current)
+      }
+      headerShowTimeout.current = setTimeout(() => {
+        setShowHeader(true)
+      }, 500) // 500ms delay before showing header
+    }, 150)
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current)
+      }
+      if (headerShowTimeout.current) {
+        clearTimeout(headerShowTimeout.current)
+      }
+    }
+  }, [handleScroll])
+
+  return { showHeader }
+}
+
 interface Props {
   product: any
   allProducts: any[]
@@ -39,9 +103,9 @@ function RichProductPageContent({ product, allProducts }: Props) {
   debug.product('RichProductPage Render', { productId: product?.id })
 
   const { open } = useModalStore()
-  const [showHeader] = useState(true)
   const [showFilterBar] = useState(true)
   const productHeroRef = useRef<HTMLDivElement>(null)
+  const { showHeader } = useSmartScroll()
 
   const {
     displayProduct,
@@ -104,11 +168,26 @@ function RichProductPageContent({ product, allProducts }: Props) {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
-      {/* Header */}
-      <Header
-        onOpenCart={() => open('cart')}
-        onOpenSidebar={() => open('sidebar')}
-      />
+      {/* Smart Header - Hides on scroll down, shows on scroll up/stop */}
+      <AnimatePresence>
+        {showHeader && (
+          <motion.div
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="fixed top-0 left-0 right-0 z-50"
+          >
+            <Header
+              onOpenCart={() => open('cart')}
+              onOpenSidebar={() => open('sidebar')}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Spacer for fixed header */}
+      <div className="h-[72px]" />
 
       {/* Product Hero Section */}
       <section
@@ -190,42 +269,56 @@ function RichProductPageContent({ product, allProducts }: Props) {
                   />
                 )}
 
-                {/* Action Footer */}
-                <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 p-4 md:p-6 rounded-t-2xl shadow-2xl -mx-4 md:-mx-6 z-30">
-                  <div className="max-w-md mx-auto">
-                    <ActionFooter
-                      quantity={quantity}
-                      onIncrease={() => setQuantity(quantity + 1)}
-                      onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
-                      onAddToCart={handleAddToCart}
-                      totalPrice={
-                        (productConfig.hasContainers || productConfig.hasSizes)
-                          ? productConfig.totalPrice * quantity
-                          : ((displayProduct?.is_customizable === 1) ? customization.totalPrice * quantity : totalPrice)
-                      }
-                      basePrice={
-                        (productConfig.hasContainers || productConfig.hasSizes)
-                          ? (productConfig.config?.product.basePrice || displayProduct.price)
-                          : displayProduct.price
-                      }
-                      addonsPrice={
-                        (productConfig.hasContainers || productConfig.hasSizes)
-                          ? (productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal
-                          : ((displayProduct?.is_customizable === 1) ? customization.customizationTotal : addonsTotal)
-                      }
-                      selectedAddonsCount={
-                        (productConfig.hasContainers || productConfig.hasSizes)
-                          ? productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)
-                          : ((displayProduct?.is_customizable === 1) ? customization.selectedOptions.length : selectedAddons.length)
-                      }
-                    />
-                  </div>
+                {/* Inline Action Footer - Always at the end of product details */}
+                <div className="mt-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-lg overflow-hidden">
+                  <ActionFooter
+                    quantity={quantity}
+                    onIncrease={() => setQuantity(quantity + 1)}
+                    onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
+                    onAddToCart={handleAddToCart}
+                    totalPrice={
+                      (productConfig.hasContainers || productConfig.hasSizes)
+                        ? productConfig.totalPrice * quantity
+                        : ((displayProduct?.is_customizable === 1) ? customization.totalPrice * quantity : totalPrice)
+                    }
+                    basePrice={
+                      (productConfig.hasContainers || productConfig.hasSizes)
+                        ? (productConfig.config?.product.basePrice || displayProduct.price)
+                        : displayProduct.price
+                    }
+                    addonsPrice={
+                      (productConfig.hasContainers || productConfig.hasSizes)
+                        ? (productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal
+                        : ((displayProduct?.is_customizable === 1) ? customization.customizationTotal : addonsTotal)
+                    }
+                    selectedAddonsCount={
+                      (productConfig.hasContainers || productConfig.hasSizes)
+                        ? productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)
+                        : ((displayProduct?.is_customizable === 1) ? customization.selectedOptions.length : selectedAddons.length)
+                    }
+                    selectedOptions={
+                      (productConfig.hasContainers || productConfig.hasSizes)
+                        ? productConfig.selectedOptions
+                        : customization.selectedOptions
+                    }
+                    containerName={productConfig.containerObj?.name}
+                    sizeName={productConfig.sizeObj?.name}
+                    isValid={
+                      (productConfig.hasContainers || productConfig.hasSizes)
+                        ? productConfig.validationResult.isValid
+                        : (customization.isCustomizable ? customization.validationResult.isValid : true)
+                    }
+                    validationMessage={
+                      (productConfig.hasContainers || productConfig.hasSizes)
+                        ? productConfig.validationResult.errors[0]
+                        : (customization.isCustomizable ? customization.validationResult.errors[0] : undefined)
+                    }
+                  />
                 </div>
               </div>
             </div>
           </div>
         </div>
-
       </section>
 
       {/* Scroll Down Section - Professional Design */}

@@ -1,8 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Check, Plus } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import SizeSelector from '../SizeSelector'
+import { OptionsGrid } from './shared'
 
 interface Option {
   id: string
@@ -42,130 +43,113 @@ export default function MilkshakeTemplate({
   selections,
   onSelectionChange
 }: MilkshakeTemplateProps) {
+  const totalAddons = Object.values(selections).flat().length
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="space-y-5"
     >
-      {/* Header */}
+      {/* Milkshake Header - Vibrant Design */}
       <motion.div
-        initial={{ scale: 0.95 }}
-        animate={{ scale: 1 }}
-        className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 p-4 rounded-2xl shadow-lg"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative overflow-hidden bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 p-5 rounded-2xl shadow-lg"
       >
-        <div className="flex items-center gap-3">
-          <motion.span
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="text-3xl"
+        {/* Animated Background */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+          animate={{ x: ['-100%', '100%'] }}
+          transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+        />
+        
+        {/* Floating Bubbles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(5)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 bg-white/20 rounded-full"
+              style={{ left: `${20 + i * 15}%`, bottom: 0 }}
+              animate={{ 
+                y: [0, -60, 0],
+                opacity: [0, 1, 0]
+              }}
+              transition={{ 
+                repeat: Infinity, 
+                duration: 2 + i * 0.3,
+                delay: i * 0.4
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="relative flex items-center gap-4">
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0], y: [0, -3, 0] }}
+            transition={{ repeat: Infinity, duration: 2.5 }}
+            className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center"
           >
-            🥤
-          </motion.span>
-          <div>
-            <h3 className="text-lg font-bold text-white">ميلك شيك</h3>
-            <p className="text-xs text-white/80">اختر الحجم وأضف إضافاتك المفضلة</p>
+            <span className="text-3xl">🥤</span>
+          </motion.div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-white">ميلك شيك طازج</h3>
+            <p className="text-xs text-white/80 mt-0.5">اختر الحجم وأضف إضافاتك المفضلة</p>
           </div>
+          {totalAddons > 0 && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="bg-white text-amber-600 px-3 py-1.5 rounded-full text-sm font-bold shadow-md"
+            >
+              {totalAddons} إضافة
+            </motion.div>
+          )}
         </div>
       </motion.div>
 
       {/* Size Selection */}
       {sizes.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>📏</span> اختر الحجم
-          </h3>
-          <SizeSelector
-            sizes={sizes}
-            selectedSize={selectedSize}
-            onSelect={onSizeSelect}
-            basePrice={product.price}
-          />
-        </div>
+        <SizeSelector
+          sizes={sizes}
+          selectedSize={selectedSize}
+          onSelect={onSizeSelect}
+          basePrice={product.price}
+          showHeader={true}
+        />
       )}
 
-      {/* Add-ons */}
-      {customizationRules.map(group => (
-        <AddonsGroup
-          key={group.groupId}
-          group={group}
-          selections={selections[group.groupId] || []}
-          onSelectionChange={(ids) => onSelectionChange(group.groupId, ids)}
-        />
-      ))}
+      {/* Add-ons Section - Cards */}
+      {customizationRules.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-5"
+        >
+          {/* Section Header */}
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">إضافات مميزة</h3>
+            <div className="flex-1 h-px bg-gradient-to-r from-amber-200 to-transparent dark:from-amber-800" />
+          </div>
+
+          {customizationRules.map((group) => (
+            <OptionsGrid
+              key={group.groupId}
+              group={group}
+              selections={selections[group.groupId] || []}
+              onSelectionChange={(ids) => onSelectionChange(group.groupId, ids)}
+              columns={3}
+              cardSize="sm"
+              accentColor="amber"
+              showImages={true}
+              showDescriptions={false}
+              showNutrition={true}
+            />
+          ))}
+        </motion.div>
+      )}
     </motion.div>
-  )
-}
-
-// Add-ons Group Component
-function AddonsGroup({
-  group,
-  selections,
-  onSelectionChange
-}: {
-  group: CustomizationGroup
-  selections: string[]
-  onSelectionChange: (ids: string[]) => void
-}) {
-  const handleToggle = (optionId: string) => {
-    const isSelected = selections.includes(optionId)
-    if (isSelected) {
-      onSelectionChange(selections.filter(id => id !== optionId))
-    } else if (selections.length < group.maxSelections) {
-      onSelectionChange([...selections, optionId])
-    }
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {group.groupIcon && <span className="text-lg">{group.groupIcon}</span>}
-          <h4 className="font-semibold text-slate-800 dark:text-white">{group.groupName}</h4>
-          {group.isRequired && (
-            <span className="text-xs text-pink-600 bg-pink-50 dark:bg-pink-950/30 px-2 py-0.5 rounded-full">
-              إجباري
-            </span>
-          )}
-        </div>
-        <span className="text-xs text-slate-500">
-          {selections.length}/{group.maxSelections}
-        </span>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {group.options.map((option) => {
-          const isSelected = selections.includes(option.id)
-          const canSelect = !isSelected && selections.length < group.maxSelections
-
-          return (
-            <motion.button
-              key={option.id}
-              onClick={() => handleToggle(option.id)}
-              disabled={!canSelect && !isSelected}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`
-                flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all
-                ${isSelected
-                  ? 'bg-amber-500 text-white shadow-md'
-                  : canSelect
-                    ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
-                }
-              `}
-            >
-              {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              <span>{option.name_ar}</span>
-              {option.price > 0 && (
-                <span className={isSelected ? 'text-white/80' : 'text-amber-600'}>
-                  +{option.price}
-                </span>
-              )}
-            </motion.button>
-          )
-        })}
-      </div>
-    </div>
   )
 }
