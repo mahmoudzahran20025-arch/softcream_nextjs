@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode } from 'swiper/modules'
-import { useCart } from '@/providers/CartProvider'
 import ProductCard from '@/components/ui/ProductCard'
 import { Product } from '@/lib/api'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -15,7 +14,9 @@ import ActionFooter from './ActionFooter'
 import { useProductLogic } from './useProductLogic'
 import { useCustomization } from './useCustomization'
 import { useProductConfiguration } from '@/hooks/useProductConfiguration'
+import { useAddToCart } from '@/hooks/useAddToCart'
 import { ProductTemplateRenderer } from './templates'
+import { debug } from '@/lib/debug'
 import { X } from 'lucide-react'
 
 import 'swiper/css'
@@ -29,7 +30,6 @@ interface ProductModalProps {
 }
 
 export default function ProductModal({ product, isOpen, onClose, allProducts = [] }: ProductModalProps) {
-  const { addToCart } = useCart()
   const [recommendations, setRecommendations] = useState<Product[]>([])
 
   // Use optimized product logic hook
@@ -48,14 +48,6 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
     allergens,
   } = useProductLogic({ product, isOpen })
 
-  // Debug: Log before customization hook
-  console.log('🔴 BEFORE useCustomization:', {
-    hasProduct: !!product,
-    productId: product?.id,
-    isOpen,
-    isCustomizable: product?.is_customizable
-  })
-
   // Use customization hook for BYO products
   const customization = useCustomization({
     productId: product?.id || displayProduct?.id || null,
@@ -63,36 +55,19 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
     basePrice: product?.price || displayProduct?.price || 0
   })
 
-  // ✅ NEW: Use product configuration hook for sizes & containers
+  // Use product configuration hook for sizes & containers
   const productConfig = useProductConfiguration({
     productId: product?.id || displayProduct?.id || null,
     isOpen
   })
 
-  console.log('🟢 AFTER useCustomization:', {
-    isCustomizable: customization.isCustomizable,
-    isLoadingRules: customization.isLoadingRules,
-    rulesCount: customization.customizationRules.length
-  })
-
-  console.log('📦 Product Configuration:', {
+  // Debug logging (only in development)
+  debug.product('ProductModal state', {
+    productId: product?.id,
     hasContainers: productConfig.hasContainers,
     hasSizes: productConfig.hasSizes,
-    productType: productConfig.productType
+    isCustomizable: customization.isCustomizable
   })
-
-  // Debug: Log customization state
-  useEffect(() => {
-    if (isOpen && product) {
-      console.log('🔍 ProductModal Debug:', {
-        productId: product.id,
-        productName: product.name,
-        isCustomizable: customization.isCustomizable,
-        rulesCount: customization.customizationRules.length,
-        isLoadingRules: customization.isLoadingRules
-      })
-    }
-  }, [isOpen, product, customization.isCustomizable, customization.customizationRules.length, customization.isLoadingRules])
 
   // Generate recommendations
   useEffect(() => {
@@ -103,69 +78,43 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
     }
   }, [product, allProducts])
 
-  if (!isOpen || !product || !displayProduct) return null
-
-  const handleAddToCart = () => {
-    // ✅ NEW: Handle products with containers/sizes
-    if (productConfig.hasContainers || productConfig.hasSizes) {
-      // Validate customization if applicable
-      if (productConfig.hasCustomization && !productConfig.validationResult.isValid) {
-        alert(productConfig.validationResult.errors.join('\n'))
-        return
-      }
-      
-      // Build selections with container and size info
-      // Store container/size as special keys with array format for compatibility
-      const selectionsWithConfig: Record<string, string[]> = {
-        ...productConfig.selections
-      }
-      
-      // Add container and size as special selection groups (with prices for cart calculation)
-      if (productConfig.selectedContainer) {
-        selectionsWithConfig['_container'] = [
-          productConfig.selectedContainer, 
-          productConfig.containerObj?.name || '',
-          String(productConfig.containerObj?.priceModifier || 0) // ✅ Include price
-        ]
-      }
-      if (productConfig.selectedSize) {
-        selectionsWithConfig['_size'] = [
-          productConfig.selectedSize, 
-          productConfig.sizeObj?.name || '',
-          String(productConfig.sizeObj?.priceModifier || 0) // ✅ Include price
-        ]
-      }
-      
-      // ✅ Store total calculated price for cart display
-      selectionsWithConfig['_calculatedPrice'] = [String(productConfig.totalPrice)]
-      
-      addToCart(product, quantity, undefined, selectionsWithConfig)
-      handleClose()
-      return
-    }
-    
-    // Check if product is customizable and validate selections
-    if (customization.isCustomizable) {
-      if (!customization.validationResult.isValid) {
-        // Show validation errors
-        alert(customization.validationResult.errors.join('\n'))
-        return
-      }
-      // Add to cart with customization selections
-      addToCart(product, quantity, undefined, customization.selections)
-    } else {
-      // Legacy: Add to cart with addons
-      const addonsToSend = selectedAddons.length > 0 ? selectedAddons : undefined
-      addToCart(product, quantity, addonsToSend)
-    }
-    handleClose()
-  }
-
+  // Handle close modal
   const handleClose = () => {
-    // Reset URL to home
     window.history.pushState({}, '', '/')
     onClose()
   }
+
+  // Use unified add to cart hook
+  const { handleAddToCart } = useAddToCart({
+    product: displayProduct || null,
+    quantity,
+    productConfig: (productConfig.hasContainers || productConfig.hasSizes) ? {
+      hasContainers: productConfig.hasContainers,
+      hasSizes: productConfig.hasSizes,
+      hasCustomization: productConfig.hasCustomization,
+      selectedContainer: productConfig.selectedContainer,
+      selectedSize: productConfig.selectedSize,
+      containerObj: productConfig.containerObj,
+      sizeObj: productConfig.sizeObj,
+      selections: productConfig.selections,
+      totalPrice: productConfig.totalPrice,
+      validationResult: productConfig.validationResult
+    } : null,
+    customization: customization.isCustomizable ? {
+      isCustomizable: true,
+      selections: customization.selections,
+      selectedOptions: customization.selectedOptions,
+      totalPrice: customization.totalPrice,
+      validationResult: customization.validationResult
+    } : null,
+    legacy: {
+      selectedAddons,
+      totalPrice
+    },
+    onSuccess: handleClose
+  })
+
+  if (!isOpen || !product || !displayProduct) return null
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -223,7 +172,12 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                   product={displayProduct}
                   ingredients={ingredients}
                   allergens={allergens}
-                  customizationNutrition={productConfig.hasContainers ? productConfig.totalNutrition : customization.customizationNutrition}
+                  customizationNutrition={
+                    // Use productConfig nutrition if it has sizes OR containers OR customization
+                    (productConfig.hasSizes || productConfig.hasContainers || productConfig.hasCustomization)
+                      ? productConfig.totalNutrition 
+                      : customization.customizationNutrition
+                  }
                 />
 
                 {/* Product Template System - Dynamic based on product type */}

@@ -18,6 +18,7 @@ import Sidebar from './Sidebar';
 import DashboardPage from './DashboardPage';
 import OrdersPage from './OrdersPage';
 import ProductsPage from './ProductsPage';
+import BYOPage from './BYOPage';
 import CouponsPage from './CouponsPage';
 import AnalyticsPage from './AnalyticsPage';
 import SettingsPage from './SettingsPage';
@@ -273,6 +274,9 @@ const AdminApp: React.FC<AdminAppProps> = ({
               onUpdate={handleUpdateProduct}
               onDelete={handleDeleteProduct}
             />
+          )}
+          {activeTab === 'byo' && (
+            <BYOPage onRefresh={onRefresh} />
           )}
           {activeTab === 'coupons' && (
             <CouponsPage 

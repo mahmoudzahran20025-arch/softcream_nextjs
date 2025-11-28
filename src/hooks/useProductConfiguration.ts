@@ -69,14 +69,14 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
   // Get available sizes for selected container
   const availableSizes = useMemo(() => {
     if (!config?.hasSizes || !config.sizes) return []
-    
+
     if (!selectedContainer) {
       // Return sizes without container restriction
       return config.sizes.filter(s => !s.containerId)
     }
-    
+
     // Filter sizes for selected container
-    return config.sizes.filter(s => 
+    return config.sizes.filter(s =>
       s.containerId === selectedContainer || !s.containerId
     )
   }, [config, selectedContainer])
@@ -131,7 +131,7 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
 
     config.customizationRules.forEach(group => {
       const groupSelections = selections[group.groupId] || []
-      
+
       groupSelections.forEach(optionId => {
         const option = group.options.find((opt: any) => opt.id === optionId)
         if (option) {
@@ -144,7 +144,7 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
             groupIcon: group.groupIcon,
             nutrition: option.nutrition
           })
-          
+
           // Add nutrition
           if (option.nutrition) {
             nutrition.calories += option.nutrition.calories || 0
@@ -160,6 +160,14 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
 
     return { total, selectedOptions, nutrition }
   }, [config, selections])
+
+  // 🐛 Debug: Log nutrition calculation
+  console.log('🔍 useProductConfiguration - Customization Data:', {
+    selections,
+    selectedOptionsCount: customizationData.selectedOptions.length,
+    customizationNutrition: customizationData.nutrition,
+    customizationTotal: customizationData.total
+  })
 
   // Calculate total nutrition (container + customizations × size multiplier)
   const totalNutrition = useMemo(() => {
@@ -187,10 +195,18 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
     return nutrition
   }, [containerObj, customizationData.nutrition, sizeObj])
 
+  // 🐛 Debug: Log final nutrition
+  console.log('🔍 useProductConfiguration - Total Nutrition:', {
+    container: containerObj?.name,
+    size: sizeObj?.name,
+    nutritionMultiplier: sizeObj?.nutritionMultiplier || 1,
+    totalNutrition
+  })
+
   // Calculate total price
   const totalPrice = useMemo(() => {
     if (!config) return 0
-    
+
     const basePrice = config.product.basePrice
     const containerPrice = containerObj?.priceModifier || 0
     const sizePrice = sizeObj?.priceModifier || 0
@@ -226,27 +242,53 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
     return { isValid: errors.length === 0, errors }
   }, [config, selections])
 
+  // Calculate energy data based on total nutrition
+  const energyData = useMemo(() => {
+    const totalProtein = totalNutrition.protein
+    const totalSugar = totalNutrition.sugar
+    const totalCalories = totalNutrition.calories
+
+    let energyType = 'balanced'
+    let energyScore = 50
+
+    // High Protein (> 15g) -> Physical (Muscle)
+    // High Sugar (> 25g) -> Mental (Quick Energy)
+    // Balanced -> Balanced
+    if (totalProtein > 15) {
+      energyType = 'physical'
+      energyScore = Math.min(95, 60 + (totalProtein * 1.5))
+    } else if (totalSugar > 25) {
+      energyType = 'mental'
+      energyScore = Math.min(90, 50 + (totalSugar * 1.2))
+    } else {
+      energyType = 'balanced'
+      energyScore = Math.min(85, 40 + (totalCalories / 10))
+    }
+
+    return { energyType, energyScore: Math.round(energyScore) }
+  }, [totalNutrition])
+
   return {
     // Config
     config,
     isLoading,
     error,
     productType: config?.product.productType || 'standard',
-    
+
     // Container
     hasContainers: config?.hasContainers || false,
     containers: config?.containers || [],
     selectedContainer,
     setSelectedContainer,
     containerObj,
-    
+
     // Size
     hasSizes: config?.hasSizes || false,
     sizes: availableSizes,
     selectedSize,
     setSelectedSize,
     sizeObj,
-    
+
     // Customization
     hasCustomization: config?.hasCustomization || false,
     customizationRules: config?.customizationRules || [],
@@ -254,11 +296,15 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
     updateGroupSelections,
     selectedOptions: customizationData.selectedOptions,
     customizationTotal: customizationData.total,
-    
+
     // Totals
     totalPrice,
     totalNutrition,
-    validationResult
+    validationResult,
+
+    // Energy data
+    energyType: energyData.energyType,
+    energyScore: energyData.energyScore
   }
 }
 

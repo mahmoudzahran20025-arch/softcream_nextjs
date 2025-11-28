@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { Package, Tag, TrendingUp, Settings, LayoutDashboard, ShoppingBag, LucideIcon } from 'lucide-react';
+import { Package, Tag, TrendingUp, Settings, LayoutDashboard, ShoppingBag, LucideIcon, Sparkles } from 'lucide-react';
 
 interface MenuItem {
   id: string;
@@ -28,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
     { id: 'orders', icon: Package, label: 'الطلبات', badge: stats?.activeOrders || 0 },
     { id: 'products', icon: ShoppingBag, label: 'المنتجات' },
+    { id: 'byo', icon: Sparkles, label: 'خيارات BYO' },
     { id: 'coupons', icon: Tag, label: 'الكوبونات' },
     { id: 'analytics', icon: TrendingUp, label: 'الإحصائيات' },
     { id: 'settings', icon: Settings, label: 'الإعدادات' },

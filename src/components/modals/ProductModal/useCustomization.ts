@@ -128,8 +128,8 @@ export function useCustomization({ productId, isOpen, basePrice }: UseCustomizat
     // Calculate customization total + nutrition
     const customizationData = useMemo(() => {
         if (!customizationRules) {
-            return { 
-                total: 0, 
+            return {
+                total: 0,
                 selectedOptions: [],
                 nutrition: { calories: 0, protein: 0, carbs: 0, sugar: 0, fat: 0, fiber: 0 }
             }
@@ -143,7 +143,7 @@ export function useCustomization({ productId, isOpen, basePrice }: UseCustomizat
             groupId: string
             groupIcon?: string
         }> = []
-        
+
         // ✅ NEW: Calculate nutrition totals
         const nutrition = {
             calories: 0,
@@ -168,7 +168,7 @@ export function useCustomization({ productId, isOpen, basePrice }: UseCustomizat
                         groupId: group.groupId,
                         groupIcon: group.groupIcon
                     })
-                    
+
                     // ✅ Add nutrition values
                     if (option.nutrition) {
                         nutrition.calories += option.nutrition.calories || 0
@@ -184,6 +184,35 @@ export function useCustomization({ productId, isOpen, basePrice }: UseCustomizat
 
         return { total, selectedOptions, nutrition }
     }, [customizationRules, selections])
+
+    // ✅ NEW: Calculate Energy Level & Score
+    const energyData = useMemo(() => {
+        const { nutrition } = customizationData
+        const totalProtein = nutrition.protein // + base product protein (passed as prop if needed, but for now just customization)
+        const totalSugar = nutrition.sugar
+        const totalCalories = nutrition.calories
+
+        let energyType = 'balanced'
+        let energyScore = 50 // Default score
+
+        // Logic:
+        // High Protein (> 15g) -> Physical (Muscle)
+        // High Sugar (> 25g) -> Mental (Quick Energy)
+        // Balanced -> Balanced
+
+        if (totalProtein > 15) {
+            energyType = 'physical'
+            energyScore = Math.min(95, 60 + (totalProtein * 1.5))
+        } else if (totalSugar > 25) {
+            energyType = 'mental'
+            energyScore = Math.min(90, 50 + (totalSugar * 1.2))
+        } else {
+            energyType = 'balanced'
+            energyScore = Math.min(85, 40 + (totalCalories / 10))
+        }
+
+        return { energyType, energyScore: Math.round(energyScore) }
+    }, [customizationData])
 
     // Calculate total price
     const totalPrice = useMemo(() => {
@@ -203,6 +232,8 @@ export function useCustomization({ productId, isOpen, basePrice }: UseCustomizat
         customizationTotal: customizationData.total,
         selectedOptions: customizationData.selectedOptions,
         totalPrice,
-        customizationNutrition: customizationData.nutrition // ✅ NEW: Nutrition data
+        customizationNutrition: customizationData.nutrition, // ✅ NEW: Nutrition data
+        energyType: energyData.energyType,
+        energyScore: energyData.energyScore
     }
 }

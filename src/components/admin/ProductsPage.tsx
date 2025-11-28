@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit, Trash2, Eye, EyeOff, Save, X } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Eye, EyeOff, Save, X, Settings, Sparkles, Package, Ruler } from 'lucide-react';
 import Image from 'next/image';
 import type { Product } from '@/lib/adminApi';
-import { getProducts, createProduct, updateProduct, deleteProduct } from '@/lib/adminApi';
+import { getProducts, createProduct, updateProduct, deleteProduct, getProductConfiguration, updateProductCustomization } from '@/lib/adminApi';
 
 interface ProductsPageProps {
   onRefresh?: () => void;
@@ -10,17 +10,13 @@ interface ProductsPageProps {
   onDelete?: (productId: string) => void;
 }
 
-// Available addons list (should match backend)
-const AVAILABLE_ADDONS = [
-  { id: 'lotus', name: 'لوتس', nameEn: 'Lotus' },
-  { id: 'nuts', name: 'مكسرات', nameEn: 'Nuts' },
-  { id: 'caramel', name: 'كراميل', nameEn: 'Caramel' },
-  { id: 'nutella', name: 'نوتيلا', nameEn: 'Nutella' },
-  { id: 'extra-scoop', name: 'سكوب إضافي', nameEn: 'Extra Scoop' },
-  { id: 'oreo', name: 'أوريو', nameEn: 'Oreo' },
-  { id: 'chocolate-chips', name: 'رقائق شوكولاتة', nameEn: 'Chocolate Chips' },
-  { id: 'strawberry-sauce', name: 'صوص فراولة', nameEn: 'Strawberry Sauce' },
-  { id: 'chocolate-sauce', name: 'صوص شوكولاتة', nameEn: 'Chocolate Sauce' },
+// Product types for BYO system
+const PRODUCT_TYPES = [
+  { value: 'standard', label: 'منتج عادي', icon: '🍽️', description: 'منتج بسيط بدون تخصيص' },
+  { value: 'byo_ice_cream', label: 'BYO آيس كريم', icon: '✨', description: 'آيس كريم قابل للتخصيص بالكامل' },
+  { value: 'milkshake', label: 'ميلك شيك', icon: '🥤', description: 'ميلك شيك مع خيارات النكهات' },
+  { value: 'preset_ice_cream', label: 'آيس كريم جاهز', icon: '🍨', description: 'آيس كريم بوصفة محددة' },
+  { value: 'dessert', label: 'حلويات', icon: '🍰', description: 'حلويات متنوعة' },
 ];
 
 const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDelete }) => {
@@ -29,7 +25,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -42,6 +37,10 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
     image: '',
     badge: '',
     available: 1,
+    
+    // Product type & customization
+    product_type: 'standard',
+    is_customizable: 0,
     
     // Nutrition fields
     calories: '',
@@ -59,9 +58,13 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
     tags: '',
     ingredients: '',
     nutrition_facts: '',
-    allergens: '',
-    allowed_addons: ''
+    allergens: ''
   });
+  
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configProduct, setConfigProduct] = useState<Product | null>(null);
+  const [productConfig, setProductConfig] = useState<any>(null);
+  const [loadingConfig, setLoadingConfig] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -84,9 +87,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
     e.preventDefault();
     
     try {
-      // Convert selected addons to JSON string
-      const allowedAddonsJson = JSON.stringify(selectedAddons);
-      
       if (editingProduct) {
         // Update existing product
         const updateData = {
@@ -99,8 +99,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
           sugar: parseFloat(formData.sugar) || 0,
           fiber: parseFloat(formData.fiber) || 0,
           energy_score: parseInt(formData.energy_score) || 0,
-          energy_type: formData.energy_type as 'mental' | 'physical' | 'balanced' | 'none' | undefined,
-          allowed_addons: allowedAddonsJson
+          energy_type: formData.energy_type as 'mental' | 'physical' | 'balanced' | 'none' | undefined
         };
         await updateProduct(editingProduct.id, updateData);
         const updatedProduct = { ...editingProduct, ...updateData };
@@ -121,8 +120,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
           sugar: parseFloat(formData.sugar) || 0,
           fiber: parseFloat(formData.fiber) || 0,
           energy_score: parseInt(formData.energy_score) || 0,
-          energy_type: formData.energy_type as 'mental' | 'physical' | 'balanced' | 'none' | undefined,
-          allowed_addons: allowedAddonsJson
+          energy_type: formData.energy_type as 'mental' | 'physical' | 'balanced' | 'none' | undefined
         };
         await createProduct(createData);
         alert('✅ تم إنشاء المنتج بنجاح');
@@ -142,17 +140,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     
-    // Parse allowed_addons from JSON string
-    let parsedAddons: string[] = [];
-    if (product.allowed_addons) {
-      try {
-        parsedAddons = JSON.parse(product.allowed_addons);
-      } catch (e) {
-        console.error('Failed to parse allowed_addons:', e);
-      }
-    }
-    setSelectedAddons(parsedAddons);
-    
     setFormData({
       id: product.id,
       name: product.name,
@@ -165,6 +152,10 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
       image: product.image || '',
       badge: product.badge || '',
       available: product.available,
+      
+      // Product type & customization
+      product_type: (product as any).product_type || 'standard',
+      is_customizable: (product as any).is_customizable || 0,
       
       // Nutrition fields
       calories: product.calories?.toString() || '',
@@ -182,8 +173,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
       tags: product.tags || '',
       ingredients: product.ingredients || '',
       nutrition_facts: product.nutrition_facts || '',
-      allergens: product.allergens || '',
-      allowed_addons: product.allowed_addons || ''
+      allergens: product.allergens || ''
     });
     setShowCreateModal(true);
   };
@@ -232,6 +222,10 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
       badge: '',
       available: 1,
       
+      // Product type & customization
+      product_type: 'standard',
+      is_customizable: 0,
+      
       // Nutrition fields
       calories: '',
       protein: '',
@@ -248,20 +242,57 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
       tags: '',
       ingredients: '',
       nutrition_facts: '',
-      allergens: '',
-      allowed_addons: ''
+      allergens: ''
     });
-    setSelectedAddons([]);
   };
 
-  const toggleAddon = (addonId: string) => {
-    setSelectedAddons(prev => {
-      if (prev.includes(addonId)) {
-        return prev.filter(id => id !== addonId);
-      } else {
-        return [...prev, addonId];
+  // Open product configuration modal
+  const openConfigModal = async (product: Product) => {
+    setConfigProduct(product);
+    setShowConfigModal(true);
+    setLoadingConfig(true);
+    
+    try {
+      const response = await getProductConfiguration(product.id);
+      if (response.success) {
+        setProductConfig(response.data);
       }
-    });
+    } catch (error) {
+      console.error('Failed to load product configuration:', error);
+    } finally {
+      setLoadingConfig(false);
+    }
+  };
+
+  // Update product type
+  const handleUpdateProductType = async (productType: string) => {
+    if (!configProduct) return;
+    
+    try {
+      const isCustomizable = productType !== 'standard';
+      await updateProductCustomization(configProduct.id, {
+        product_type: productType,
+        is_customizable: isCustomizable
+      });
+      
+      // Update local state
+      setProducts(products.map(p => 
+        p.id === configProduct.id 
+          ? { ...p, product_type: productType, is_customizable: isCustomizable ? 1 : 0 } as Product
+          : p
+      ));
+      
+      // Refresh config
+      const response = await getProductConfiguration(configProduct.id);
+      if (response.success) {
+        setProductConfig(response.data);
+      }
+      
+      alert('✅ تم تحديث نوع المنتج بنجاح');
+    } catch (error) {
+      console.error('Failed to update product type:', error);
+      alert('❌ فشل تحديث نوع المنتج');
+    }
   };
 
   const filteredProducts = products.filter(product =>
@@ -374,6 +405,16 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
                 </div>
               </div>
 
+              {/* Product Type Badge */}
+              {(product as any).product_type && (product as any).product_type !== 'standard' && (
+                <div className="mt-2 flex items-center gap-1">
+                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium flex items-center gap-1">
+                    <Sparkles size={10} />
+                    {PRODUCT_TYPES.find(t => t.value === (product as any).product_type)?.label || 'قابل للتخصيص'}
+                  </span>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-100">
                 <button
@@ -386,6 +427,13 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
                   title={product.available === 1 ? 'تعطيل' : 'تفعيل'}
                 >
                   {product.available === 1 ? <Eye size={14} className="mx-auto" /> : <EyeOff size={14} className="mx-auto" />}
+                </button>
+                <button
+                  onClick={() => openConfigModal(product)}
+                  className="flex-1 p-2 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-600 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-all border border-purple-200"
+                  title="إعدادات التخصيص"
+                >
+                  <Settings size={14} className="mx-auto" />
                 </button>
                 <button
                   onClick={() => handleEdit(product)}
@@ -723,48 +771,24 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
                 </div>
               </div>
 
-              {/* Allowed Addons Section */}
+              {/* Customization Note */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border-2 border-purple-200">
                 <h3 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3 flex items-center gap-2">
-                  <span>✨</span> الإضافات المتاحة
+                  <span>✨</span> إعدادات التخصيص
                 </h3>
-                <p className="text-sm text-gray-600 mb-4 bg-white bg-opacity-50 p-2 rounded-lg">
-                  💡 اختر الإضافات التي يمكن للعميل إضافتها لهذا المنتج
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
-                  {AVAILABLE_ADDONS.map((addon) => (
-                    <label
-                      key={addon.id}
-                      className={`
-                        flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all transform hover:scale-105
-                        ${selectedAddons.includes(addon.id)
-                          ? 'border-purple-500 bg-gradient-to-br from-purple-100 to-pink-100 shadow-md'
-                          : 'border-purple-200 bg-white hover:border-purple-400 hover:shadow'
-                        }
-                      `}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedAddons.includes(addon.id)}
-                        onChange={() => toggleAddon(addon.id)}
-                        className="w-4 h-4 text-purple-600 border-purple-300 rounded focus:ring-purple-500"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-bold text-gray-800">{addon.name}</div>
-                        <div className="text-xs text-gray-500">{addon.nameEn}</div>
-                      </div>
-                    </label>
-                  ))}
+                <div className="bg-white bg-opacity-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-700 mb-2">
+                    💡 لإدارة خيارات التخصيص (النكهات، الصوصات، الإضافات) لهذا المنتج:
+                  </p>
+                  <ol className="text-sm text-gray-600 list-decimal list-inside space-y-1">
+                    <li>احفظ المنتج أولاً</li>
+                    <li>اضغط على زر ⚙️ (إعدادات التخصيص) في كارت المنتج</li>
+                    <li>اختر نوع المنتج وقواعد التخصيص</li>
+                  </ol>
+                  <p className="text-xs text-purple-600 mt-3">
+                    📌 لإدارة خيارات BYO بشكل عام، استخدم صفحة "خيارات BYO" من القائمة الجانبية
+                  </p>
                 </div>
-                {selectedAddons.length > 0 && (
-                  <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg">
-                    <p className="text-sm font-semibold text-green-800 flex items-center gap-2">
-                      <span className="text-lg">✅</span>
-                      تم اختيار {selectedAddons.length} إضافة: 
-                      <span className="font-bold">{selectedAddons.join(', ')}</span>
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Metadata Fields */}
@@ -865,6 +889,184 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Product Configuration Modal */}
+      {showConfigModal && configProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <Settings size={24} />
+                    إعدادات التخصيص
+                  </h2>
+                  <p className="text-purple-100 text-sm mt-1">
+                    {configProduct.name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowConfigModal(false);
+                    setConfigProduct(null);
+                    setProductConfig(null);
+                  }}
+                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all text-white"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {loadingConfig ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                <>
+                  {/* Product Type Selection */}
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border-2 border-purple-200">
+                    <h3 className="text-lg font-bold text-purple-800 mb-4 flex items-center gap-2">
+                      <Sparkles size={20} />
+                      نوع المنتج
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {PRODUCT_TYPES.map((type) => (
+                        <button
+                          key={type.value}
+                          onClick={() => handleUpdateProductType(type.value)}
+                          className={`p-4 rounded-xl border-2 transition-all text-right ${
+                            productConfig?.product?.productType === type.value
+                              ? 'border-purple-500 bg-purple-100 shadow-lg'
+                              : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow'
+                          }`}
+                        >
+                          <div className="text-2xl mb-2">{type.icon}</div>
+                          <div className="font-bold text-gray-800">{type.label}</div>
+                          <div className="text-xs text-gray-500 mt-1">{type.description}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Configuration Summary */}
+                  {productConfig && (
+                    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 border-2 border-blue-200">
+                      <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+                        <Package size={20} />
+                        ملخص الإعدادات
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Containers */}
+                        <div className={`p-4 rounded-xl border-2 ${
+                          productConfig.hasContainers 
+                            ? 'border-green-300 bg-green-50' 
+                            : 'border-gray-200 bg-gray-50'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Package size={18} className={productConfig.hasContainers ? 'text-green-600' : 'text-gray-400'} />
+                            <span className="font-bold text-gray-800">الحاويات</span>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {productConfig.hasContainers 
+                              ? `${productConfig.containers?.length || 0} حاوية متاحة`
+                              : 'غير مفعل'}
+                          </p>
+                        </div>
+
+                        {/* Sizes */}
+                        <div className={`p-4 rounded-xl border-2 ${
+                          productConfig.hasSizes 
+                            ? 'border-blue-300 bg-blue-50' 
+                            : 'border-gray-200 bg-gray-50'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Ruler size={18} className={productConfig.hasSizes ? 'text-blue-600' : 'text-gray-400'} />
+                            <span className="font-bold text-gray-800">المقاسات</span>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {productConfig.hasSizes 
+                              ? `${productConfig.sizes?.length || 0} مقاس متاح`
+                              : 'غير مفعل'}
+                          </p>
+                        </div>
+
+                        {/* Customization */}
+                        <div className={`p-4 rounded-xl border-2 ${
+                          productConfig.hasCustomization 
+                            ? 'border-purple-300 bg-purple-50' 
+                            : 'border-gray-200 bg-gray-50'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Sparkles size={18} className={productConfig.hasCustomization ? 'text-purple-600' : 'text-gray-400'} />
+                            <span className="font-bold text-gray-800">التخصيص</span>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {productConfig.hasCustomization 
+                              ? `${productConfig.customizationRules?.length || 0} مجموعة خيارات`
+                              : 'غير مفعل'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Customization Rules */}
+                  {productConfig?.hasCustomization && productConfig.customizationRules?.length > 0 && (
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 border-2 border-amber-200">
+                      <h3 className="text-lg font-bold text-amber-800 mb-4 flex items-center gap-2">
+                        <Settings size={20} />
+                        قواعد التخصيص
+                      </h3>
+                      <div className="space-y-3">
+                        {productConfig.customizationRules.map((rule: any, index: number) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-amber-200">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl">{rule.groupIcon || '📦'}</span>
+                              <div>
+                                <div className="font-bold text-gray-800">{rule.groupName}</div>
+                                <div className="text-xs text-gray-500">
+                                  {rule.isRequired ? 'إجباري' : 'اختياري'} • 
+                                  {rule.minSelections}-{rule.maxSelections} خيارات
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Info Note */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <p className="text-sm text-blue-800">
+                      💡 <strong>ملاحظة:</strong> لإدارة خيارات BYO (النكهات، الصوصات، الإضافات) بشكل تفصيلي، 
+                      استخدم صفحة "خيارات BYO" من القائمة الجانبية.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {
+                  setShowConfigModal(false);
+                  setConfigProduct(null);
+                  setProductConfig(null);
+                }}
+                className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold hover:shadow-lg transition-all"
+              >
+                ✅ تم
+              </button>
+            </div>
           </div>
         </div>
       )}

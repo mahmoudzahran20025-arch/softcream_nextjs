@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import ProductHeader from '@/components/modals/ProductModal/ProductHeader'
@@ -9,10 +9,11 @@ import AddonsList from '@/components/modals/ProductModal/AddonsList'
 import ActionFooter from '@/components/modals/ProductModal/ActionFooter'
 import { useCustomization } from '@/components/modals/ProductModal/useCustomization'
 import { useProductConfiguration } from '@/hooks/useProductConfiguration'
+import { useAddToCart } from '@/hooks/useAddToCart'
 import { ProductTemplateRenderer } from '@/components/modals/ProductModal/templates'
+import { debug } from '@/lib/debug'
 
 import { useProductLogic } from '@/components/modals/ProductModal/useProductLogic'
-import { useCart } from '@/providers/CartProvider'
 import ProductsProvider from '@/providers/ProductsProvider'
 import { CategoryTrackingProvider } from '@/providers/CategoryTrackingProvider'
 import { useModalStore } from '@/stores/modalStore'
@@ -23,15 +24,9 @@ import Footer from '@/components/server/Footer'
 import ToastContainer from '@/components/ui/ToastContainer'
 import ScrollProgressButton from '@/components/ui/ScrollProgressButton'
 import ScrollDownSection from '@/components/ui/ScrollDownSection'
+import ModalOrchestrator from '@/components/modals/ModalOrchestrator'
 
-// Lazy load modals
-const CartModal = dynamic(() => import('@/components/modals/CartModal'), { ssr: false })
-const CheckoutModal = dynamic(() => import('@/components/modals/CheckoutModal'), { ssr: false })
-const OrderSuccessModal = dynamic(() => import('@/components/modals/OrderSuccessModal'), { ssr: false })
-const TrackingModal = dynamic(() => import('@/components/modals/TrackingModal'), { ssr: false })
-const Sidebar = dynamic(() => import('@/components/pages/Sidebar'), { ssr: false })
-const MyOrdersModal = dynamic(() => import('@/components/modals/MyOrdersModal'), { ssr: false })
-const EditOrderModal = dynamic(() => import('@/components/modals/EditOrderModal'), { ssr: false })
+// Lazy load remaining components
 const OrdersBadge = dynamic(() => import('@/components/ui/OrdersBadge'), { ssr: false })
 
 interface Props {
@@ -41,13 +36,9 @@ interface Props {
 }
 
 function RichProductPageContent({ product, allProducts }: Props) {
-  console.log('🎬 RichProductPage Render:', {
-    productId: product?.id,
-    isCustomizable: product?.is_customizable
-  })
+  debug.product('RichProductPage Render', { productId: product?.id })
 
-  const { addToCart } = useCart()
-  const { current, data, open, close } = useModalStore()
+  const { open } = useModalStore()
   const [showHeader] = useState(true)
   const [showFilterBar] = useState(true)
   const productHeroRef = useRef<HTMLDivElement>(null)
@@ -68,111 +59,53 @@ function RichProductPageContent({ product, allProducts }: Props) {
   } = useProductLogic({ product, isOpen: true })
 
   // Initialize Customization Hook
-  // ⚠️ IMPORTANT: Use displayProduct first because it has the full data including is_customizable
   const customization = useCustomization({
     productId: displayProduct?.id || product?.id || null,
     isOpen: true,
     basePrice: displayProduct?.price || product?.price || 0
   })
 
-  // ✅ NEW: Use product configuration hook for sizes & containers
+  // Use product configuration hook for sizes & containers
   const productConfig = useProductConfiguration({
     productId: displayProduct?.id || product?.id || null,
     isOpen: true
   })
 
-  // Debug: Log customization state
-  useEffect(() => {
-    console.log('🔍 RichProductPage Customization State:', {
-      productId: product?.id,
-      displayProductId: displayProduct?.id,
-      isCustomizable: displayProduct?.is_customizable,
-      hasRules: customization.customizationRules.length > 0,
-      isLoading: customization.isLoadingRules
-    })
-  }, [product?.id, displayProduct?.id, displayProduct?.is_customizable, customization.customizationRules, customization.isLoadingRules])
-
-  // ... scroll behavior ...
-
-  const handleAddToCart = () => {
-    // ✅ NEW: Handle products with containers/sizes
-    if (productConfig.hasContainers || productConfig.hasSizes) {
-      // Validate customization if applicable
-      if (productConfig.hasCustomization && !productConfig.validationResult.isValid) {
-        alert(productConfig.validationResult.errors.join('\n'))
-        return
-      }
-      
-      // Build selections with container and size info
-      const selectionsWithConfig: Record<string, string[]> = {
-        ...productConfig.selections
-      }
-      
-      // Add container and size as special selection groups (with prices for cart calculation)
-      if (productConfig.selectedContainer) {
-        selectionsWithConfig['_container'] = [
-          productConfig.selectedContainer, 
-          productConfig.containerObj?.name || '',
-          String(productConfig.containerObj?.priceModifier || 0) // ✅ Include price
-        ]
-      }
-      if (productConfig.selectedSize) {
-        selectionsWithConfig['_size'] = [
-          productConfig.selectedSize, 
-          productConfig.sizeObj?.name || '',
-          String(productConfig.sizeObj?.priceModifier || 0) // ✅ Include price
-        ]
-      }
-      
-      // ✅ Store total calculated price for cart display
-      selectionsWithConfig['_calculatedPrice'] = [String(productConfig.totalPrice)]
-      
-      console.log('🛒 Adding product with config to cart:', { selectionsWithConfig, totalPrice: productConfig.totalPrice })
-      addToCart(product, quantity, undefined, selectionsWithConfig)
-      showSuccessFeedback()
-      return
+  // Use unified add to cart hook
+  const { handleAddToCart } = useAddToCart({
+    product: displayProduct || null,
+    quantity,
+    productConfig: (productConfig.hasContainers || productConfig.hasSizes) ? {
+      hasContainers: productConfig.hasContainers,
+      hasSizes: productConfig.hasSizes,
+      hasCustomization: productConfig.hasCustomization,
+      selectedContainer: productConfig.selectedContainer,
+      selectedSize: productConfig.selectedSize,
+      containerObj: productConfig.containerObj,
+      sizeObj: productConfig.sizeObj,
+      selections: productConfig.selections,
+      totalPrice: productConfig.totalPrice,
+      validationResult: productConfig.validationResult
+    } : null,
+    customization: customization.isCustomizable ? {
+      isCustomizable: true,
+      selections: customization.selections,
+      selectedOptions: customization.selectedOptions,
+      totalPrice: customization.totalPrice,
+      validationResult: customization.validationResult
+    } : null,
+    legacy: {
+      selectedAddons,
+      totalPrice
     }
-    
-    if (displayProduct?.is_customizable === 1) {
-      // For customizable products: convert selectedOptions to selections format
-      const selections: Record<string, string[]> = {}
-      customization.selectedOptions.forEach(option => {
-        if (!selections[option.groupId]) {
-          selections[option.groupId] = []
-        }
-        selections[option.groupId].push(option.id)
-      })
-      
-      console.log('🛒 Adding customizable product to cart:', { selections })
-      addToCart(product, quantity, undefined, selections)
-    } else {
-      // For legacy products: send addon IDs
-      const legacyAddons = selectedAddons.length > 0 ? selectedAddons : undefined
-      console.log('🛒 Adding legacy product to cart:', { legacyAddons })
-      addToCart(product, quantity, legacyAddons, undefined)
-    }
-
-    showSuccessFeedback()
-  }
-
-  const showSuccessFeedback = () => {
-    // Show success feedback
-    const successDiv = document.createElement('div')
-    successDiv.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-gradient-to-r from-[#ff6b9d] to-[#ff5a8e] text-white px-6 py-3 rounded-full shadow-2xl font-semibold animate-bounce'
-    successDiv.textContent = '✓ تم الإضافة للسلة'
-    document.body.appendChild(successDiv)
-
-    setTimeout(() => {
-      successDiv.remove()
-    }, 1500)
-  }
+  })
 
   if (!displayProduct) return null
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* Header */}
-      <Header 
+      <Header
         onOpenCart={() => open('cart')}
         onOpenSidebar={() => open('sidebar')}
       />
@@ -180,7 +113,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
       {/* Product Hero Section */}
       <section
         ref={productHeroRef}
-        className="relative bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 pt-20"
+        className="relative bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 pt-10"
       >
 
         {/* Product Content */}
@@ -219,13 +152,26 @@ function RichProductPageContent({ product, allProducts }: Props) {
 
               {/* Product Details */}
               <div className="space-y-4 md:space-y-6">
-                <ProductHeader product={displayProduct} />
+                <ProductHeader
+                  product={displayProduct}
+                  displayPrice={
+                    (productConfig.hasContainers || productConfig.hasSizes)
+                      ? productConfig.totalPrice
+                      : ((displayProduct?.is_customizable === 1) ? customization.totalPrice : undefined)
+                  }
+                />
+
                 {/* ✅ NOW WITH DYNAMIC NUTRITION! */}
-                <NutritionInfo 
-                  product={displayProduct} 
-                  ingredients={ingredients} 
+                <NutritionInfo
+                  product={displayProduct}
+                  ingredients={ingredients}
                   allergens={allergens}
-                  customizationNutrition={productConfig.hasContainers ? productConfig.totalNutrition : customization.customizationNutrition}
+                  customizationNutrition={
+                    // Use productConfig nutrition if it has sizes OR containers OR customization
+                    (productConfig.hasSizes || productConfig.hasContainers || productConfig.hasCustomization)
+                      ? productConfig.totalNutrition 
+                      : customization.customizationNutrition
+                  }
                 />
 
                 {/* Product Template System - Dynamic based on product type */}
@@ -254,7 +200,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
                       onAddToCart={handleAddToCart}
                       totalPrice={
                         (productConfig.hasContainers || productConfig.hasSizes)
-                          ? productConfig.totalPrice * quantity 
+                          ? productConfig.totalPrice * quantity
                           : ((displayProduct?.is_customizable === 1) ? customization.totalPrice * quantity : totalPrice)
                       }
                       basePrice={
@@ -333,83 +279,8 @@ function RichProductPageContent({ product, allProducts }: Props) {
       {/* Footer */}
       <Footer />
 
-      {/* Modals - Full Integration */}
-      {current === 'cart' && (
-        <CartModal
-          isOpen={true}
-          onClose={close}
-          onCheckout={() => open('checkout')}
-          allProducts={allProducts}
-        />
-      )}
-
-      {current === 'checkout' && (
-        <CheckoutModal
-          isOpen={true}
-          onClose={close}
-          onCheckoutSuccess={(orderId: string, orderData?: any) => {
-            console.log('🎉 Order placed successfully:', orderId)
-            if (orderData) {
-              open('success', orderData)
-            }
-          }}
-          onOpenTracking={(order) => open('tracking', order)}
-        />
-      )}
-
-      {current === 'success' && data && (
-        <OrderSuccessModal
-          isOpen={true}
-          onClose={close}
-          order={data}
-          onTrackOrder={() => open('tracking', data)}
-          onContactWhatsApp={() => {
-            console.log('📱 WhatsApp contact from success modal')
-          }}
-        />
-      )}
-
-      {current === 'tracking' && data && (
-        <TrackingModal
-          isOpen={true}
-          onClose={close}
-          order={data}
-          onEditOrder={(order) => open('editOrder', order)}
-        />
-      )}
-
-      {current === 'sidebar' && (
-        <Sidebar
-          isOpen={true}
-          onClose={close}
-          onOpenCart={() => open('cart')}
-          onOpenMyOrders={() => open('myOrders')}
-        />
-      )}
-
-      {current === 'myOrders' && (
-        <MyOrdersModal
-          isOpen={true}
-          onClose={close}
-          onEditOrder={(order) => open('editOrder', order)}
-        />
-      )}
-
-      {current === 'editOrder' && data && (
-        <EditOrderModal
-          isOpen={true}
-          onClose={close}
-          order={data}
-          onSuccess={() => {
-            close()
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('ordersUpdated', {
-                detail: { orderId: data?.id, action: 'edited' }
-              }))
-            }
-          }}
-        />
-      )}
+      {/* Modals - Using centralized orchestrator */}
+      <ModalOrchestrator allProducts={allProducts} />
 
       <ToastContainer />
       <OrdersBadge onClick={() => open('myOrders')} />

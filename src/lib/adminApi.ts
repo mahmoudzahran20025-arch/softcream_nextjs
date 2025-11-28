@@ -996,3 +996,117 @@ export default {
   batchUpdateTracking,
   getTrackingStatistics
 };
+
+// ===========================
+// BYO Options API (Admin)
+// ===========================
+
+export interface BYOOption {
+  id: string;
+  group_id: string;
+  name_ar: string;
+  name_en: string;
+  description_ar?: string;
+  description_en?: string;
+  base_price: number;
+  image?: string;
+  available: number;
+  display_order: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  sugar: number;
+  fat: number;
+  fiber: number;
+}
+
+export interface BYOOptionGroup {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  description_ar?: string;
+  description_en?: string;
+  display_order: number;
+  icon: string;
+  options: BYOOption[];
+}
+
+// Get all BYO options grouped
+export async function getBYOOptions(): Promise<{ success: boolean; data: BYOOptionGroup[] }> {
+  return apiRequest('/admin/options');
+}
+
+// Create new BYO option
+export async function createBYOOption(data: Partial<BYOOption> & { id: string }): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  return apiRequest('/admin/options', {
+    method: 'POST',
+    body: data
+  });
+}
+
+// Update BYO option
+export async function updateBYOOption(optionId: string, data: Partial<BYOOption>): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  return apiRequest(`/admin/options/${optionId}`, {
+    method: 'PUT',
+    body: data
+  });
+}
+
+// Delete BYO option
+export async function deleteBYOOption(optionId: string): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  return apiRequest(`/admin/options/${optionId}`, {
+    method: 'DELETE'
+  });
+}
+
+// ===========================
+// Product Configuration API (Admin)
+// ===========================
+
+export interface ProductConfiguration {
+  product: {
+    id: string;
+    name: string;
+    basePrice: number;
+    productType: string;
+    isCustomizable: boolean;
+  };
+  hasContainers: boolean;
+  containers: any[];
+  hasSizes: boolean;
+  sizes: any[];
+  hasCustomization: boolean;
+  customizationRules: any[];
+}
+
+// Get product configuration
+export async function getProductConfiguration(productId: string): Promise<{
+  success: boolean;
+  data: ProductConfiguration;
+}> {
+  return apiRequest(`/admin/products/${productId}/configuration`);
+}
+
+// Update product customization settings
+export async function updateProductCustomization(productId: string, data: {
+  is_customizable?: boolean;
+  product_type?: string;
+  customization_rules?: any[];
+}): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  return apiRequest(`/admin/products/${productId}/customization`, {
+    method: 'PUT',
+    body: data
+  });
+}

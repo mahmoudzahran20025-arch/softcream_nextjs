@@ -34,5 +34,5 @@ export default function Providers({ children }: { children: ReactNode }) {
   )
 }
 
-console.log('✅ Providers initialized (refactored with SRP)')
+// Providers initialized
 

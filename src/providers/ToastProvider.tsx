@@ -56,7 +56,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
     setToasts(prev => [...prev, newToast])
     
-    console.log('🔔 Toast shown:', type, message)
+    // Toast shown
 
     return id
   }, [])
@@ -76,4 +76,4 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   )
 }
 
-console.log('✅ ToastProvider initialized')
+// ToastProvider initialized

@@ -33,4 +33,4 @@ export function useWindowEvent<T = any>(
   }, [eventName, handler, ...deps])
 }
 
-console.log('✅ useWindowEvent hook loaded')
+export default useWindowEvent

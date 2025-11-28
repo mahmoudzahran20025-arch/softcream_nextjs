@@ -6,75 +6,85 @@ This directory contains reusable custom React hooks for the application.
 
 ## 📄 Available Hooks
 
-### 1. **useWindowEvent.ts** ✅
+### 1. **useAddToCart.ts** ✅ NEW
+Unified add-to-cart logic for all product types.
+
+**Purpose:** Single source of truth for cart operations
+
+**Features:**
+- Handles BYO products (containers + sizes + customizations)
+- Handles preset products (sizes only)
+- Handles legacy products (simple addons)
+- Built-in validation with toast notifications
+- Type-safe
+
+**Usage:**
+```typescript
+import { useAddToCart } from '@/hooks/useAddToCart'
+
+const { handleAddToCart, canAdd, validationErrors } = useAddToCart({
+  product: displayProduct,
+  quantity,
+  productConfig: productConfig.hasContainers ? productConfig : null,
+  customization: customization.isCustomizable ? customization : null,
+  legacy: { selectedAddons, totalPrice },
+  onSuccess: () => closeModal()
+})
+
+// In button
+<button onClick={handleAddToCart} disabled={!canAdd}>
+  Add to Cart
+</button>
+```
+
+---
+
+### 2. **useProductConfiguration.ts** ✅
+Product configuration for sizes, containers, and customizations.
+
+**Purpose:** Manage BYO and configurable product state
+
+**Features:**
+- Fetches product configuration from API
+- Manages container/size selection
+- Calculates total price and nutrition
+- Validates customization rules
+
+**Usage:**
+```typescript
+import { useProductConfiguration } from '@/hooks/useProductConfiguration'
+
+const productConfig = useProductConfiguration({
+  productId: product.id,
+  isOpen: true
+})
+
+// Access state
+productConfig.hasContainers
+productConfig.selectedSize
+productConfig.totalPrice
+productConfig.validationResult
+```
+
+---
+
+### 3. **useWindowEvent.ts** ✅
 Centralized window event listener management with automatic cleanup.
 
 **Purpose:** Eliminate duplicate event listener boilerplate
-
-**Features:**
-- Type-safe with TypeScript generics
-- Automatic cleanup on unmount
-- SSR-safe (checks for window)
-- Flexible dependencies array
 
 **Usage:**
 ```typescript
 import { useWindowEvent } from '@/hooks/useWindowEvent'
 
-// Basic usage
-useWindowEvent('myEvent', () => {
-  console.log('Event fired!')
+useWindowEvent('ordersUpdated', (event) => {
+  console.log('Orders updated:', event.detail)
 }, [])
-
-// With type safety
-interface MyEventDetail {
-  userId: string
-  action: string
-}
-
-useWindowEvent<MyEventDetail>('userAction', (event) => {
-  const { userId, action } = event.detail
-  console.log(`User ${userId} performed ${action}`)
-}, [])
-
-// With dependencies
-useWindowEvent('dataUpdate', (event) => {
-  updateData(event.detail, currentFilter)
-}, [currentFilter])
 ```
 
 ---
 
-### 2. **useApiClient.ts** ✅
-Client-side API utilities that require browser APIs.
-
-**Purpose:** Analytics, device detection, error handling
-
-**Features:**
-- Track analytics events
-- Get device information
-- Detect base URL
-- Format error messages
-
-**Usage:**
-```typescript
-import { useApiClient } from '@/hooks/useApiClient'
-
-const { trackEvent, getDeviceInfo, getErrorMessage } = useApiClient()
-
-// Track event
-await trackEvent({ name: 'page_view', page: '/products' })
-
-// Get device info
-const deviceInfo = getDeviceInfo()
-
-// Format error
-const message = getErrorMessage(error, 'ar')
-```
-
----
-
-### 3. **useHydrated.ts** ✅
+### 4. **useHydrated.ts** ✅
 Detect when component has hydrated on the client.
 
 **Purpose:** Defer animations and client-only features until hydration completes
@@ -98,14 +108,27 @@ return (
 
 ---
 
-### 4. **useOrderStatusSSE.ts** ❌ DISABLED
-SSE (Server-Sent Events) for order status updates.
+### 5. **useRotatingText.ts** ✅
+Hook for rotating text with smooth transitions.
 
-**Status:** Disabled - replaced by smart polling
+**Purpose:** Animated text rotation in ProductCard
 
-**Reason:** Instability in Cloudflare Workers environment
+**Usage:**
+```typescript
+import { useRotatingText } from '@/hooks/useRotatingText'
 
-**Alternative:** Use polling in TrackingModal instead
+const { currentText, isTransitioning, currentIndex } = useRotatingText(
+  ['Text 1', 'Text 2', 'Text 3'],
+  3000 // interval in ms
+)
+```
+
+---
+
+### ❌ REMOVED HOOKS
+
+- **useApiClient.ts** - Removed (was dead code, never used)
+- **useOrderStatusSSE.ts** - Disabled (replaced by smart polling)
 
 ---
 

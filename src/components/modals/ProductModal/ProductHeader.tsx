@@ -17,7 +17,7 @@ interface ProductHeaderProps {
   product: Product
 }
 
-export default function ProductHeader({ product }: ProductHeaderProps) {
+export default function ProductHeader({ product, displayPrice }: ProductHeaderProps & { displayPrice?: number }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -38,10 +38,10 @@ export default function ProductHeader({ product }: ProductHeaderProps) {
           )}
         </div>
         <div className="flex-shrink-0 whitespace-nowrap pt-1 pl-2 md:pl-4">
-          <PriceDisplay price={product.price} size="lg" />
+          <PriceDisplay price={displayPrice ?? product.price} size="lg" />
         </div>
       </div>
-      
+
       {/* Description with Energy Badge Inline */}
       <div className="flex items-start gap-2 flex-wrap">
         <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed flex-1">

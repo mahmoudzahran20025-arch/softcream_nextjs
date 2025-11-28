@@ -83,7 +83,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     setThemeState(newTheme)
     storage.setTheme(newTheme)
     
-    console.log('✅ Theme changed to:', newTheme)
+    // Theme changed
   }, [])
 
   const toggleTheme = useCallback(() => {
@@ -105,5 +105,5 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
 export default ThemeProvider
 
-console.log('✅ ThemeProvider initialized (refactored)')
+// ThemeProvider initialized
 

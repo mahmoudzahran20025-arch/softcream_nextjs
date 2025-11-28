@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useMemo, useCallback, type ReactNode } from 'react'
-import { useGlobal } from '@/providers/ThemeProvider'
+import { useLanguage } from '@/providers/LanguageProvider'
 import type { Product } from '@/lib/api'
 
 interface ProductsFilters {
@@ -43,7 +43,7 @@ interface ProductsProviderProps {
 }
 
 export default function ProductsProvider({ children, initialProducts = [] }: ProductsProviderProps) {
-  const { language: currentLang, t } = useGlobal()
+  const { language: currentLang, t } = useLanguage()
 
   const [products] = useState<Product[]>(initialProducts)
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(initialProducts)
@@ -142,3 +142,5 @@ export default function ProductsProvider({ children, initialProducts = [] }: Pro
 
   return <ProductsContext.Provider value={value}>{children}</ProductsContext.Provider>
 }
+
+export { ProductsProvider }

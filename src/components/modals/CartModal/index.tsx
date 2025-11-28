@@ -67,7 +67,7 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
     fetchProductsWithAddons()
   }, [cart, isOpen])
 
-  // Calculate nutrition summary from cart items
+  // Calculate nutrition summary from cart items (including customizations)
   useEffect(() => {
     if (cart.length === 0) {
       setNutritionData(null)
@@ -83,25 +83,56 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
       cart.forEach(item => {
         const product = allProducts.find(p => p.id === item.productId)
         if (product) {
-          // Assuming these properties exist on product
+          // Base product nutrition
           const prod = product as any
           totalCalories += (prod.calories || 0) * item.quantity
           totalProtein += (prod.protein || 0) * item.quantity
           totalCarbs += (prod.carbs || 0) * item.quantity
           totalFat += (prod.fat || 0) * item.quantity
         }
+        
+        // ✅ Add customization nutrition
+        if (item.selections) {
+          const productWithAddons = productsWithAddons.get(item.productId)
+          const customizationRules = (productWithAddons as any)?.customizationRules || []
+          
+          // Build options map
+          const optionsMap: Record<string, any> = {}
+          customizationRules.forEach((group: any) => {
+            group.options.forEach((option: any) => {
+              optionsMap[option.id] = option
+            })
+          })
+          
+          // Calculate nutrition from selected options
+          Object.entries(item.selections).forEach(([key, values]) => {
+            if (key.startsWith('_')) return // Skip special keys
+            if (!Array.isArray(values)) return
+            
+            values.forEach((optionId: string) => {
+              const option = optionsMap[optionId]
+              if (option) {
+                const nutrition = option.nutrition || option
+                totalCalories += (nutrition.calories || 0) * item.quantity
+                totalProtein += (nutrition.protein || 0) * item.quantity
+                totalCarbs += (nutrition.carbs || 0) * item.quantity
+                totalFat += (nutrition.fat || 0) * item.quantity
+              }
+            })
+          })
+        }
       })
 
       setNutritionData({
-        totalCalories,
-        totalProtein,
-        totalCarbs,
-        totalFat
+        totalCalories: Math.round(totalCalories),
+        totalProtein: Math.round(totalProtein * 10) / 10,
+        totalCarbs: Math.round(totalCarbs * 10) / 10,
+        totalFat: Math.round(totalFat * 10) / 10
       })
     }
 
     calculateNutrition()
-  }, [cart, allProducts])
+  }, [cart, allProducts, productsWithAddons])
 
   if (!isOpen) return null
 
@@ -224,7 +255,7 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                   const productWithAddons = productsWithAddons.get(item.productId)
                   const productAddons = productWithAddons?.addonsList || []
                   
-                  // ✅ Get customization options from fetched customization rules
+                  // ✅ Get customization options from fetched customization rules (with nutrition)
                   const customizationRules = (productWithAddons as any)?.customizationRules || []
                   const customizationOptions: any[] = []
                   
@@ -232,10 +263,25 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                     group.options.forEach((option: any) => {
                       customizationOptions.push({
                         id: option.id,
-                        name: option.name_ar,
+                        name: option.name_ar || option.name,
                         name_en: option.name_en,
                         price: option.price || option.base_price || 0,
-                        groupIcon: group.groupIcon
+                        groupIcon: group.groupIcon,
+                        // ✅ Include nutrition data
+                        calories: option.calories || option.nutrition?.calories || 0,
+                        protein: option.protein || option.nutrition?.protein || 0,
+                        carbs: option.carbs || option.nutrition?.carbs || 0,
+                        sugar: option.sugar || option.nutrition?.sugar || 0,
+                        fat: option.fat || option.nutrition?.fat || 0,
+                        fiber: option.fiber || option.nutrition?.fiber || 0,
+                        nutrition: option.nutrition || {
+                          calories: option.calories || 0,
+                          protein: option.protein || 0,
+                          carbs: option.carbs || 0,
+                          sugar: option.sugar || 0,
+                          fat: option.fat || 0,
+                          fiber: option.fiber || 0
+                        }
                       })
                     })
                   })

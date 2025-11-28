@@ -78,7 +78,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLanguageState(newLang)
     storage.setLang(newLang)
     
-    console.log('✅ Language changed to:', newLang)
+    // Language changed
   }, [])
   
   const toggleLanguage = useCallback(() => {
@@ -117,4 +117,4 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   )
 }
 
-console.log('✅ LanguageProvider initialized')
+// LanguageProvider initialized
