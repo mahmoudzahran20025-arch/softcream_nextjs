@@ -60,7 +60,7 @@ export default function NutritionInfo({ product, ingredients, allergens, customi
     <>
       {/* Quick Nutrition Stats */}
       {hasQuickStats && (
-        <div className="grid grid-cols-4 gap-1.5 transition-opacity duration-150">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 transition-opacity duration-150">
           {totalNutrition.calories > 0 && (
             <div key={`calories-${totalNutrition.calories}`} className="transform transition-transform duration-150 hover:scale-105">
               <NutritionIcon

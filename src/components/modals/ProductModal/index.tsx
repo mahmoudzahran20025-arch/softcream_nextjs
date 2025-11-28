@@ -130,7 +130,7 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/40 backdrop-blur-sm"
           onClick={handleBackdropClick}
           role="dialog"
           aria-modal="true"
@@ -140,13 +140,13 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 100, opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative bg-white dark:bg-slate-900 w-full max-w-5xl rounded-t-[2rem] md:rounded-3xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col md:flex-row"
+            className="relative bg-white dark:bg-slate-900 w-full max-w-5xl rounded-t-[2rem] lg:rounded-3xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col lg:flex-row"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 md:left-4 md:right-auto z-20 w-11 h-11 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-full shadow-xl flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 transition-all hover:scale-110 active:scale-95"
+              className="absolute top-4 right-4 lg:left-4 lg:right-auto z-20 w-11 h-11 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-full shadow-xl flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 transition-all hover:scale-110 active:scale-95"
               aria-label="إغلاق"
             >
               <X className="w-5 h-5 text-slate-700 dark:text-slate-200" />
@@ -156,14 +156,14 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
             <ProductImage product={displayProduct} />
 
             {/* Right Column (Desktop) / Bottom (Mobile) - Content */}
-            <div className="flex-1 flex flex-col md:w-1/2 overflow-hidden relative z-10 -mt-16 md:mt-0 rounded-t-[2.5rem] md:rounded-none bg-white dark:bg-slate-900 shadow-2xl md:shadow-none">
+            <div className="flex-1 flex flex-col lg:w-1/2 overflow-hidden relative z-10 -mt-16 lg:mt-0 rounded-t-[2.5rem] lg:rounded-none bg-white dark:bg-slate-900 shadow-2xl lg:shadow-none">
               {/* Mobile Handle Bar */}
-              <div className="w-full flex justify-center pt-3 pb-2 md:hidden">
+              <div className="w-full flex justify-center pt-3 pb-2 lg:hidden">
                 <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full" />
               </div>
 
               {/* Scrollable Content Area */}
-              <div className="flex-1 overflow-y-auto px-6 md:px-8 pt-2 md:pt-8 pb-24 space-y-4 scrollbar-thin scrollbar-thumb-pink-300 dark:scrollbar-thumb-pink-700 scrollbar-track-transparent">
+              <div className="flex-1 overflow-y-auto px-6 lg:px-8 pt-2 lg:pt-8 pb-24 space-y-4 scrollbar-thin scrollbar-thumb-pink-300 dark:scrollbar-thumb-pink-700 scrollbar-track-transparent">
                 {/* Product Header (Title, Price, Description) */}
                 <ProductHeader product={displayProduct} />
 
@@ -175,7 +175,7 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                   customizationNutrition={
                     // Use productConfig nutrition if it has sizes OR containers OR customization
                     (productConfig.hasSizes || productConfig.hasContainers || productConfig.hasCustomization)
-                      ? productConfig.totalNutrition 
+                      ? productConfig.totalNutrition
                       : customization.customizationNutrition
                   }
                 />
@@ -232,7 +232,7 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                 totalPrice={
                   // Use productConfig if it has containers OR sizes
                   (productConfig.hasContainers || productConfig.hasSizes)
-                    ? productConfig.totalPrice * quantity 
+                    ? productConfig.totalPrice * quantity
                     : (customization.isCustomizable ? customization.totalPrice * quantity : totalPrice)
                 }
                 basePrice={

@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react'
 import { storage } from '@/lib/storage.client'
 import { TIMEOUTS, LIMITS } from '@/config/constants'
+import { calculateCartItemPrice } from '@/lib/utils/priceCalculator'
 
 /**
  * CartProvider - Isolated Cart State Management for Next.js
@@ -240,59 +241,21 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     return cart.reduce((sum, item) => sum + item.quantity, 0)
   }, [cart])
 
+  // ✅ Using priceCalculator for consistent calculations
   const getCartTotal = useCallback((productsMap: Record<string, Product>, addonsMap?: Record<string, Addon>, optionsMap?: Record<string, Addon>) => {
     return cart.reduce((total, item) => {
       const product = productsMap[item.productId]
       if (!product) return total
       
-      let itemPrice = product.price
-      
-      // ✅ NEW: Check for pre-calculated price (BYO products)
-      if (item.selections?._calculatedPrice) {
-        const calculatedPrice = parseFloat(item.selections._calculatedPrice[0]) || 0
-        if (calculatedPrice > 0) {
-          console.log('💰 Using pre-calculated price for', item.productId, ':', calculatedPrice)
-          return total + (calculatedPrice * item.quantity)
-        }
-      }
-      
-      // ✅ NEW: Add container price if present
-      if (item.selections?._container && item.selections._container[2]) {
-        const containerPrice = parseFloat(item.selections._container[2]) || 0
-        itemPrice += containerPrice
-      }
-      
-      // ✅ NEW: Add size price if present
-      if (item.selections?._size && item.selections._size[2]) {
-        const sizePrice = parseFloat(item.selections._size[2]) || 0
-        itemPrice += sizePrice
-      }
-      
-      // Add legacy addon prices if provided
-      if (addonsMap && item.selectedAddons && item.selectedAddons.length > 0) {
-        const addonsTotal = item.selectedAddons.reduce((sum, addonId) => {
-          const addon = addonsMap[addonId]
-          return sum + (addon?.price || 0)
-        }, 0)
-        itemPrice += addonsTotal
-      }
-      
-      // Add BYO customization prices if provided
-      if (optionsMap && item.selections) {
-        // Filter out special keys (_container, _size, _calculatedPrice)
-        const customizationSelections = Object.entries(item.selections)
-          .filter(([key]) => !key.startsWith('_'))
-          .flatMap(([, values]) => values)
-        
-        const customizationTotal = customizationSelections.reduce((sum, optionId) => {
-          const option = optionsMap[optionId]
-          return sum + (option?.price || 0)
-        }, 0)
-        itemPrice += customizationTotal
-        console.log('💰 Customization total for', item.productId, ':', customizationTotal)
-      }
-      
-      return total + (itemPrice * item.quantity)
+      // ✅ Using calculateCartItemPrice from priceCalculator
+      return total + calculateCartItemPrice(
+        product.price,
+        item.selections as any,
+        item.selectedAddons,
+        addonsMap as any,
+        optionsMap as any,
+        item.quantity
+      )
     }, 0)
   }, [cart])
 

@@ -4,19 +4,17 @@ import {
   getProductConfiguration,
   ProductConfiguration
 } from '@/lib/api'
+import {
+  createEmptyNutrition,
+  addNutrition,
+  multiplyNutrition,
+  calculateEnergyData,
+  type NutritionValues
+} from '@/lib/utils/nutritionCalculator'
 
 interface UseProductConfigurationProps {
   productId: string | null
   isOpen: boolean
-}
-
-interface NutritionTotals {
-  calories: number
-  protein: number
-  carbs: number
-  sugar: number
-  fat: number
-  fiber: number
 }
 
 export function useProductConfiguration({ productId, isOpen }: UseProductConfigurationProps) {
@@ -113,6 +111,7 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
   }, [])
 
   // Calculate customization total and selected options
+  // ✅ Using nutritionCalculator for consistent calculations
   const customizationData = useMemo(() => {
     if (!config?.hasCustomization || !config.customizationRules) {
       return { total: 0, selectedOptions: [], nutrition: createEmptyNutrition() }
@@ -125,9 +124,9 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
       price: number
       groupId: string
       groupIcon?: string
-      nutrition?: NutritionTotals
+      nutrition?: NutritionValues
     }> = []
-    const nutrition = createEmptyNutrition()
+    let nutrition = createEmptyNutrition()
 
     config.customizationRules.forEach(group => {
       const groupSelections = selections[group.groupId] || []
@@ -145,14 +144,9 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
             nutrition: option.nutrition
           })
 
-          // Add nutrition
+          // ✅ Using addNutrition from nutritionCalculator
           if (option.nutrition) {
-            nutrition.calories += option.nutrition.calories || 0
-            nutrition.protein += option.nutrition.protein || 0
-            nutrition.carbs += option.nutrition.carbs || 0
-            nutrition.sugar += option.nutrition.sugar || 0
-            nutrition.fat += option.nutrition.fat || 0
-            nutrition.fiber += option.nutrition.fiber || 0
+            nutrition = addNutrition(nutrition, option.nutrition)
           }
         }
       })
@@ -170,27 +164,19 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
   })
 
   // Calculate total nutrition (container + customizations × size multiplier)
+  // ✅ Using nutritionCalculator for consistent calculations
   const totalNutrition = useMemo(() => {
-    const nutrition = createEmptyNutrition()
     const multiplier = sizeObj?.nutritionMultiplier || 1
 
-    // Add container nutrition
+    // Start with container nutrition (not affected by size)
+    let nutrition = createEmptyNutrition()
     if (containerObj?.nutrition) {
-      nutrition.calories += containerObj.nutrition.calories || 0
-      nutrition.protein += containerObj.nutrition.protein || 0
-      nutrition.carbs += containerObj.nutrition.carbs || 0
-      nutrition.sugar += containerObj.nutrition.sugar || 0
-      nutrition.fat += containerObj.nutrition.fat || 0
-      nutrition.fiber += containerObj.nutrition.fiber || 0
+      nutrition = addNutrition(nutrition, containerObj.nutrition)
     }
 
     // Add customization nutrition × size multiplier
-    nutrition.calories += Math.round(customizationData.nutrition.calories * multiplier)
-    nutrition.protein += Math.round(customizationData.nutrition.protein * multiplier * 10) / 10
-    nutrition.carbs += Math.round(customizationData.nutrition.carbs * multiplier)
-    nutrition.sugar += Math.round(customizationData.nutrition.sugar * multiplier)
-    nutrition.fat += Math.round(customizationData.nutrition.fat * multiplier * 10) / 10
-    nutrition.fiber += Math.round(customizationData.nutrition.fiber * multiplier * 10) / 10
+    const scaledCustomization = multiplyNutrition(customizationData.nutrition, multiplier)
+    nutrition = addNutrition(nutrition, scaledCustomization)
 
     return nutrition
   }, [containerObj, customizationData.nutrition, sizeObj])
@@ -243,29 +229,9 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
   }, [config, selections])
 
   // Calculate energy data based on total nutrition
+  // ✅ Using calculateEnergyData from nutritionCalculator
   const energyData = useMemo(() => {
-    const totalProtein = totalNutrition.protein
-    const totalSugar = totalNutrition.sugar
-    const totalCalories = totalNutrition.calories
-
-    let energyType = 'balanced'
-    let energyScore = 50
-
-    // High Protein (> 15g) -> Physical (Muscle)
-    // High Sugar (> 25g) -> Mental (Quick Energy)
-    // Balanced -> Balanced
-    if (totalProtein > 15) {
-      energyType = 'physical'
-      energyScore = Math.min(95, 60 + (totalProtein * 1.5))
-    } else if (totalSugar > 25) {
-      energyType = 'mental'
-      energyScore = Math.min(90, 50 + (totalSugar * 1.2))
-    } else {
-      energyType = 'balanced'
-      energyScore = Math.min(85, 40 + (totalCalories / 10))
-    }
-
-    return { energyType, energyScore: Math.round(energyScore) }
+    return calculateEnergyData(totalNutrition)
   }, [totalNutrition])
 
   return {
@@ -308,6 +274,4 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
   }
 }
 
-function createEmptyNutrition(): NutritionTotals {
-  return { calories: 0, protein: 0, carbs: 0, sugar: 0, fat: 0, fiber: 0 }
-}
+// ✅ createEmptyNutrition is now imported from nutritionCalculator
