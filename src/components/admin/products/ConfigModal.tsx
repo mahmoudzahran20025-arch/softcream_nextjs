@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Settings, Sparkles, Ruler, Plus, Trash2, Save, Box, Check } from 'lucide-react';
-import { getBYOOptions, updateProductCustomization, type BYOOptionGroup } from '@/lib/adminApi';
+import { getBYOOptions, updateProductCustomization, type BYOOptionGroup } from '@/lib/admin';
 import type { ConfigModalProps } from './types';
 import { PRODUCT_TYPES } from './types';
 

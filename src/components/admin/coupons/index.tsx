@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Tag } from 'lucide-react';
-import type { Coupon } from '@/lib/adminApi';
+import type { Coupon } from '@/lib/admin';
 import { adminRealtime } from '@/lib/adminRealtime';
 import type { CouponsPageProps } from './types';
 import CouponCard from './CouponCard';

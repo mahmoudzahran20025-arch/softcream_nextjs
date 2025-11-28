@@ -3,15 +3,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Plus } from 'lucide-react';
-import type { Product } from '@/lib/adminApi';
 import { 
   getProducts, 
   createProduct, 
   updateProduct, 
   deleteProduct, 
   getProductConfiguration, 
-  updateProductCustomization 
-} from '@/lib/adminApi';
+  updateProductCustomization,
+  type Product 
+} from '@/lib/admin';
 import type { ProductsPageProps, ProductFormData, ProductConfig } from './types';
 import ProductCard from './ProductCard';
 import ProductForm from './ProductForm';
@@ -184,37 +184,37 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">المنتجات</h1>
-          <p className="text-gray-600 mt-1">إدارة المنتجات والأسعار</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">المنتجات</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-0.5 sm:mt-1">إدارة المنتجات والأسعار</p>
         </div>
         <button
           onClick={() => {
             setEditingProduct(null);
             setShowCreateModal(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-sm sm:text-base w-full sm:w-auto justify-center"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           <span>إضافة منتج</span>
         </button>
       </div>
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
         <input
           type="text"
           placeholder="البحث عن منتج..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pr-10 pl-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+          className="w-full pr-10 pl-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base"
         />
       </div>
 
-      {/* Products Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Products Grid - Responsive */}
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
         {filteredProducts.map((product) => (
           <ProductCard
             key={product.id}
@@ -226,6 +226,19 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
           />
         ))}
       </div>
+
+      {/* Empty State */}
+      {filteredProducts.length === 0 && !isLoading && (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Search size={24} className="text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-700">لا توجد منتجات</h3>
+          <p className="text-gray-500 mt-1">
+            {searchQuery ? 'جرب البحث بكلمات مختلفة' : 'أضف منتجات جديدة للبدء'}
+          </p>
+        </div>
+      )}
 
       {/* Modals */}
       <ProductForm

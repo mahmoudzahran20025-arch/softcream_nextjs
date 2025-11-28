@@ -1,15 +1,16 @@
 // src/app/admin/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { 
   getOrders, 
   getCoupons, 
   getTodayStats,
+  getAdminToken,
   type Order,
   type Coupon
-} from '@/lib/adminApi';
+} from '@/lib/admin';
 import { adminRealtime } from '@/lib/adminRealtime';
 
 // Dynamic import to avoid SSR issues
@@ -27,6 +28,7 @@ const AdminApp = dynamic(() => import('@/components/admin/AdminApp'), {
 
 export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState({
     orders: [] as Order[],
@@ -35,66 +37,7 @@ export default function AdminPage() {
     analytics: null as any
   });
 
-  useEffect(() => {
-    loadInitialData();
-    
-    // Setup real-time manager for all data including orders
-    adminRealtime().on('orders', (newOrders: any) => {
-      setData(prev => ({
-        ...prev,
-        orders: newOrders
-      }));
-    });
-
-    adminRealtime().on('stats', (newStats: any) => {
-      setData(prev => ({
-        ...prev,
-        stats: newStats
-      }));
-    });
-
-    adminRealtime().on('coupons', (newCoupons: any) => {
-      setData(prev => ({
-        ...prev,
-        coupons: newCoupons
-      }));
-    });
-
-    adminRealtime().on('analytics', (newAnalytics: any) => {
-      setData(prev => ({
-        ...prev,
-        analytics: newAnalytics
-      }));
-    });
-
-    // ✅ NEW: Listen to client-side order updates (from EditOrderModal, etc.)
-    const handleOrdersUpdated = (event: any) => {
-      const { orderId, action } = event.detail || {};
-      console.log(`📢 Admin: Order ${orderId} ${action} - refreshing data`);
-      loadInitialData(); // Reload all orders
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('ordersUpdated', handleOrdersUpdated);
-    }
-
-    // ✅ OPTIMIZED: Auto-refresh every 2 minutes (reduced load)
-    // Only refresh orders (most dynamic data), not everything
-    const refreshInterval = setInterval(() => {
-      console.log('🔄 Auto-refreshing orders...');
-      refreshOrders(); // Only refresh orders, not all data
-    }, 120000); // 120 seconds (2 minutes)
-
-    return () => {
-      clearInterval(refreshInterval);
-      adminRealtime().stopAll();
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('ordersUpdated', handleOrdersUpdated);
-      }
-    };
-  }, []);
-
-  async function loadInitialData() {
+  const loadInitialData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -134,10 +77,9 @@ export default function AdminPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
 
-  // Granular refresh functions
-  async function refreshOrders() {
+  const refreshOrders = useCallback(async () => {
     try {
       const ordersRes = await getOrders({ limit: 50 });
       setData(prev => ({
@@ -147,9 +89,9 @@ export default function AdminPage() {
     } catch (err) {
       console.error('Failed to refresh orders:', err);
     }
-  }
+  }, []);
 
-  async function refreshCoupons() {
+  const refreshCoupons = useCallback(async () => {
     try {
       const couponsRes = await getCoupons();
       setData(prev => ({
@@ -159,9 +101,9 @@ export default function AdminPage() {
     } catch (err) {
       console.error('Failed to refresh coupons:', err);
     }
-  }
+  }, []);
 
-  async function refreshStats() {
+  const refreshStats = useCallback(async () => {
     try {
       const statsRes = await getTodayStats();
       setData(prev => ({
@@ -171,7 +113,86 @@ export default function AdminPage() {
     } catch (err) {
       console.error('Failed to refresh stats:', err);
     }
-  }
+  }, []);
+
+  // Check authentication first before loading data
+  useEffect(() => {
+    const token = getAdminToken();
+    const hasToken = !!token;
+    setIsAuthenticated(hasToken);
+    
+    // Only load data if authenticated
+    if (hasToken) {
+      loadInitialData();
+    } else {
+      setIsLoading(false);
+    }
+  }, [loadInitialData]);
+
+  // Setup real-time updates and event listeners (only when authenticated)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Setup real-time manager for all data including orders
+    adminRealtime().on('orders', (newOrders: any) => {
+      setData(prev => ({
+        ...prev,
+        orders: newOrders
+      }));
+    });
+
+    adminRealtime().on('stats', (newStats: any) => {
+      setData(prev => ({
+        ...prev,
+        stats: newStats
+      }));
+    });
+
+    adminRealtime().on('coupons', (newCoupons: any) => {
+      setData(prev => ({
+        ...prev,
+        coupons: newCoupons
+      }));
+    });
+
+    adminRealtime().on('analytics', (newAnalytics: any) => {
+      setData(prev => ({
+        ...prev,
+        analytics: newAnalytics
+      }));
+    });
+
+    // Listen to client-side order updates (from EditOrderModal, etc.)
+    const handleOrdersUpdated = (event: any) => {
+      const { orderId, action } = event.detail || {};
+      console.log(`📢 Admin: Order ${orderId} ${action} - refreshing data`);
+      loadInitialData();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('ordersUpdated', handleOrdersUpdated);
+    }
+
+    // Auto-refresh every 2 minutes (reduced load)
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing orders...');
+      refreshOrders();
+    }, 120000);
+
+    return () => {
+      clearInterval(refreshInterval);
+      adminRealtime().stopAll();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('ordersUpdated', handleOrdersUpdated);
+      }
+    };
+  }, [isAuthenticated, loadInitialData, refreshOrders]);
+
+  // Handle login from AdminApp
+  const handleAuthenticated = useCallback(() => {
+    setIsAuthenticated(true);
+    loadInitialData();
+  }, [loadInitialData]);
 
   if (error && !isLoading) {
     return (
@@ -195,7 +216,7 @@ export default function AdminPage() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading && isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
         <div className="text-center">
@@ -217,6 +238,7 @@ export default function AdminPage() {
       onRefreshOrders={refreshOrders}
       onRefreshCoupons={refreshCoupons}
       onRefreshStats={refreshStats}
+      onAuthenticated={handleAuthenticated}
     />
   );
 }

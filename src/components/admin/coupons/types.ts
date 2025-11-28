@@ -1,5 +1,5 @@
 // src/components/admin/coupons/types.ts
-import type { Coupon } from '@/lib/adminApi';
+import type { Coupon } from '@/lib/admin';
 
 export interface CouponsPageProps {
   coupons: Coupon[];

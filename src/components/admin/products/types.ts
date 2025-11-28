@@ -1,5 +1,5 @@
 // src/components/admin/products/types.ts
-import type { Product } from '@/lib/adminApi';
+import type { Product } from '@/lib/admin';
 
 export interface ProductsPageProps {
   onRefresh?: () => void;

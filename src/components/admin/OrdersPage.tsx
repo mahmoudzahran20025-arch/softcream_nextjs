@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Download, Package, User, Phone, MapPin, Clock, Eye } from 'lucide-react';
-import type { Order } from '@/lib/adminApi';
+import type { Order } from '@/lib/admin';
 import { StatusManager } from '@/lib/orderTracking';
 
 interface OrdersPageProps {

@@ -142,6 +142,8 @@ export async function updateProductCustomization(productId: string, data: {
   is_customizable?: boolean
   product_type?: string
   customization_rules?: any[]
+  containers?: { container_id: string; is_default?: boolean }[]
+  sizes?: { size_id: string; is_default?: boolean }[]
 }): Promise<{
   success: boolean
   message: string

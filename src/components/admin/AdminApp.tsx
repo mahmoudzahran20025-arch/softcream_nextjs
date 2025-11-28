@@ -11,7 +11,7 @@ import {
   type Order,
   type Coupon,
   type Product 
-} from '@/lib/adminApi';
+} from '@/lib/admin';
 
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -34,6 +34,7 @@ interface AdminAppProps {
   onRefreshOrders?: () => Promise<void>;
   onRefreshCoupons?: () => Promise<void>;
   onRefreshStats?: () => Promise<void>;
+  onAuthenticated?: () => void;
 }
 
 const AdminApp: React.FC<AdminAppProps> = ({ 
@@ -41,7 +42,8 @@ const AdminApp: React.FC<AdminAppProps> = ({
   onRefresh,
   onRefreshOrders,
   onRefreshCoupons,
-  onRefreshStats
+  onRefreshStats,
+  onAuthenticated
 }) => {
   const [activeTab, setActiveTab] = useState('orders');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -79,6 +81,10 @@ const AdminApp: React.FC<AdminAppProps> = ({
 
   const handleLogin = (_token: string) => {
     setIsAuthenticated(true);
+    // Notify parent to load data now that we're authenticated
+    if (onAuthenticated) {
+      onAuthenticated();
+    }
   };
 
   const handleLogout = () => {
@@ -178,7 +184,7 @@ const AdminApp: React.FC<AdminAppProps> = ({
 
   const handleUpdateCoupon = async (code: string, data: any) => {
     try {
-      const { updateCoupon } = await import('@/lib/adminApi');
+      const { updateCoupon } = await import('@/lib/admin');
       const result = await updateCoupon(code, data);
       
       if (result.success) {
@@ -201,7 +207,7 @@ const AdminApp: React.FC<AdminAppProps> = ({
 
   const handleDeleteCoupon = async (code: string) => {
     try {
-      const { deleteCoupon } = await import('@/lib/adminApi');
+      const { deleteCoupon } = await import('@/lib/admin');
       const result = await deleteCoupon(code);
       
       if (result.success) {
@@ -250,15 +256,17 @@ const AdminApp: React.FC<AdminAppProps> = ({
         onRefreshStats={onRefreshStats}
       />
       
-      <div className="flex">
+      <div className="flex relative">
         <Sidebar 
           sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           stats={stats}
         />
         
-        <main className="flex-1 p-6">
+        {/* Main Content - Full width on mobile */}
+        <main className="flex-1 p-3 sm:p-4 md:p-6 min-w-0 w-full">
           {activeTab === 'dashboard' && (
             <DashboardPage stats={stats} orders={orders} />
           )}

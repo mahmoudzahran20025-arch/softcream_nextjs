@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { getCouponStats } from '@/lib/adminApi';
+import { getCouponStats } from '@/lib/admin';
 import type { StatsModalProps, CouponStats } from './types';
 
 const StatsModal: React.FC<StatsModalProps> = ({ code, onClose }) => {

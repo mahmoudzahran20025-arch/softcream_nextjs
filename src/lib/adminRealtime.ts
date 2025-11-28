@@ -1,3 +1,16 @@
+/**
+ * ⚠️ DEPRECATED / غير مفعل حالياً
+ * 
+ * هذا الملف يحتوي على نظام Real-time updates للـ Admin Dashboard
+ * لكنه معقد جداً (over-engineered) ويسبب requests كثيرة.
+ * 
+ * الحل الحالي: استخدام manual refresh بدلاً من auto-polling
+ * 
+ * TODO: إما حذف هذا الملف أو تبسيطه لاستخدام WebSocket بدلاً من polling
+ * 
+ * @deprecated Use manual refresh instead of auto-polling
+ */
+
 import { 
   getOrders,
   getTodayStats, 
@@ -5,11 +18,11 @@ import {
   getCoupons,
   getBatchData,
   smartPolling,
-  BatchDataRequest
-} from './adminApi';
+  type BatchDataRequest
+} from './admin';
 
 // ===========================
-// SSE Manager
+// SSE Manager (NOT ACTIVE - SSE endpoint not implemented in backend)
 // ===========================
 
 class SSEManager {

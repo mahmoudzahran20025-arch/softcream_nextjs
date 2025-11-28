@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { DollarSign, Calendar, ShoppingCart } from 'lucide-react';
-import { getDashboardAnalytics, getSalesByPeriod, type DashboardAnalytics } from '@/lib/adminApi';
+import { getDashboardAnalytics, getSalesByPeriod, type DashboardAnalytics } from '@/lib/admin';
 
 const AnalyticsPage: React.FC = () => {
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);

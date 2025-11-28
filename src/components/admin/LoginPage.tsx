@@ -4,7 +4,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { setAdminToken } from '@/lib/adminApi';
+import { setAdminToken } from '@/lib/admin';
 
 interface LoginPageProps {
   onLogin: (token: string) => void;
