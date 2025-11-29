@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Check } from 'lucide-react'
+import { Check, Circle } from 'lucide-react'
 import { ProductSize } from '@/lib/api'
 
 interface SizeSelectorProps {
@@ -10,16 +10,24 @@ interface SizeSelectorProps {
   onSelect: (sizeId: string) => void
   basePrice: number
   showPriceAsTotal?: boolean
-  showHeader?: boolean // Option to hide header if parent provides one
+  showHeader?: boolean
+}
+
+// Size scale factor for visual representation
+const getSizeScale = (name: string, index: number, total: number): number => {
+  const lower = name.toLowerCase()
+  if (lower.includes('صغير') || lower.includes('small') || lower.includes('mini')) return 0.7
+  if (lower.includes('كبير') || lower.includes('large') || lower.includes('big')) return 1.1
+  if (lower.includes('عائلي') || lower.includes('family') || lower.includes('xl')) return 1.3
+  // Default: scale based on position
+  return 0.7 + (index / Math.max(total - 1, 1)) * 0.6
 }
 
 export default function SizeSelector({
   sizes,
   selectedSize,
   onSelect,
-  basePrice,
-  showPriceAsTotal = false,
-  showHeader = false // Default: no header (parent handles it)
+  basePrice
 }: SizeSelectorProps) {
   if (!sizes || sizes.length === 0) return null
   if (sizes.length === 1) return null
@@ -30,19 +38,12 @@ export default function SizeSelector({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-2"
     >
-      {/* Optional Header - only if showHeader is true */}
-      {showHeader && (
-        <h4 className="font-semibold text-slate-700 dark:text-slate-300 text-sm">
-          اختر المقاس
-        </h4>
-      )}
-
-      {/* Size Options - Clean horizontal layout */}
-      <div className="flex gap-2">
+      {/* Compact Horizontal Layout */}
+      <div className="flex gap-2 justify-center">
         {sizes.map((size, index) => {
           const isSelected = selectedSize === size.id
           const finalPrice = basePrice + size.priceModifier
-          const displayPrice = showPriceAsTotal ? size.priceModifier : finalPrice
+          const scale = getSizeScale(size.name, index, sizes.length)
 
           return (
             <motion.button
@@ -50,14 +51,14 @@ export default function SizeSelector({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.05 }}
-              whileHover={{ scale: 1.03, y: -2 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => onSelect(size.id)}
               className={`
-                relative flex-1 p-3 rounded-2xl border-2 transition-all duration-200 text-center
+                relative flex-1 max-w-[120px] py-3 px-2 rounded-xl border-2 transition-all duration-200 text-center
                 ${isSelected
-                  ? 'border-pink-500 bg-gradient-to-br from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-500/30'
-                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-pink-300 dark:hover:border-pink-700 hover:shadow-md'
+                  ? 'border-pink-500 bg-gradient-to-br from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-500/25'
+                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:border-pink-300 dark:hover:border-pink-700'
                 }
               `}
             >
@@ -72,26 +73,33 @@ export default function SizeSelector({
                 </motion.div>
               )}
 
+              {/* Size Icon - Scaled Circle */}
+              <div className="flex justify-center mb-1.5">
+                <Circle 
+                  className={`transition-all ${
+                    isSelected ? 'text-white fill-white/20' : 'text-slate-300 dark:text-slate-600'
+                  }`}
+                  style={{ 
+                    width: `${18 * scale}px`, 
+                    height: `${18 * scale}px` 
+                  }}
+                  strokeWidth={2}
+                />
+              </div>
+
               {/* Size Name */}
-              <div className={`font-bold text-sm ${
-                isSelected ? 'text-white' : 'text-slate-900 dark:text-white'
+              <div className={`text-xs font-bold mb-0.5 ${
+                isSelected ? 'text-white' : 'text-slate-700 dark:text-slate-300'
               }`}>
                 {size.name}
               </div>
 
               {/* Price */}
-              <div className={`text-xs mt-1 font-medium ${
-                isSelected ? 'text-white/80' : 'text-pink-600 dark:text-pink-400'
+              <div className={`text-sm font-bold ${
+                isSelected ? 'text-white' : 'text-pink-600 dark:text-pink-400'
               }`}>
-                {showPriceAsTotal ? (
-                  <span>{displayPrice} ج.م</span>
-                ) : (
-                  size.priceModifier > 0 ? (
-                    <span>+{size.priceModifier} ج.م</span>
-                  ) : (
-                    <span>{finalPrice} ج.م</span>
-                  )
-                )}
+                {finalPrice}
+                <span className="text-[10px] mr-0.5 opacity-80">ج.م</span>
               </div>
             </motion.button>
           )

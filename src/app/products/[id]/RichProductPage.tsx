@@ -234,7 +234,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
                 <ProductHeader
                   product={displayProduct}
                   displayPrice={
-                    (productConfig.hasContainers || productConfig.hasSizes)
+                    (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                       ? productConfig.totalPrice
                       : ((displayProduct?.is_customizable === 1) ? customization.totalPrice : undefined)
                   }
@@ -254,7 +254,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
                 />
 
                 {/* Product Template System - Dynamic based on product type */}
-                {(displayProduct?.is_customizable === 1 || productConfig.hasContainers || productConfig.hasSizes) ? (
+                {(displayProduct?.is_customizable === 1 || productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization) ? (
                   <ProductTemplateRenderer
                     product={displayProduct}
                     productConfig={productConfig}
@@ -277,39 +277,39 @@ function RichProductPageContent({ product, allProducts }: Props) {
                     onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
                     onAddToCart={handleAddToCart}
                     totalPrice={
-                      (productConfig.hasContainers || productConfig.hasSizes)
+                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                         ? productConfig.totalPrice * quantity
                         : ((displayProduct?.is_customizable === 1) ? customization.totalPrice * quantity : totalPrice)
                     }
                     basePrice={
-                      (productConfig.hasContainers || productConfig.hasSizes)
+                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                         ? (productConfig.config?.product.basePrice || displayProduct.price)
                         : displayProduct.price
                     }
                     addonsPrice={
-                      (productConfig.hasContainers || productConfig.hasSizes)
+                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                         ? (productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal
                         : ((displayProduct?.is_customizable === 1) ? customization.customizationTotal : addonsTotal)
                     }
                     selectedAddonsCount={
-                      (productConfig.hasContainers || productConfig.hasSizes)
+                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                         ? productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)
                         : ((displayProduct?.is_customizable === 1) ? customization.selectedOptions.length : selectedAddons.length)
                     }
                     selectedOptions={
-                      (productConfig.hasContainers || productConfig.hasSizes)
+                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                         ? productConfig.selectedOptions
                         : customization.selectedOptions
                     }
                     containerName={productConfig.containerObj?.name}
                     sizeName={productConfig.sizeObj?.name}
                     isValid={
-                      (productConfig.hasContainers || productConfig.hasSizes)
+                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                         ? productConfig.validationResult.isValid
                         : (customization.isCustomizable ? customization.validationResult.isValid : true)
                     }
                     validationMessage={
-                      (productConfig.hasContainers || productConfig.hasSizes)
+                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                         ? productConfig.validationResult.errors[0]
                         : (customization.isCustomizable ? customization.validationResult.errors[0] : undefined)
                     }

@@ -230,7 +230,7 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
               <StickyMiniHeader
                 productName={displayProduct.name}
                 totalPrice={
-                  (productConfig.hasContainers || productConfig.hasSizes)
+                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                     ? productConfig.totalPrice * quantity
                     : (customization.isCustomizable ? customization.totalPrice * quantity : totalPrice)
                 }
@@ -265,7 +265,7 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                 />
 
                 {/* Product Template System - Dynamic based on product type */}
-                {(product?.is_customizable === 1 || displayProduct?.is_customizable === 1 || productConfig.hasContainers || productConfig.hasSizes) ? (
+                {(product?.is_customizable === 1 || displayProduct?.is_customizable === 1 || productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization) ? (
                   <ProductTemplateRenderer
                     product={displayProduct}
                     productConfig={productConfig}
@@ -322,41 +322,41 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                 onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
                 onAddToCart={handleAddToCart}
                 totalPrice={
-                  // Use productConfig if it has containers OR sizes
-                  (productConfig.hasContainers || productConfig.hasSizes)
+                  // Use productConfig if it has containers OR sizes OR customization
+                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                     ? productConfig.totalPrice * quantity
                     : (customization.isCustomizable ? customization.totalPrice * quantity : totalPrice)
                 }
                 basePrice={
                   // For BYO products, base price is 0 and size contains the price
-                  (productConfig.hasContainers || productConfig.hasSizes)
+                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                     ? (productConfig.config?.product.basePrice || displayProduct.price)
                     : displayProduct.price
                 }
                 addonsPrice={
-                  (productConfig.hasContainers || productConfig.hasSizes)
+                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                     ? (productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal
                     : (customization.isCustomizable ? customization.customizationTotal : addonsTotal)
                 }
                 selectedAddonsCount={
-                  (productConfig.hasContainers || productConfig.hasSizes)
+                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                     ? productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)
                     : (customization.isCustomizable ? customization.selectedOptions.length : selectedAddons.length)
                 }
                 selectedOptions={
-                  (productConfig.hasContainers || productConfig.hasSizes)
+                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                     ? productConfig.selectedOptions
                     : customization.selectedOptions
                 }
                 containerName={productConfig.containerObj?.name}
                 sizeName={productConfig.sizeObj?.name}
                 isValid={
-                  (productConfig.hasContainers || productConfig.hasSizes)
+                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                     ? productConfig.validationResult.isValid
                     : (customization.isCustomizable ? customization.validationResult.isValid : true)
                 }
                 validationMessage={
-                  (productConfig.hasContainers || productConfig.hasSizes)
+                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                     ? productConfig.validationResult.errors[0]
                     : (customization.isCustomizable ? customization.validationResult.errors[0] : undefined)
                 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, Sparkles, Star } from 'lucide-react'
+import { Check, Sparkles } from 'lucide-react'
 import SizeSelector from '../SizeSelector'
 import { OptionsGrid } from './shared'
 
@@ -58,7 +58,7 @@ export default function PresetTemplate({
       animate={{ opacity: 1 }}
       className="space-y-5"
     >
-      {/* Preset Badge - Shows this is a ready-made flavor */}
+      {/* Preset Badge - Optional marketing message (currently hidden)
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -69,6 +69,7 @@ export default function PresetTemplate({
           نكهة جاهزة - فقط اختر الحجم!
         </span>
       </motion.div>
+      */}
 
       {/* Size Selection */}
       {hasSizes && (
