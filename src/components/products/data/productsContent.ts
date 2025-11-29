@@ -148,34 +148,29 @@ export const nutritionHighlights: NutritionHighlight[] = [
 
 // BYO Showcase Content
 export const byoShowcase = {
-    title: '✨ صمم منتجك الخاص',
-    subtitle: 'Build Your Own Experience',
-    description: 'تحكم كامل في كل التفاصيل - من الحاوية إلى آخر إضافة',
+    title: 'إبداعك.. في كل تفصيلة',
+    subtitle: 'Your Masterpiece',
+    description: 'لأن ذوقك فريد، نمنحك الحرية الكاملة لتكوين مزيجك المثالي. ابدأ باختيار الأساس، وانطلق في رحلة من النكهات التي لا تنتهي.',
     features: [
         {
-            icon: 'Coffee',
-            title: 'اختر الحاوية',
-            description: 'كوب، كون، أو وعاء'
-        },
-        {
-            icon: 'Ruler',
-            title: 'حدد المقاس',
-            description: 'صغير، وسط، أو كبير'
+            icon: 'Cookie', // Changed from Coffee to Cookie/Dessert icon concept
+            title: 'اختر أساس سعادتك',
+            description: 'وافل ذهبي، كريب فرنسي، أو براونيز غني'
         },
         {
             icon: 'IceCream',
-            title: 'اختر النكهات',
-            description: '20+ نكهة طبيعية'
+            title: 'قلب النكهة',
+            description: 'آيس كريم طبيعي، فواكه طازجة، أو زبادي'
         },
         {
-            icon: 'Droplet',
-            title: 'أضف الصوصات',
-            description: 'صوصات وتوبينجز متنوعة'
+            icon: 'Sparkles', // Changed from Droplet to Sparkles for "Final Touch"
+            title: 'لمسة السحر الأخيرة',
+            description: 'صوصات بلجيكية، مكسرات محمصة، وإضافات مقرمشة'
         }
     ],
     stats: {
         flavors: '20+',
-        combinations: '1000+',
+        combinations: '∞',
         avgRating: '4.9'
     },
     ctaText: 'ابدأ التصميم الآن',

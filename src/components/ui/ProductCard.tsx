@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useCart } from '@/providers/CartProvider'
-import { ShoppingCart, Sparkles, Brain, Activity, Zap } from 'lucide-react'
+import { ShoppingCart, Sparkles, Brain, Activity, Zap, Palette } from 'lucide-react'
 import Image from 'next/image'
 import QuantitySelector from './common/QuantitySelector'
 import PriceDisplay from './common/PriceDisplay'
@@ -29,6 +29,9 @@ interface Product {
   energy_score?: number
   badge?: string
   allowed_addons?: string
+  is_customizable?: number
+  has_containers?: number
+  has_sizes?: number
 }
 
 interface ProductCardProps {
@@ -41,6 +44,19 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
 
+  // Check if product is BYO (Build Your Own)
+  const isBYO = useMemo(() => {
+    // Check direct flags
+    if (product.has_containers === 1 || product.has_sizes === 1) return true
+    // Check category name
+    const category = product.category?.toLowerCase() || ''
+    if (category.includes('custom') || category.includes('byo') || category.includes('صمم')) return true
+    // Check product name
+    const name = product.name?.toLowerCase() || ''
+    if (name.includes('custom') || name.includes('صمم') || name.includes('كاستم')) return true
+    return false
+  }, [product])
+
   // Check if product has addons
   const hasAddons = useMemo(() => {
     if (!product.allowed_addons) return false
@@ -52,9 +68,21 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
     }
   }, [product.allowed_addons])
 
+  // Check if product is customizable (has customization options)
+  const isCustomizable = product.is_customizable === 1 || isBYO || hasAddons
+
   // Build rotating info texts with colors
   const infoTexts = useMemo(() => {
     const texts: Array<{ text: string; color: string; icon: string }> = []
+
+    // BYO products get special message first
+    if (isBYO) {
+      texts.push({
+        text: 'اختر النكهات والإضافات',
+        color: 'text-pink-600 dark:text-pink-400',
+        icon: '🎨'
+      })
+    }
 
     if (product.calories) {
       texts.push({
@@ -72,7 +100,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       })
     }
 
-    if (hasAddons) {
+    if (hasAddons && !isBYO) {
       texts.push({
         text: 'إضافات مميزة متاحة',
         color: 'text-purple-600 dark:text-purple-400',
@@ -97,11 +125,11 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
     }
 
     return texts
-  }, [product, hasAddons])
+  }, [product, hasAddons, isBYO])
 
   const { currentText: currentInfo, isTransitioning, currentIndex } = useRotatingText(
     infoTexts.map(t => t.text),
-    3000 // زودت الوقت من 2500 إلى 3000 عشان يكون أهدى
+    3000
   )
 
   const currentColor = infoTexts[currentIndex]?.color || 'text-slate-600'
@@ -140,12 +168,18 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault()
-    // Navigate to Rich Product Page
     window.location.href = `/products/${product.id}`
   }
 
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
+    
+    // If BYO product, redirect to product page instead of adding directly
+    if (isBYO) {
+      window.location.href = `/products/${product.id}`
+      return
+    }
+    
     setIsAdding(true)
     try {
       if (onAddToCart) {
@@ -165,7 +199,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       onClick={handleCardClick}
       style={{ willChange: 'box-shadow' }}
     >
-      {/* Image Container - Fixed Aspect Ratio for CLS Prevention */}
+      {/* Image Container */}
       <div className="relative w-full aspect-[4/5] bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-800 dark:to-slate-700 rounded-lg mb-3 overflow-hidden group">
         {product.image ? (
           <Image
@@ -182,12 +216,17 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
           </div>
         )}
 
-        {/* Badge */}
-        {product.badge && (
+        {/* Badge - BYO or Custom */}
+        {isBYO ? (
+          <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+            <Palette size={12} />
+            <span>صمم بنفسك</span>
+          </div>
+        ) : product.badge ? (
           <div className="absolute top-2 right-2 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
             {product.badge}
           </div>
-        )}
+        ) : null}
 
         {/* Energy Type Badge - Top Left */}
         {energyConfig && (
@@ -206,14 +245,14 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
           {product.name}
         </h3>
 
-        {/* Description - First line */}
+        {/* Description */}
         {product.description && (
           <p className="text-xs text-slate-600 dark:text-slate-400 mb-2 line-clamp-1">
             {product.description}
           </p>
         )}
 
-        {/* Rotating Info Text - Optimized to prevent scroll jitter */}
+        {/* Rotating Info Text */}
         <div className="min-h-[18px] mb-2 flex items-center gap-1 will-change-contents">
           <span className="text-sm flex-shrink-0">{currentIcon}</span>
           <p
@@ -233,12 +272,20 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
 
       {/* Price and Controls */}
       <div className="mt-auto pt-2 border-t border-slate-200 dark:border-slate-700">
-        {/* Price Row with Addons Badge */}
+        {/* Price Row */}
         <div className="flex items-center justify-between mb-2">
-          <PriceDisplay price={product.price} size="md" />
+          {/* Price - Show "يبدأ من" for BYO products */}
+          {isBYO ? (
+            <div className="flex items-baseline gap-1">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">يبدأ من</span>
+              <PriceDisplay price={product.price} size="md" />
+            </div>
+          ) : (
+            <PriceDisplay price={product.price} size="md" />
+          )}
 
-          {/* Addons Indicator - Subtle badge */}
-          {hasAddons && (
+          {/* Customizable Indicator */}
+          {isCustomizable && !isBYO && (
             <div className="bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-sm border border-purple-200 dark:border-purple-700">
               <Sparkles size={10} />
               <span>إضافات</span>
@@ -246,52 +293,66 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
           )}
         </div>
 
-        {/* Unified Footer - Two Rows */}
+        {/* Footer */}
         <div className="flex flex-col gap-1.5">
-          {/* Row 1: Quantity Selector (Full Width) */}
-          <div onClick={(e) => e.stopPropagation()}>
-            <QuantitySelector
-              quantity={quantity}
-              onIncrease={() => setQuantity(quantity + 1)}
-              onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
-              size="sm"
-            />
-          </div>
+          {/* Quantity Selector - Hide for BYO */}
+          {!isBYO && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <QuantitySelector
+                quantity={quantity}
+                onIncrease={() => setQuantity(quantity + 1)}
+                onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
+                size="sm"
+              />
+            </div>
+          )}
 
-          {/* Row 2: Cart Icon + Learn More */}
+          {/* Action Buttons */}
           <div className="flex items-center gap-1.5">
-            {/* Cart Icon Button */}
+            {/* Cart/Customize Button */}
             <button
               onClick={handleAddToCart}
               disabled={isAdding}
-              className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] hover:from-[#FF5A8E] hover:to-[#FF4979] text-white rounded-lg flex items-center justify-center transition-transform disabled:opacity-50 shadow-md hover:shadow-lg active:scale-[0.98]"
+              className={`flex-shrink-0 h-10 rounded-lg flex items-center justify-center transition-transform disabled:opacity-50 shadow-md hover:shadow-lg active:scale-[0.98] ${
+                isBYO 
+                  ? 'flex-1 gap-2 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white px-4'
+                  : 'w-10 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] hover:from-[#FF5A8E] hover:to-[#FF4979] text-white'
+              }`}
               style={{ willChange: 'transform' }}
-              aria-label="إضافة إلى السلة"
+              aria-label={isBYO ? 'صمم الآن' : 'إضافة إلى السلة'}
             >
-              <ShoppingCart size={18} strokeWidth={2.5} />
+              {isBYO ? (
+                <>
+                  <Palette size={18} strokeWidth={2.5} />
+                  <span className="text-sm font-bold">صمم الآن</span>
+                </>
+              ) : (
+                <ShoppingCart size={18} strokeWidth={2.5} />
+              )}
             </button>
 
-            {/* Learn More Button - Navigate to Rich Product Page */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                // Navigate to Rich Product Page
-                window.location.href = `/products/${product.id}`
-              }}
-              className="flex-1 py-2 text-xs font-bold text-[#FF6B9D] hover:text-white dark:text-[#FF6B9D] dark:hover:text-white flex items-center justify-center gap-1.5 transition-all duration-300 group hover:bg-gradient-to-r hover:from-[#FF6B9D] hover:to-[#FF5A8E] rounded-lg border border-[#FF6B9D]/30 hover:border-transparent"
-            >
-              <span className="group-hover:translate-x-0.5 transition-transform duration-300">
-                اعرف المزيد
-              </span>
-              <svg
-                className="w-3.5 h-3.5 group-hover:translate-x-[-2px] transition-transform duration-300"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            {/* Learn More Button - Only for non-BYO */}
+            {!isBYO && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  window.location.href = `/products/${product.id}`
+                }}
+                className="flex-1 py-2 text-xs font-bold text-[#FF6B9D] hover:text-white dark:text-[#FF6B9D] dark:hover:text-white flex items-center justify-center gap-1.5 transition-all duration-300 group hover:bg-gradient-to-r hover:from-[#FF6B9D] hover:to-[#FF5A8E] rounded-lg border border-[#FF6B9D]/30 hover:border-transparent"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+                <span className="group-hover:translate-x-0.5 transition-transform duration-300">
+                  اعرف المزيد
+                </span>
+                <svg
+                  className="w-3.5 h-3.5 group-hover:translate-x-[-2px] transition-transform duration-300"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </div>
