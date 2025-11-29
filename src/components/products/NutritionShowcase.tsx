@@ -89,8 +89,12 @@ export default function NutritionShowcase() {
                     </p>
                 </motion.div>
 
-                {/* Nutrition Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {/* Nutrition Grid - Mobile Carousel */}
+                <div className="
+                    grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8
+                    /* Mobile Carousel */
+                    max-sm:flex max-sm:overflow-x-auto max-sm:snap-x max-sm:snap-mandatory max-sm:pb-8 max-sm:-mx-4 max-sm:px-4 max-sm:scrollbar-hide
+                ">
                     {nutritionHighlights.map((item, index) => {
                         const IconComponent = iconMap[item.icon] || Zap
 
@@ -102,7 +106,7 @@ export default function NutritionShowcase() {
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.1 }}
                                 whileHover={{ y: -10, scale: 1.05 }}
-                                className="group"
+                                className="group max-sm:min-w-[280px] max-sm:snap-center"
                             >
                                 <div className="
                   relative bg-white dark:bg-slate-800 

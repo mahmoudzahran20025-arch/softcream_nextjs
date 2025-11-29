@@ -30,7 +30,7 @@ export interface NutritionHighlight {
     color: string
 }
 
-// 4 Marketing Story Cards - Stacked Style
+// 4 Marketing Story Cards - "Discover Quality" Section
 export const storyCards: StoryCardData[] = [
     {
         id: 'natural-ingredients',
@@ -48,7 +48,7 @@ export const storyCards: StoryCardData[] = [
         description: 'نستخدم محليات طبيعية بديلة تحافظ على المذاق الرائع مع تقليل السكريات المضافة. صحتك أولويتنا دون التضحية بالطعم اللذيذ.',
         gradientClass: 'bg-gradient-to-br from-pink-500 via-rose-500 to-purple-600',
         glowColor: 'shadow-pink-500/30',
-        iconName: 'Candy',
+        iconName: 'Candy', // Map to a candy/sweet icon
         iconColor: 'text-pink-100',
         textPosition: 'right'
     },
@@ -74,7 +74,7 @@ export const storyCards: StoryCardData[] = [
     }
 ]
 
-// Brand Values Grid (3 cards)
+// Brand Values Grid (Simple Badges)
 export const brandValues: BrandValue[] = [
     {
         id: 'natural',

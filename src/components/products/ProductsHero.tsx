@@ -140,13 +140,22 @@ export default function ProductsHero() {
                 </motion.div>
 
                 {/* Floating Ice Cream Icons */}
-                {[...Array(8)].map((_, i) => (
+                {[
+                    { top: '15%', left: '10%' },
+                    { top: '25%', left: '85%' },
+                    { top: '45%', left: '5%' },
+                    { top: '60%', left: '90%' },
+                    { top: '75%', left: '15%' },
+                    { top: '80%', left: '80%' },
+                    { top: '35%', left: '95%' },
+                    { top: '55%', left: '8%' }
+                ].map((position, i) => (
                     <motion.div
                         key={i}
                         className="absolute"
                         style={{
-                            top: `${Math.random() * 100}%`,
-                            left: `${Math.random() * 100}%`,
+                            top: position.top,
+                            left: position.left,
                         }}
                         animate={{
                             y: [0, -30, 0],
