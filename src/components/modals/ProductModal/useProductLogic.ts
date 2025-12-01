@@ -17,16 +17,14 @@ export function useProductLogic({ product, isOpen }: UseProductLogicProps) {
     queryFn: async () => {
       if (!product) throw new Error('No product')
       console.log(`🔄 Fetching product ${product.id} from API...`)
-      const result = await getProduct(product.id, { expand: ['addons', 'ingredients', 'allergens'] })
+      const result = await getProduct(product.id, { expand: ['options', 'ingredients', 'allergens'] })
       console.log(`✅ Product ${product.id} fetched successfully`)
       return result
     },
-    // ✅ FIX: Don't use initialData - always fetch to get addons
-    // initialData causes the query to think it has data and skips fetching
-    placeholderData: product || undefined, // Use placeholderData instead for optimistic UI
+    placeholderData: product || undefined,
     enabled: !!product && isOpen,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   })
 
   // Log cache status
@@ -54,20 +52,28 @@ export function useProductLogic({ product, isOpen }: UseProductLogicProps) {
     )
   }
 
-  // Calculate prices
-  const addons = displayProduct?.addonsList || []
-  const addonsTotal = selectedAddons.reduce((sum, addonId) => {
-    const addon = addons.find(a => a.id === addonId)
-    return sum + (addon?.price || 0)
-  }, 0)
-  const totalPrice = displayProduct ? (displayProduct.price + addonsTotal) * quantity : 0
+  // ✅ NEW: Use optionGroups instead of legacy addons
+  // Options are now fetched via expand=options and stored in optionGroups
+  const optionGroups = displayProduct?.optionGroups || []
+  
+  // Calculate total from selected options (legacy addons support removed)
+  const addonsTotal = 0 // Legacy - now handled by BYO system
+  const totalPrice = displayProduct ? displayProduct.price * quantity : 0
 
   // Parse JSON fields safely
-  const tags = displayProduct?.tags ? JSON.parse(displayProduct.tags) : []
-  const ingredients = displayProduct?.ingredientsList ||
-    (displayProduct?.ingredients ? JSON.parse(displayProduct.ingredients) : [])
-  const allergens = displayProduct?.allergensList ||
-    (displayProduct?.allergens ? JSON.parse(displayProduct.allergens) : [])
+  const parseJsonField = (field: string | string[] | undefined): string[] => {
+    if (!field) return []
+    if (Array.isArray(field)) return field
+    try {
+      return JSON.parse(field)
+    } catch {
+      return []
+    }
+  }
+
+  const tags = parseJsonField(displayProduct?.tags)
+  const ingredients = displayProduct?.ingredientsList || parseJsonField(displayProduct?.ingredients)
+  const allergens = displayProduct?.allergensList || parseJsonField(displayProduct?.allergens)
 
   return {
     displayProduct,
@@ -76,7 +82,8 @@ export function useProductLogic({ product, isOpen }: UseProductLogicProps) {
     setQuantity,
     selectedAddons,
     toggleAddon,
-    addons,
+    optionGroups, // ✅ NEW: Use this instead of addons
+    addons: [], // Legacy - kept for backward compatibility
     addonsTotal,
     totalPrice,
     tags,

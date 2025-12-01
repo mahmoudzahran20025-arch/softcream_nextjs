@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useCart } from '@/providers/CartProvider'
-import { ShoppingCart, Sparkles, Brain, Activity, Zap, Palette } from 'lucide-react'
-import Image from 'next/image'
-import QuantitySelector from './common/QuantitySelector'
-import PriceDisplay from './common/PriceDisplay'
-import { useRotatingText } from '@/hooks/useRotatingText'
+import { getCategoryConfig, type CategoryConfig } from '@/config/categories'
+import {
+  BYOProductCard,
+  StandardProductCard,
+  FeaturedProductCard,
+  CompactProductCard
+} from './cards'
 
 interface Product {
   id: string
@@ -15,6 +15,7 @@ interface Product {
   price: number
   image?: string
   category?: string
+  product_type?: string
   description?: string
   tags?: string
   ingredients?: string
@@ -30,332 +31,76 @@ interface Product {
   badge?: string
   allowed_addons?: string
   is_customizable?: number
-  has_containers?: number
-  has_sizes?: number
 }
 
 interface ProductCardProps {
   product: Product
   onAddToCart?: (product: Product, quantity: number) => void
+  forceCardType?: 'standard' | 'byo' | 'featured' | 'compact'
 }
 
-export default function ProductCard({ product, onAddToCart }: ProductCardProps) {
-  const { addToCart } = useCart()
-  const [quantity, setQuantity] = useState(1)
-  const [isAdding, setIsAdding] = useState(false)
+/**
+ * Smart ProductCard Component
+ * ===========================
+ * Automatically selects the appropriate card style based on product_type
+ * 
+ * Product Type → Card Type Mapping:
+ * - byo_ice_cream → BYOProductCard
+ * - preset_ice_cream → StandardProductCard (with customization)
+ * - milkshake → StandardProductCard
+ * - dessert → FeaturedProductCard
+ * - standard → CompactProductCard
+ */
+export default function ProductCard({ product, forceCardType }: ProductCardProps) {
+  // Determine card type from product_type (priority) or category (fallback)
+  const cardType = forceCardType || getCardTypeFromProduct(product)
+  
+  // Get category configuration for styling
+  const categoryConfig = getCategoryConfig(product.category, product.product_type)
 
-  // Check if product is BYO (Build Your Own)
-  const isBYO = useMemo(() => {
-    // Check direct flags
-    if (product.has_containers === 1 || product.has_sizes === 1) return true
-    // Check category name
-    const category = product.category?.toLowerCase() || ''
-    if (category.includes('custom') || category.includes('byo') || category.includes('صمم')) return true
-    // Check product name
-    const name = product.name?.toLowerCase() || ''
-    if (name.includes('custom') || name.includes('صمم') || name.includes('كاستم')) return true
-    return false
-  }, [product])
+  // Render appropriate card based on cardType
+  switch (cardType) {
+    case 'byo':
+      return <BYOProductCard product={product} config={categoryConfig} />
 
-  // Check if product has addons
-  const hasAddons = useMemo(() => {
-    if (!product.allowed_addons) return false
-    try {
-      const addons = JSON.parse(product.allowed_addons)
-      return Array.isArray(addons) && addons.length > 0
-    } catch {
-      return false
-    }
-  }, [product.allowed_addons])
+    case 'featured':
+      return <FeaturedProductCard product={product} config={categoryConfig} />
 
-  // Check if product is customizable (has customization options)
-  const isCustomizable = product.is_customizable === 1 || isBYO || hasAddons
+    case 'compact':
+      return <CompactProductCard product={product} config={categoryConfig} />
 
-  // Build rotating info texts with colors
-  const infoTexts = useMemo(() => {
-    const texts: Array<{ text: string; color: string; icon: string }> = []
-
-    // BYO products get special message first
-    if (isBYO) {
-      texts.push({
-        text: 'اختر النكهات والإضافات',
-        color: 'text-pink-600 dark:text-pink-400',
-        icon: '🎨'
-      })
-    }
-
-    if (product.calories) {
-      texts.push({
-        text: `${product.calories} سعرة حرارية`,
-        color: 'text-orange-600 dark:text-orange-400',
-        icon: '🔥'
-      })
-    }
-
-    if (product.protein && product.protein > 0) {
-      texts.push({
-        text: `${product.protein}g بروتين`,
-        color: 'text-blue-600 dark:text-blue-400',
-        icon: '💪'
-      })
-    }
-
-    if (hasAddons && !isBYO) {
-      texts.push({
-        text: 'إضافات مميزة متاحة',
-        color: 'text-purple-600 dark:text-purple-400',
-        icon: '✨'
-      })
-    }
-
-    if (product.energy_score && product.energy_score > 0) {
-      texts.push({
-        text: `طاقة ${product.energy_score}`,
-        color: 'text-yellow-600 dark:text-yellow-400',
-        icon: '⚡'
-      })
-    }
-
-    if (texts.length === 0) {
-      texts.push({
-        text: product.description || 'اضغط لعرض التفاصيل',
-        color: 'text-slate-600 dark:text-slate-400',
-        icon: '👆'
-      })
-    }
-
-    return texts
-  }, [product, hasAddons, isBYO])
-
-  const { currentText: currentInfo, isTransitioning, currentIndex } = useRotatingText(
-    infoTexts.map(t => t.text),
-    3000
-  )
-
-  const currentColor = infoTexts[currentIndex]?.color || 'text-slate-600'
-  const currentIcon = infoTexts[currentIndex]?.icon || ''
-
-  // Get energy type config for badge
-  const getEnergyConfig = () => {
-    switch (product.energy_type) {
-      case 'mental':
-        return {
-          Icon: Brain,
-          bgClass: 'bg-purple-100/95 dark:bg-purple-900/95',
-          textClass: 'text-purple-700 dark:text-purple-300',
-          borderClass: 'border-purple-300 dark:border-purple-700'
-        }
-      case 'physical':
-        return {
-          Icon: Activity,
-          bgClass: 'bg-orange-100/95 dark:bg-orange-900/95',
-          textClass: 'text-orange-700 dark:text-orange-300',
-          borderClass: 'border-orange-300 dark:border-orange-700'
-        }
-      case 'balanced':
-        return {
-          Icon: Zap,
-          bgClass: 'bg-green-100/95 dark:bg-green-900/95',
-          textClass: 'text-green-700 dark:text-green-300',
-          borderClass: 'border-green-300 dark:border-green-700'
-        }
-      default:
-        return null
-    }
+    case 'standard':
+    default:
+      return <StandardProductCard product={product} config={categoryConfig} />
   }
+}
 
-  const energyConfig = getEnergyConfig()
-
-  const handleCardClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    window.location.href = `/products/${product.id}`
+/**
+ * Determine card type from product properties
+ */
+function getCardTypeFromProduct(product: Product): CategoryConfig['cardType'] {
+  const productType = product.product_type?.toLowerCase()
+  
+  // BYO products get special card
+  if (productType === 'byo_ice_cream' || product.id.startsWith('byo_')) {
+    return 'byo'
   }
-
-  const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation()
-    
-    // If BYO product, redirect to product page instead of adding directly
-    if (isBYO) {
-      window.location.href = `/products/${product.id}`
-      return
-    }
-    
-    setIsAdding(true)
-    try {
-      if (onAddToCart) {
-        onAddToCart(product, quantity)
-      } else {
-        addToCart(product, quantity)
-      }
-      setQuantity(1)
-    } finally {
-      setIsAdding(false)
-    }
+  
+  // Desserts get featured card
+  if (productType === 'dessert') {
+    return 'featured'
   }
-
-  return (
-    <div
-      className="card p-3 hover:shadow-xl transition-shadow duration-300 h-full flex flex-col cursor-pointer"
-      onClick={handleCardClick}
-      style={{ willChange: 'box-shadow' }}
-    >
-      {/* Image Container */}
-      <div className="relative w-full aspect-[4/5] bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-800 dark:to-slate-700 rounded-lg mb-3 overflow-hidden group">
-        {product.image ? (
-          <Image
-            src={product.image}
-            alt={product.name}
-            className="object-cover group-hover:scale-110 transition-transform duration-300"
-            fill
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-            priority={false}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-600">
-            🍦
-          </div>
-        )}
-
-        {/* Badge - BYO or Custom */}
-        {isBYO ? (
-          <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
-            <Palette size={12} />
-            <span>صمم بنفسك</span>
-          </div>
-        ) : product.badge ? (
-          <div className="absolute top-2 right-2 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
-            {product.badge}
-          </div>
-        ) : null}
-
-        {/* Energy Type Badge - Top Left */}
-        {energyConfig && (
-          <div className={`absolute top-2 left-2 ${energyConfig.bgClass} ${energyConfig.textClass} backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1 shadow-lg border-2 ${energyConfig.borderClass}`}>
-            <energyConfig.Icon size={14} strokeWidth={2.5} />
-            {product.energy_score && product.energy_score > 0 && (
-              <span className="text-xs font-bold">{product.energy_score}</span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Product Info */}
-      <div className="flex-1 flex flex-col">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1 line-clamp-2">
-          {product.name}
-        </h3>
-
-        {/* Description */}
-        {product.description && (
-          <p className="text-xs text-slate-600 dark:text-slate-400 mb-2 line-clamp-1">
-            {product.description}
-          </p>
-        )}
-
-        {/* Rotating Info Text */}
-        <div className="min-h-[18px] mb-2 flex items-center gap-1 will-change-contents">
-          <span className="text-sm flex-shrink-0">{currentIcon}</span>
-          <p
-            className={`text-xs font-semibold transition-all duration-300 ${
-              isTransitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
-            } ${currentColor}`}
-            style={{ 
-              minHeight: '18px',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            {currentInfo}
-          </p>
-        </div>
-      </div>
-
-      {/* Price and Controls */}
-      <div className="mt-auto pt-2 border-t border-slate-200 dark:border-slate-700">
-        {/* Price Row */}
-        <div className="flex items-center justify-between mb-2">
-          {/* Price - Show "يبدأ من" for BYO products */}
-          {isBYO ? (
-            <div className="flex items-baseline gap-1">
-              <span className="text-[10px] text-slate-500 dark:text-slate-400">يبدأ من</span>
-              <PriceDisplay price={product.price} size="md" />
-            </div>
-          ) : (
-            <PriceDisplay price={product.price} size="md" />
-          )}
-
-          {/* Customizable Indicator */}
-          {isCustomizable && !isBYO && (
-            <div className="bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-sm border border-purple-200 dark:border-purple-700">
-              <Sparkles size={10} />
-              <span>إضافات</span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex flex-col gap-1.5">
-          {/* Quantity Selector - Hide for BYO */}
-          {!isBYO && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <QuantitySelector
-                quantity={quantity}
-                onIncrease={() => setQuantity(quantity + 1)}
-                onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
-                size="sm"
-              />
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1.5">
-            {/* Cart/Customize Button */}
-            <button
-              onClick={handleAddToCart}
-              disabled={isAdding}
-              className={`flex-shrink-0 h-10 rounded-lg flex items-center justify-center transition-transform disabled:opacity-50 shadow-md hover:shadow-lg active:scale-[0.98] ${
-                isBYO 
-                  ? 'flex-1 gap-2 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white px-4'
-                  : 'w-10 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] hover:from-[#FF5A8E] hover:to-[#FF4979] text-white'
-              }`}
-              style={{ willChange: 'transform' }}
-              aria-label={isBYO ? 'صمم الآن' : 'إضافة إلى السلة'}
-            >
-              {isBYO ? (
-                <>
-                  <Palette size={18} strokeWidth={2.5} />
-                  <span className="text-sm font-bold">صمم الآن</span>
-                </>
-              ) : (
-                <ShoppingCart size={18} strokeWidth={2.5} />
-              )}
-            </button>
-
-            {/* Learn More Button - Only for non-BYO */}
-            {!isBYO && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  window.location.href = `/products/${product.id}`
-                }}
-                className="flex-1 py-2 text-xs font-bold text-[#FF6B9D] hover:text-white dark:text-[#FF6B9D] dark:hover:text-white flex items-center justify-center gap-1.5 transition-all duration-300 group hover:bg-gradient-to-r hover:from-[#FF6B9D] hover:to-[#FF5A8E] rounded-lg border border-[#FF6B9D]/30 hover:border-transparent"
-              >
-                <span className="group-hover:translate-x-0.5 transition-transform duration-300">
-                  اعرف المزيد
-                </span>
-                <svg
-                  className="w-3.5 h-3.5 group-hover:translate-x-[-2px] transition-transform duration-300"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+  
+  // Preset ice cream and milkshakes get standard card
+  if (productType === 'preset_ice_cream' || productType === 'milkshake') {
+    return 'standard'
+  }
+  
+  // Standard products get compact card
+  if (productType === 'standard') {
+    return 'compact'
+  }
+  
+  // Fallback to standard
+  return 'standard'
 }

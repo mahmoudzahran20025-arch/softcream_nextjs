@@ -107,40 +107,45 @@ export default function BYOTemplate({
         </span>
       </div>
 
-      {/* Step 1: Container */}
-      {containers.length > 0 && (
-        <StepSection 
-          step={1} 
-          title="اختر الحاوية" 
-          IconComponent={Package}
-          isComplete={!!selectedContainer}
-          isActive={!selectedContainer}
-        >
-          <ContainerSelector
-            containers={containers}
-            selectedContainer={selectedContainer}
-            onSelect={onContainerSelect}
-          />
-        </StepSection>
-      )}
+      {/* Container & Size - Compact Row */}
+      {(containers.length > 0 || sizes.length > 0) && (
+        <div className="flex flex-wrap items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+          {/* Container Selection */}
+          {containers.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                <Package className="w-4 h-4" />
+                <span className="text-xs font-medium">الحاوية:</span>
+              </div>
+              <ContainerSelector
+                containers={containers}
+                selectedContainer={selectedContainer}
+                onSelect={onContainerSelect}
+              />
+            </div>
+          )}
 
-      {/* Step 2: Size */}
-      {sizes.length > 0 && (
-        <StepSection 
-          step={containers.length > 0 ? 2 : 1} 
-          title="اختر المقاس" 
-          IconComponent={Ruler}
-          isComplete={!!selectedSize}
-          isActive={!!selectedContainer && !selectedSize}
-        >
-          <SizeSelector
-            sizes={sizes}
-            selectedSize={selectedSize}
-            onSelect={onSizeSelect}
-            basePrice={product.price}
-            showPriceAsTotal={true}
-          />
-        </StepSection>
+          {/* Divider */}
+          {containers.length > 0 && sizes.length > 0 && (
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
+          )}
+
+          {/* Size Selection */}
+          {sizes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                <Ruler className="w-4 h-4" />
+                <span className="text-xs font-medium">المقاس:</span>
+              </div>
+              <SizeSelector
+                sizes={sizes}
+                selectedSize={selectedSize}
+                onSelect={onSizeSelect}
+                basePrice={product.price}
+              />
+            </div>
+          )}
+        </div>
       )}
 
       {/* Step 3: Flavors - Cards Grid */}

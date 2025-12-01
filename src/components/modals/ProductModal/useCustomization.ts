@@ -37,26 +37,17 @@ interface UseCustomizationProps {
 }
 
 export function useCustomization({ productId, isOpen, basePrice }: UseCustomizationProps) {
-    console.log('🚀 useCustomization CALLED:', { productId, isOpen, basePrice })
-
     const [selections, setSelections] = useState<Record<string, string[]>>({})
 
     // Fetch customization rules
-    const { data: customizationRules, isLoading, error } = useQuery<CustomizationGroup[]>({
+    const { data: customizationRules, isLoading } = useQuery<CustomizationGroup[]>({
         queryKey: ['customization-rules', productId],
         queryFn: async () => {
-            if (!productId) {
-                console.log('⚠️ No productId provided')
-                return []
-            }
-
-            console.log(`🎨 Fetching customization rules for product ${productId}...`)
+            if (!productId) return []
 
             // Use centralized API client
             const { getCustomizationRules } = await import('@/lib/api')
             const rules = await getCustomizationRules(productId, 'ar')
-
-            console.log(`✅ Loaded ${rules?.length || 0} customization groups`)
             return rules || []
         },
         enabled: !!productId && isOpen,
@@ -64,18 +55,12 @@ export function useCustomization({ productId, isOpen, basePrice }: UseCustomizat
         retry: 1
     })
 
-    // Debug: Log query state
+    // Debug only on significant changes (not every render)
     useEffect(() => {
-        console.log('🔍 useCustomization State:', {
-            productId,
-            isOpen,
-            enabled: !!productId && isOpen,
-            isLoading,
-            hasError: !!error,
-            rulesCount: customizationRules?.length || 0,
-            isCustomizable: customizationRules && customizationRules.length > 0
-        })
-    }, [productId, isOpen, isLoading, error, customizationRules])
+        if (customizationRules && customizationRules.length > 0) {
+            console.log(`✅ Customization loaded: ${customizationRules.length} groups for ${productId}`)
+        }
+    }, [customizationRules?.length, productId])
 
     // Reset selections when modal closes
     useEffect(() => {

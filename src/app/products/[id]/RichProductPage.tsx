@@ -100,7 +100,10 @@ interface Props {
 }
 
 function RichProductPageContent({ product, allProducts }: Props) {
-  debug.product('RichProductPage Render', { productId: product?.id })
+  // Debug only on mount, not every render
+  useEffect(() => {
+    debug.product('RichProductPage Mounted', { productId: product?.id })
+  }, [product?.id])
 
   const { open } = useModalStore()
   const [showFilterBar] = useState(true)
@@ -236,7 +239,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
                   displayPrice={
                     (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                       ? productConfig.totalPrice
-                      : ((displayProduct?.is_customizable === 1) ? customization.totalPrice : undefined)
+                      : undefined
                   }
                 />
 
@@ -253,8 +256,8 @@ function RichProductPageContent({ product, allProducts }: Props) {
                   }
                 />
 
-                {/* Product Template System - Dynamic based on product type */}
-                {(displayProduct?.is_customizable === 1 || productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization) ? (
+                {/* Product Template System - Dynamic based on configuration */}
+                {(productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization) ? (
                   <ProductTemplateRenderer
                     product={displayProduct}
                     productConfig={productConfig}
@@ -279,7 +282,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
                     totalPrice={
                       (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                         ? productConfig.totalPrice * quantity
-                        : ((displayProduct?.is_customizable === 1) ? customization.totalPrice * quantity : totalPrice)
+                        : totalPrice
                     }
                     basePrice={
                       (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
@@ -289,12 +292,12 @@ function RichProductPageContent({ product, allProducts }: Props) {
                     addonsPrice={
                       (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                         ? (productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal
-                        : ((displayProduct?.is_customizable === 1) ? customization.customizationTotal : addonsTotal)
+                        : addonsTotal
                     }
                     selectedAddonsCount={
                       (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
                         ? productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)
-                        : ((displayProduct?.is_customizable === 1) ? customization.selectedOptions.length : selectedAddons.length)
+                        : selectedAddons.length
                     }
                     selectedOptions={
                       (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)

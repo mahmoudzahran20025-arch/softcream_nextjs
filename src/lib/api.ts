@@ -5,6 +5,7 @@
 // ================================================================
 
 import { API_CONFIG, STORAGE_KEYS } from '@/config/constants'
+import type { Option, OptionGroup } from '@/types/options'
 
 const API_URL = API_CONFIG.BASE_URL
 
@@ -71,14 +72,21 @@ export interface Product {
   energy_type?: string
   energy_score?: number
   badge?: string
-  // Add-ons support
-  allowed_addons?: string
-  addonsList?: Addon[]
+  
+  // ✨ Unified Configuration System
+  optionGroups?: OptionGroup[]
+  product_type?: string
+  
+  // Parsed fields (from expand parameter)
   ingredientsList?: string[]
   allergensList?: string[]
   nutritionData?: any
-  is_customizable?: number
+  tagsList?: string[]
+  recommendations?: Product[]
 }
+
+// Re-export Option types for convenience
+export type { Option, OptionGroup }
 
 export interface OrderItem {
   productId: string
@@ -262,7 +270,7 @@ export async function getNutritionSummary(productIds: string[]): Promise<any> {
 export async function getProductForSEO(productId: string): Promise<Product | null> {
   try {
     return await getProduct(productId, {
-      expand: ['ingredients', 'nutrition', 'allergens', 'addons']
+      expand: ['ingredients', 'nutrition', 'allergens']
     })
   } catch (error) {
     console.error('❌ Failed to fetch product for SEO:', productId, error)
@@ -473,7 +481,8 @@ export async function calculateOrderPrices(
 export async function validateCoupon(
   code: string,
   phone: string,
-  subtotal: number
+  subtotal: number,
+  deliveryMethod?: 'delivery' | 'pickup' | null
 ): Promise<CouponValidationResult> {
   try {
     // ✅ Get device ID
@@ -483,6 +492,7 @@ export async function validateCoupon(
       code: code.trim().toUpperCase(),
       phone: phone.replace(/\D/g, ''),
       subtotal: Number(subtotal),
+      deliveryMethod,
       deviceId
     })
 
@@ -490,7 +500,8 @@ export async function validateCoupon(
       code: code.trim().toUpperCase(),
       phone: phone.replace(/\D/g, ''),
       subtotal: Number(subtotal),
-      deviceId, // ✅ NOW INCLUDED
+      deliveryMethod: deliveryMethod || undefined, // ✅ Pass delivery method for free_delivery validation
+      deviceId,
     })
 
     console.log('📥 Coupon validation response:', result)

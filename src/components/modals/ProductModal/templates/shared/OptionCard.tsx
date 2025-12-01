@@ -329,7 +329,7 @@ export default function OptionCard({
           </div>
         </div>
 
-        {/* Bottom: Price */}
+        {/* Bottom: Price or Calories */}
         <div className="flex items-center justify-end mt-2">
           {option.price > 0 ? (
             <div className={`text-xs font-bold flex items-center gap-1 ${
@@ -338,15 +338,16 @@ export default function OptionCard({
               <span>+{option.price}</span>
               <span className="text-[10px] opacity-80">ج.م</span>
             </div>
-          ) : (
-            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-              isSelected
-                ? 'bg-white/15 text-white/80'
-                : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
+          ) : option.nutrition?.calories ? (
+            // Show calories instead of "مجاناً" when price is 0
+            <span className={`text-[10px] font-medium flex items-center gap-1 ${
+              isSelected ? 'text-white/70' : 'text-slate-500 dark:text-slate-400'
             }`}>
-              مجاناً
+              <span>🔥</span>
+              <span>{option.nutrition.calories}</span>
+              <span className="opacity-70">سعرة</span>
             </span>
-          )}
+          ) : null}
         </div>
       </div>
     </motion.button>

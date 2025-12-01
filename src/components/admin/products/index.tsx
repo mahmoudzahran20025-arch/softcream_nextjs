@@ -140,15 +140,13 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
     if (!configProduct) return;
     
     try {
-      const isCustomizable = productType !== 'standard';
       await updateProductCustomization(configProduct.id, {
-        product_type: productType,
-        is_customizable: isCustomizable
+        product_type: productType
       });
       
       setProducts(products.map(p => 
         p.id === configProduct.id 
-          ? { ...p, product_type: productType, is_customizable: isCustomizable ? 1 : 0 } as Product
+          ? { ...p, product_type: productType } as Product
           : p
       ));
       

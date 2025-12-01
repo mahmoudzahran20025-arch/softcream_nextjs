@@ -44,7 +44,7 @@ export interface ProductFormData {
   badge: string;
   available: number;
   product_type: string;
-  is_customizable: number;
+  // ❌ REMOVED: is_customizable (now derived from option groups)
   calories: string;
   protein: string;
   carbs: string;
@@ -93,7 +93,6 @@ export const INITIAL_FORM_DATA: ProductFormData = {
   badge: '',
   available: 1,
   product_type: 'standard',
-  is_customizable: 0,
   calories: '',
   protein: '',
   carbs: '',

@@ -264,14 +264,14 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                   }
                 />
 
-                {/* Product Template System - Dynamic based on product type */}
-                {(product?.is_customizable === 1 || displayProduct?.is_customizable === 1 || productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization) ? (
+                {/* Product Template System - Dynamic based on configuration */}
+                {(productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization) ? (
                   <ProductTemplateRenderer
                     product={displayProduct}
                     productConfig={productConfig}
                   />
                 ) : (
-                  /* Legacy Addons (for non-customizable products) */
+                  /* Standard products without customization */
                   <AddonsList
                     addons={addons}
                     tags={tags}

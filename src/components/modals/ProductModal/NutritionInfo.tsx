@@ -45,12 +45,7 @@ export default function NutritionInfo({ product, ingredients, allergens, customi
     fiber: (product.fiber || 0) + (customizationNutrition?.fiber || 0)
   }
 
-  // 🐛 Debug log
-  console.log('🍎 NutritionInfo Render:', {
-    baseProduct: { calories: product.calories, protein: product.protein },
-    customization: customizationNutrition,
-    total: totalNutrition
-  })
+  // Debug removed to reduce re-render logs
 
   // ✅ IMPROVED: Show nutrition summary if ANY nutrition data exists
   const hasQuickStats = totalNutrition.calories > 0 || totalNutrition.protein > 0 || totalNutrition.carbs > 0 || totalNutrition.sugar > 0

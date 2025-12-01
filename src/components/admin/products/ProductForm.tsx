@@ -29,7 +29,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
         badge: editingProduct.badge || '',
         available: editingProduct.available,
         product_type: (editingProduct as any).product_type || 'standard',
-        is_customizable: (editingProduct as any).is_customizable || 0,
         calories: editingProduct.calories?.toString() || '',
         protein: editingProduct.protein?.toString() || '',
         carbs: editingProduct.carbs?.toString() || '',

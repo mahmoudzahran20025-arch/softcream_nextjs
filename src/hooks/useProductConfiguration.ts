@@ -28,9 +28,7 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
     queryKey: ['product-configuration', productId],
     queryFn: async () => {
       if (!productId) return null
-      console.log(`🎯 Fetching configuration for product ${productId}...`)
       const result = await getProductConfiguration(productId, 'ar')
-      console.log(`✅ Configuration loaded:`, result)
       return result
     },
     enabled: !!productId && isOpen,
@@ -47,9 +45,9 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
     }
   }, [isOpen, productId])
 
-  // Set defaults when config loads
+  // Set defaults when config loads (only once)
   useEffect(() => {
-    if (config) {
+    if (config && !selectedContainer && !selectedSize) {
       // Set default container
       if (config.hasContainers && config.containers.length > 0) {
         const defaultContainer = config.containers.find(c => c.isDefault) || config.containers[0]
@@ -61,7 +59,7 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
         setSelectedSize(defaultSize.id)
       }
     }
-  }, [config])
+  }, [config]) // Only depend on config, not on selectedContainer/selectedSize
 
 
   // Get available sizes for selected container
@@ -155,14 +153,6 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
     return { total, selectedOptions, nutrition }
   }, [config, selections])
 
-  // 🐛 Debug: Log nutrition calculation
-  console.log('🔍 useProductConfiguration - Customization Data:', {
-    selections,
-    selectedOptionsCount: customizationData.selectedOptions.length,
-    customizationNutrition: customizationData.nutrition,
-    customizationTotal: customizationData.total
-  })
-
   // Calculate total nutrition (container + customizations × size multiplier)
   // ✅ Using nutritionCalculator for consistent calculations
   const totalNutrition = useMemo(() => {
@@ -180,14 +170,6 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
 
     return nutrition
   }, [containerObj, customizationData.nutrition, sizeObj])
-
-  // 🐛 Debug: Log final nutrition
-  console.log('🔍 useProductConfiguration - Total Nutrition:', {
-    container: containerObj?.name,
-    size: sizeObj?.name,
-    nutritionMultiplier: sizeObj?.nutritionMultiplier || 1,
-    totalNutrition
-  })
 
   // Calculate total price
   const totalPrice = useMemo(() => {

@@ -35,7 +35,8 @@ export interface Product {
   ingredients?: string
   nutrition_facts?: string
   allergens?: string
-  allowed_addons?: string
+  // UI Hint
+  product_type?: string
 }
 
 export interface BYOOption {
@@ -139,7 +140,6 @@ export async function getProductConfiguration(productId: string): Promise<{
 }
 
 export async function updateProductCustomization(productId: string, data: {
-  is_customizable?: boolean
   product_type?: string
   customization_rules?: any[]
   containers?: { container_id: string; is_default?: boolean }[]

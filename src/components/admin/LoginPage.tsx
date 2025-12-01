@@ -22,8 +22,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
     // In production: validate with backend
     if (password === 'admin123') {
-      // Generate a simple token (in production: get from backend)
-      const token = 'softcream_admin_2025_secure_token_change_me';
+      // Use the secure admin token that matches backend
+      const token = 'sc_admin_eca6f7927c384d75b9cf9e5fc00e06f8';
       setAdminToken(token);
       onLogin(token);
     } else {

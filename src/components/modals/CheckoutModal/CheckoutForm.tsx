@@ -415,14 +415,28 @@ const CheckoutForm = ({
         </div>
         
         {couponStatus === 'valid' && couponData && (
-          <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-500 rounded-2xl text-green-700 dark:text-green-400 text-sm shadow-sm">
+          <div className={`mt-2 p-3 border rounded-2xl text-sm shadow-sm ${
+            couponData.isFreeDelivery 
+              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-700 dark:text-blue-400'
+              : 'bg-green-50 dark:bg-green-900/20 border-green-500 text-green-700 dark:text-green-400'
+          }`}>
             <div className="flex items-center gap-2 font-bold mb-1">
               <CheckCircle className="w-4 h-4" />
-              <span>{isArabic ? '✅ تم تطبيق الكوبون بنجاح' : '✅ Coupon Applied Successfully'}</span>
+              <span>
+                {couponData.isFreeDelivery 
+                  ? (isArabic ? '🚚 توصيل مجاني!' : '🚚 Free Delivery!')
+                  : (isArabic ? '✅ تم تطبيق الكوبون بنجاح' : '✅ Coupon Applied Successfully')
+                }
+              </span>
             </div>
             <div className="text-xs">
-              {couponData.messageAr || couponData.message || (isArabic ? 'تم تطبيق الخصم' : 'Discount applied')}
+              {couponData.successMessageAr || couponData.messageAr || couponData.message || (isArabic ? 'تم تطبيق الخصم' : 'Discount applied')}
             </div>
+            {couponData.discountAmount > 0 && (
+              <div className="text-xs font-bold mt-1">
+                {isArabic ? 'الخصم:' : 'Discount:'} {couponData.discountAmount.toFixed(2)} {isArabic ? 'ج.م' : 'EGP'}
+              </div>
+            )}
           </div>
         )}
         

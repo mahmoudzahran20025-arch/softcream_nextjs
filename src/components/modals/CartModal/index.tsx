@@ -37,7 +37,7 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
 
     const fetchProductsWithAddons = async () => {
       const newProductsMap = new Map()
-      
+
       for (const item of cart) {
         // Skip if already fetched
         if (productsWithAddons.has(item.productId)) {
@@ -46,15 +46,15 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
         }
 
         try {
-          const productWithAddons = await getProduct(item.productId, { expand: ['addons'] })
-          
+          const productWithAddons = await getProduct(item.productId, { expand: ['options'] })
+
           // If product has customization selections, fetch customization rules
           if (item.selections) {
             const { getCustomizationRules } = await import('@/lib/api')
             const customizationRules = await getCustomizationRules(item.productId, 'ar')
-            ;(productWithAddons as any).customizationRules = customizationRules
+              ; (productWithAddons as any).customizationRules = customizationRules
           }
-          
+
           newProductsMap.set(item.productId, productWithAddons)
         } catch (error) {
           console.error(`Failed to fetch addons for product ${item.productId}:`, error)
@@ -90,12 +90,12 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
           totalCarbs += (prod.carbs || 0) * item.quantity
           totalFat += (prod.fat || 0) * item.quantity
         }
-        
+
         // ✅ Add customization nutrition
         if (item.selections) {
           const productWithAddons = productsWithAddons.get(item.productId)
           const customizationRules = (productWithAddons as any)?.customizationRules || []
-          
+
           // Build options map
           const optionsMap: Record<string, any> = {}
           customizationRules.forEach((group: any) => {
@@ -103,12 +103,12 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
               optionsMap[option.id] = option
             })
           })
-          
+
           // Calculate nutrition from selected options
           Object.entries(item.selections).forEach(([key, values]) => {
             if (key.startsWith('_')) return // Skip special keys
             if (!Array.isArray(values)) return
-            
+
             values.forEach((optionId: string) => {
               const option = optionsMap[optionId]
               if (option) {
@@ -137,17 +137,17 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
   if (!isOpen) return null
 
   const totalItems = getCartCount()
-  
+
   // ✅ FIX: Build products map for getCartTotal
   const productsMap = allProducts.reduce((map, product) => {
     map[product.id] = product
     return map
   }, {} as Record<string, Product>)
-  
+
   // ✅ Build addons map and options map from fetched products
   const addonsMap: Record<string, any> = {}
   const optionsMap: Record<string, any> = {}
-  
+
   productsWithAddons.forEach((productData) => {
     // Add legacy addons
     if (productData.addonsList) {
@@ -155,7 +155,7 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
         addonsMap[addon.id] = addon
       })
     }
-    
+
     // Add BYO customization options
     if (productData.customizationRules) {
       productData.customizationRules.forEach((group: any) => {
@@ -170,13 +170,13 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
       })
     }
   })
-  
+
   console.log('💰 Cart calculation:', {
     productsCount: Object.keys(productsMap).length,
     addonsCount: Object.keys(addonsMap).length,
     optionsCount: Object.keys(optionsMap).length
   })
-  
+
   // ✅ FIX: Use getCartTotal with addons and options maps
   const total = getCartTotal(productsMap, addonsMap, optionsMap)
 
@@ -254,11 +254,11 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                   // ✅ Get addons list from fetched product with addons
                   const productWithAddons = productsWithAddons.get(item.productId)
                   const productAddons = productWithAddons?.addonsList || []
-                  
+
                   // ✅ Get customization options from fetched customization rules (with nutrition)
                   const customizationRules = (productWithAddons as any)?.customizationRules || []
                   const customizationOptions: any[] = []
-                  
+
                   customizationRules.forEach((group: any) => {
                     group.options.forEach((option: any) => {
                       customizationOptions.push({
@@ -287,7 +287,7 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                   })
 
                   // Create unique key combining productId, addons, and selections
-                  const selectionsKey = item.selections 
+                  const selectionsKey = item.selections
                     ? Object.entries(item.selections).map(([k, v]) => `${k}:${v.sort().join(',')}`).join('|')
                     : ''
                   const itemKey = `${item.productId}-${(item.selectedAddons || []).sort().join('-')}-${selectionsKey}-${index}`

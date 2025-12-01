@@ -463,7 +463,8 @@ export const useCheckoutLogic = ({ isOpen, onClose, onCheckoutSuccess }: UseChec
       const subtotalForCoupon = prices?.subtotal || calculateFallbackPrices().subtotal
       const phoneForCoupon = formData.phone.replace(/\D/g, '') || '0000000000'
 
-      const result = await validateCoupon(code, phoneForCoupon, subtotalForCoupon)
+      // ✅ Pass deliveryMethod to validate free_delivery coupons correctly
+      const result = await validateCoupon(code, phoneForCoupon, subtotalForCoupon, deliveryMethod)
 
       if (result.valid) {
         setCouponStatus('valid')

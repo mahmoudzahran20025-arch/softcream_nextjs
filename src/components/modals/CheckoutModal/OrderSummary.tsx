@@ -127,6 +127,14 @@ const OrderSummary = ({
               </div>
             )}
             
+            {/* Free Delivery Coupon Applied */}
+            {prices.discountBreakdown?.delivery > 0 && (
+              <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                <span>🚚 Free Delivery:</span>
+                <span className="font-semibold">-{prices.discountBreakdown.delivery.toFixed(2)} ج.م</span>
+              </div>
+            )}
+            
             {/* Total */}
             <div className="flex justify-between text-lg font-bold text-gray-800 dark:text-gray-100 pt-2 border-t border-pink-200 dark:border-gray-500">
               <span>Total:</span>
