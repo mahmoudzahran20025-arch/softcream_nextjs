@@ -23,6 +23,7 @@ import CouponsPage from './CouponsPage';
 import AnalyticsPage from './AnalyticsPage';
 import SettingsPage from './SettingsPage';
 import LoginPage from './LoginPage';
+import UsersPage from './UsersPage';
 
 interface AdminAppProps {
   initialData: {
@@ -295,6 +296,7 @@ const AdminApp: React.FC<AdminAppProps> = ({
               onDelete={handleDeleteCoupon}
             />
           )}
+          {activeTab === 'users' && <UsersPage onRefresh={onRefresh} />}
           {activeTab === 'analytics' && <AnalyticsPage />}
           {activeTab === 'settings' && <SettingsPage />}
         </main>

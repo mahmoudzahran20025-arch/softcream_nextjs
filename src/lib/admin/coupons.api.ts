@@ -1,62 +1,116 @@
 /**
  * Coupons API - Admin Coupon Management
+ * 🎯 Updated for v2 Coupon System
  */
 
 import { apiRequest } from './apiClient'
 
 // ===========================
-// Types
+// Types - v2 Coupon System
 // ===========================
+
+export type DiscountType = 'percent' | 'fixed_amount' | 'free_delivery' | 'free_item'
+export type RestrictionType = 'none' | 'prefix' | 'phone' | 'company' | 'both'
 
 export interface Coupon {
   code: string
   name: string
-  discount_percent: number
+  // v2 Discount System
+  discount_type: DiscountType
+  discount_value: number
+  max_discount: number | null
+  // Legacy fields (for backward compatibility)
+  discount_percent?: number
   discount_percent_child?: number
   discount_percent_parent_second?: number
+  // Validity
   valid_from: number
   valid_to: number
+  // Usage Limits
   min_order: number
-  max_uses: number
+  max_uses_total: number | null
+  max_uses_per_user: number
   current_uses: number
+  max_uses?: number // legacy
+  // User Restrictions (NEW!)
+  first_order_only: number
+  requires_registration: number
+  // Phone Restrictions
+  restriction_type: RestrictionType
+  restricted_prefixes: string | null
+  restricted_company: string | null
+  restricted_phone: string | null
+  // Status
   active: number
   created_at: number
+  updated_at: number | null
+  // Messages
   message_ar?: string
   message_en?: string
-  valid_days?: number
+  success_message_ar?: string
+  success_message_en?: string
+  // Free Item
+  free_item_product_id?: string | null
+  free_item_name_ar?: string | null
+  free_item_name_en?: string | null
 }
 
 export interface CreateCouponData {
   code: string
   name: string
-  discountPercent: number
-  discountPercentChild?: number
-  discountPercentSecond?: number
+  // v2 Discount
+  discountType: DiscountType
+  discountValue: number
+  maxDiscount?: number | null
+  // Usage
   validDays: number
   minOrder?: number
-  maxUses?: number
+  maxUsesTotal?: number | null
+  maxUsesPerUser?: number
+  // User Restrictions (NEW!)
+  firstOrderOnly?: boolean
+  requiresRegistration?: boolean
+  // Phone Restrictions
+  restrictionType?: RestrictionType
+  restrictedPrefixes?: string[]
+  restrictedCompany?: string
+  restrictedPhone?: string
+  // Messages
   messageAr?: string
   messageEn?: string
+  successMessageAr?: string
+  successMessageEn?: string
+  // Free Item
+  freeItemProductId?: string
+  freeItemNameAr?: string
+  freeItemNameEn?: string
 }
 
 export interface CouponStats {
   code: string
   name: string
+  discountType: DiscountType
+  discountValue: number
+  status: string
   totalUses: number
-  maxUses: number
-  remainingUses: number
-  totalDiscount: number
-  usageBreakdown: Array<{
-    usage_type: string
+  maxUsesTotal: number | null
+  maxUsesPerUser: number
+  remainingUses: number | string
+  validFrom: string
+  validTo: string
+  restrictionType: RestrictionType
+  firstOrderOnly: boolean
+  requiresRegistration: boolean
+  usageBreakdown?: Array<{
+    discount_type: string
     count: number
-    total_discount: number
+    total_discount?: number
   }>
-  usageHistory: Array<{
-    id: number
-    coupon_code: string
+  usageHistory?: Array<{
+    id: number | string
+    coupon_code?: string
     user_phone: string
-    order_id: string
-    usage_type: string
+    order_id?: string
     discount_applied: number
     used_at: number
     customer_name?: string

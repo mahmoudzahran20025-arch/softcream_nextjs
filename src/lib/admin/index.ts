@@ -44,7 +44,9 @@ export {
   updateCoupon,
   type Coupon,
   type CreateCouponData,
-  type CouponStats
+  type CouponStats,
+  type DiscountType,
+  type RestrictionType
 } from './coupons.api'
 
 // Products
@@ -82,6 +84,20 @@ export {
   getBranches,
   type Branch
 } from './branches.api'
+
+// Users
+export {
+  getUsers,
+  getUserDetails,
+  getUsersStats,
+  updateUser,
+  addLoyaltyPoints,
+  type User,
+  type UserAddress,
+  type UsersListResponse,
+  type UserDetailsResponse,
+  type UsersStatsResponse
+} from './users.api'
 
 // Batch
 export {

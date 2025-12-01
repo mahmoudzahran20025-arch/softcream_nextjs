@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Package, Tag, TrendingUp, Settings, LayoutDashboard, ShoppingBag, LucideIcon, Sliders, X } from 'lucide-react';
+import { Package, Tag, TrendingUp, Settings, LayoutDashboard, ShoppingBag, LucideIcon, Sliders, X, Users } from 'lucide-react';
 
 interface MenuItem {
   id: string;
@@ -32,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'products', icon: ShoppingBag, label: 'المنتجات' },
     { id: 'customization', icon: Sliders, label: 'إعدادات التخصيص' },
     { id: 'coupons', icon: Tag, label: 'الكوبونات' },
+    { id: 'users', icon: Users, label: 'العملاء' },
     { id: 'analytics', icon: TrendingUp, label: 'الإحصائيات' },
     { id: 'settings', icon: Settings, label: 'الإعدادات' },
   ];
