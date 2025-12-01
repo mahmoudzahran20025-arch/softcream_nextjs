@@ -40,6 +40,7 @@ const CheckoutModal = ({ isOpen, onClose, onCheckoutSuccess, onOpenTracking }: C
     couponData,
     couponLoading,
     rememberMe,
+    profileLoaded, // 🎯 NEW: For auto-fill message
     useGPS,
     userLocation,
     locationLoading,
@@ -129,6 +130,7 @@ const CheckoutModal = ({ isOpen, onClose, onCheckoutSuccess, onOpenTracking }: C
             useGPS={useGPS}
             gpsRetryCount={gpsRetryCount}
             maxGpsRetries={MAX_GPS_RETRIES}
+            profileLoaded={profileLoaded}
             onInputChange={handleInputChange}
             onRequestLocation={handleRequestLocation}
             onToggleAddressMode={handleToggleAddressMode}
@@ -161,7 +163,7 @@ const CheckoutModal = ({ isOpen, onClose, onCheckoutSuccess, onOpenTracking }: C
                 className="w-5 h-5 rounded border-2 border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-2 focus:ring-primary-500 cursor-pointer"
               />
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                {language === 'ar' ? '💾 حفظ بياناتي للطلب القادم' : '💾 Save my details for next time'}
+                {language === 'ar' ? '🔐 تذكرني' : '🔐 Remember me'}
               </span>
             </label>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mr-8">

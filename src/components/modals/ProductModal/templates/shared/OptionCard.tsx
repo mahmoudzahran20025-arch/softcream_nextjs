@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, Plus } from 'lucide-react'
 import Image from 'next/image'
+import { getMaterialColor, isRainbowColor, RAINBOW_GRADIENT, RAINBOW_GRADIENT_135 } from './materialColors'
 
 interface NutritionValues {
   calories?: number
@@ -38,78 +39,6 @@ interface OptionCardProps {
   showNutrition?: boolean // kept for API compatibility
   showMaterialColor?: boolean
   language?: 'ar' | 'en'
-}
-
-// Material color mapping based on name keywords
-const getMaterialColor = (name: string): string | null => {
-  const lower = name.toLowerCase()
-  
-  // Chocolate variants
-  if (lower.includes('شوكولاته') || lower.includes('شيكولاته') || lower.includes('chocolate') || lower.includes('كاكاو') || lower.includes('cocoa') || lower.includes('براوني') || lower.includes('brownie')) {
-    return '#5D4037' // Rich brown
-  }
-  // Pistachio
-  if (lower.includes('فستق') || lower.includes('pistachio')) {
-    return '#7CB342' // Pistachio green
-  }
-  // Strawberry
-  if (lower.includes('فراولة') || lower.includes('strawberry') || lower.includes('توت') || lower.includes('berry')) {
-    return '#E91E63' // Pink/red
-  }
-  // Vanilla
-  if (lower.includes('فانيليا') || lower.includes('vanilla')) {
-    return '#FFF8E1' // Cream
-  }
-  // Caramel
-  if (lower.includes('كراميل') || lower.includes('caramel') || lower.includes('توفي') || lower.includes('toffee')) {
-    return '#FF8F00' // Amber/caramel
-  }
-  // Mango
-  if (lower.includes('مانجو') || lower.includes('mango')) {
-    return '#FFB300' // Mango yellow
-  }
-  // Blueberry
-  if (lower.includes('بلوبيري') || lower.includes('blueberry')) {
-    return '#5C6BC0' // Blue
-  }
-  // Oreo/Cookies
-  if (lower.includes('اوريو') || lower.includes('oreo') || lower.includes('كوكيز') || lower.includes('cookie')) {
-    return '#37474F' // Dark gray
-  }
-  // Lotus/Biscoff
-  if (lower.includes('لوتس') || lower.includes('lotus') || lower.includes('بسكويت') || lower.includes('biscoff')) {
-    return '#D84315' // Lotus orange-brown
-  }
-  // Nutella/Hazelnut
-  if (lower.includes('نوتيلا') || lower.includes('nutella') || lower.includes('بندق') || lower.includes('hazelnut')) {
-    return '#6D4C41' // Hazelnut brown
-  }
-  // Mint
-  if (lower.includes('نعناع') || lower.includes('mint')) {
-    return '#26A69A' // Mint green
-  }
-  // Coffee
-  if (lower.includes('قهوة') || lower.includes('coffee') || lower.includes('موكا') || lower.includes('mocha')) {
-    return '#4E342E' // Coffee brown
-  }
-  // Lemon
-  if (lower.includes('ليمون') || lower.includes('lemon')) {
-    return '#FDD835' // Lemon yellow
-  }
-  // Coconut
-  if (lower.includes('جوز هند') || lower.includes('coconut')) {
-    return '#EFEBE9' // Coconut white
-  }
-  // Honey
-  if (lower.includes('عسل') || lower.includes('honey')) {
-    return '#FFA000' // Honey gold
-  }
-  // Sprinkles/Rainbow
-  if (lower.includes('سبرنكلز') || lower.includes('sprinkles') || lower.includes('ملون')) {
-    return 'rainbow' // Special case
-  }
-  
-  return null
 }
 
 export default function OptionCard({
@@ -180,7 +109,7 @@ export default function OptionCard({
   
   // Get material color from option or derive from name
   const materialColor = option.color || (showMaterialColor ? getMaterialColor(name) : null)
-  const isRainbow = materialColor === 'rainbow'
+  const isRainbow = isRainbowColor(materialColor)
 
   return (
     <motion.button
@@ -219,9 +148,7 @@ export default function OptionCard({
       {isRainbow && !isSelected && (
         <div 
           className="absolute right-0 top-0 bottom-0 w-1 rounded-r-full"
-          style={{ 
-            background: 'linear-gradient(180deg, #FF6B6B, #FFE66D, #4ECDC4, #45B7D1, #96CEB4, #DDA0DD)',
-          }}
+          style={{ background: RAINBOW_GRADIENT }}
         />
       )}
 
@@ -304,9 +231,7 @@ export default function OptionCard({
               className={`flex-shrink-0 w-10 h-10 rounded-xl ${
                 isSelected ? 'ring-2 ring-white/30' : 'ring-1 ring-slate-200 dark:ring-slate-700'
               }`}
-              style={{ 
-                background: 'linear-gradient(135deg, #FF6B6B, #FFE66D, #4ECDC4, #45B7D1, #96CEB4, #DDA0DD)',
-              }}
+              style={{ background: RAINBOW_GRADIENT_135 }}
             />
           ) : null}
 

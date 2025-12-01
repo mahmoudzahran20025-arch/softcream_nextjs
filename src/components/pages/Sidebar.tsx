@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useCart } from '@/providers/CartProvider'
 import { useTheme } from '@/providers/ThemeProvider'
 import { useLanguage } from '@/providers/LanguageProvider'
@@ -128,6 +129,25 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
   const navItems = [
     { 
       icon: Package, 
+      label: language === 'ar' ? 'الرئيسية' : 'Home', 
+      id: 'home', 
+      href: '/',
+      onClick: () => {
+        onClose()
+      }
+    },
+    { 
+      icon: Sparkles, 
+      label: language === 'ar' ? 'المنتجات' : 'Products', 
+      id: 'products', 
+      href: '/products',
+      highlight: true,
+      onClick: () => {
+        onClose()
+      }
+    },
+    { 
+      icon: Package, 
       label: t('navMenu') || 'المنيو', 
       id: 'menu', 
       onClick: () => {
@@ -170,7 +190,6 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
       icon: Utensils, 
       label: language === 'ar' ? 'خدمة الكاتيرينج' : 'Catering Service', 
       id: 'catering', 
-      highlight: true, 
       onClick: () => handleNavClick('catering') 
     },
     { 
@@ -178,12 +197,6 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
       label: t('footerNavHours') || 'ساعات العمل', 
       id: 'footer-hours', 
       onClick: () => handleNavClick('footer-hours') 
-    },
-    { 
-      icon: Sparkles, 
-      label: t('footerNavHealthy') || 'معلومات صحية', 
-      id: 'footer-health-info', 
-      onClick: () => handleNavClick('footer-health-info') 
     },
     { 
       icon: Phone, 
@@ -286,47 +299,72 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1 min-h-[300px]">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={item.onClick}
-              className={`w-full flex items-center gap-3 p-3.5 rounded-2xl transition-colors duration-150 group relative ${
-                item.highlight
-                  ? 'bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 border border-orange-200 dark:border-orange-700'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
-                item.highlight
-                  ? 'bg-gradient-to-br from-orange-400 to-amber-500 shadow-lg'
-                  : 'bg-gradient-to-br from-pink-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 group-hover:from-[#FF6B9D] group-hover:to-[#A3164D] group-hover:shadow-md'
-              }`}>
-                <item.icon className={`w-5 h-5 transition-colors ${
+          {navItems.map((item) => {
+            const content = (
+              <>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                   item.highlight
-                    ? 'text-white'
-                    : 'text-[#A3164D] dark:text-pink-300 group-hover:text-white'
-                }`} />
-              </div>
-              
-              <span className={`text-sm font-bold flex-1 ${isRTL ? 'text-right' : 'text-left'} ${
-                item.highlight
-                  ? 'text-orange-900 dark:text-orange-200'
-                  : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'
-              }`}>
-                {item.label}
-              </span>
-              
-              {item.badge && item.badge > 0 && (
-                <span className={`${item.badgeColor || 'bg-gradient-to-r from-[#FF6B9D] to-[#A3164D]'} text-white text-xs font-bold rounded-full min-w-[22px] h-5 px-2 flex items-center justify-center shadow-md`}>
-                  {item.badge}
+                    ? 'bg-gradient-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/30'
+                    : 'bg-gradient-to-br from-pink-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 group-hover:from-[#FF6B9D] group-hover:to-[#A3164D] group-hover:shadow-md'
+                }`}>
+                  <item.icon className={`w-5 h-5 transition-colors ${
+                    item.highlight
+                      ? 'text-white'
+                      : 'text-[#A3164D] dark:text-pink-300 group-hover:text-white'
+                  }`} />
+                </div>
+                
+                <span className={`text-sm font-bold flex-1 ${isRTL ? 'text-right' : 'text-left'} ${
+                  item.highlight
+                    ? 'text-pink-900 dark:text-pink-200'
+                    : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'
+                }`}>
+                  {item.label}
                 </span>
-              )}
-              
-              <ChevronRight className={`w-4 h-4 text-pink-300 dark:text-pink-400 transition-all flex-shrink-0 ${
-                isRTL ? 'rotate-180' : ''
-              } group-hover:text-[#FF6B9D] ${isRTL ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
-            </button>
-          ))}
+                
+                {item.badge && item.badge > 0 && (
+                  <span className={`${item.badgeColor || 'bg-gradient-to-r from-[#FF6B9D] to-[#A3164D]'} text-white text-xs font-bold rounded-full min-w-[22px] h-5 px-2 flex items-center justify-center shadow-md`}>
+                    {item.badge}
+                  </span>
+                )}
+                
+                <ChevronRight className={`w-4 h-4 text-pink-300 dark:text-pink-400 transition-all flex-shrink-0 ${
+                  isRTL ? 'rotate-180' : ''
+                } group-hover:text-[#FF6B9D] ${isRTL ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
+              </>
+            )
+
+            const className = `w-full flex items-center gap-3 p-3.5 rounded-2xl transition-colors duration-150 group relative ${
+              item.highlight
+                ? 'bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 border border-pink-200 dark:border-pink-700'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`
+
+            // If item has href, use Link
+            if ('href' in item && item.href) {
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  onClick={item.onClick}
+                  className={className}
+                >
+                  {content}
+                </Link>
+              )
+            }
+
+            // Otherwise use button
+            return (
+              <button
+                key={item.id}
+                onClick={item.onClick}
+                className={className}
+              >
+                {content}
+              </button>
+            )
+          })}
         </nav>
 
         {/* Footer - Settings */}

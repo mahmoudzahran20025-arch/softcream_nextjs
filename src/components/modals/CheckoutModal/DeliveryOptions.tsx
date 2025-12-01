@@ -96,56 +96,67 @@ const DeliveryOptions = ({
               No branches available. You can still proceed with delivery option.
             </div>
           ) : (
-            // ✅ GRID LAYOUT: Compact cards
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {branches.map((branch) => (
-                <div
-                  key={branch.id}
-                  onClick={() => onBranchSelect(branch.id)}
-                  className={`p-3 border rounded-2xl cursor-pointer transition-all ${
-                    selectedBranch === branch.id 
-                      ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-500 shadow-md' 
-                      : 'border-gray-300 dark:border-gray-600 hover:border-primary-400 hover:shadow-sm'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
+            // ✅ COMPACT BRANCH CARDS - Professional Design
+            <div className="space-y-2">
+              {branches.map((branch) => {
+                // Extract location name (e.g., "المعادي" from "سوفت كريم - المعادي")
+                const locationName = branch.name?.includes('-') 
+                  ? branch.name.split('-').pop()?.trim() 
+                  : branch.name?.replace(/سوفت كريم|Soft Cream/gi, '').trim() || branch.name
+                
+                return (
+                  <div
+                    key={branch.id}
+                    onClick={() => onBranchSelect(branch.id)}
+                    className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-all ${
+                      selectedBranch === branch.id 
+                        ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-500 shadow-md ring-2 ring-primary-200 dark:ring-primary-800' 
+                        : 'border-gray-200 dark:border-gray-600 hover:border-primary-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    {/* Selection Indicator */}
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                      selectedBranch === branch.id 
+                        ? 'border-primary-500 bg-primary-500' 
+                        : 'border-gray-300 dark:border-gray-500'
+                    }`}>
+                      {selectedBranch === branch.id && (
+                        <CheckCircle className="w-3 h-3 text-white" />
+                      )}
+                    </div>
+                    
+                    {/* Branch Info */}
                     <div className="flex-1 min-w-0">
-                      {/* Branch Name */}
-                      <div className="font-bold text-sm text-gray-800 dark:text-gray-100 truncate">
-                        {branch.name}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-primary-600 dark:text-primary-400 font-bold text-sm">🍦 سوفت كريم</span>
+                        <span className="text-gray-400 dark:text-gray-500">•</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100 text-sm truncate">
+                          {locationName}
+                        </span>
                       </div>
-                      
-                      {/* Address */}
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-                        {branch.address}
-                      </div>
-                      
-                      {/* Phone */}
-                      {branch.phone && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
-                          <span>📞</span>
-                          <span className="truncate">{branch.phone}</span>
+                      {branch.address && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                          📍 {branch.address}
                         </div>
                       )}
                     </div>
                     
-                    {/* Map Icon Button */}
+                    {/* Map Button */}
                     {branch.location_lat && branch.location_lng && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           openBranchDirections(branch.location_lat, branch.location_lng)
                         }}
-                        className="flex-shrink-0 w-9 h-9 rounded-xl bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 shadow-md"
-                        title="فتح الاتجاهات في الخريطة"
-                        aria-label="Open directions in map"
+                        className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-sm"
+                        title="فتح الاتجاهات"
                       >
-                        <Navigation className="w-4 h-4" />
+                        <Navigation className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
           
