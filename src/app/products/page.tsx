@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
-import ProductsPageContent from '@/components/products/ProductsPageContent'
+import { getProducts } from '@/lib/api'
+import ProductsPageContent from '@/components/products-page/ProductsPageContent'
 
 export const metadata: Metadata = {
     title: 'منتجاتنا - Soft Cream | آيس كريم صحي طبيعي',
@@ -17,8 +18,12 @@ export const metadata: Metadata = {
     }
 }
 
-export default function ProductsPage() {
-    return <ProductsPageContent />
+export default async function ProductsPage() {
+    // Fetch products server-side
+    const allProducts = await getProducts()
+    
+    // ProductsProvider & CategoryTrackingProvider are now inside ProductsPageContent (Client Component)
+    return <ProductsPageContent allProducts={allProducts} />
 }
 
 export const revalidate = 3600 // Revalidate every hour

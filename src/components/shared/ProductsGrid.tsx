@@ -9,7 +9,7 @@ import ProductCardSkeleton from '@/components/ui/skeletons/ProductCardSkeleton'
 
 // Lazy load Swiper (heavy library ~50KB)
 const ProductsSwiper = dynamic(
-  () => import('./ProductsSwiperWrapper'),
+  () => import('@/components/shared/ProductsSwiperWrapper'),
   {
     ssr: false,
     loading: () => (

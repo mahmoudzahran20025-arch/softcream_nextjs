@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import PageContent from '@/components/pages/PageContent'
+import HomePageContent from '@/components/home/HomePageContent'
 import { getProducts } from '@/lib/api'
 
 export const metadata = {
@@ -20,11 +20,11 @@ async function ProductsData() {
       )
     ]) as any[]
 
-    return <PageContent initialProducts={products || []} />
+    return <HomePageContent initialProducts={products || []} />
   } catch (error) {
     console.error('Failed to fetch products:', error)
     // Return empty state instead of crashing
-    return <PageContent initialProducts={[]} />
+    return <HomePageContent initialProducts={[]} />
   }
 }
 

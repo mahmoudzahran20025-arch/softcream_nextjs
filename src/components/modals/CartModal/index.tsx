@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { X, ShoppingCart } from 'lucide-react'
 import { useCart } from '@/providers/CartProvider'
 import { getProduct } from '@/lib/api'
+import { debug } from '@/lib/debug'
+import { createEmptyNutrition, addNutrition, multiplyNutrition } from '@/lib/utils/nutritionCalculator'
 import CartItem from './CartItem'
 import CartSummary from './CartSummary'
 import NutritionCard from '@/components/ui/NutritionCard'
@@ -18,7 +20,6 @@ interface Product {
   description?: string
 }
 
-
 interface CartModalProps {
   isOpen: boolean
   onClose: () => void
@@ -28,157 +29,165 @@ interface CartModalProps {
 
 export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [] }: CartModalProps) {
   const { cart, updateCartQuantity, removeFromCart, getCartCount, getCartTotal } = useCart()
-  const [nutritionData, setNutritionData] = useState<any>(null)
   const [productsWithAddons, setProductsWithAddons] = useState<Map<string, any>>(new Map())
+  const fetchedRef = useRef<Set<string>>(new Set())
 
-  // ✅ FIX: Fetch products with addons AND customization rules for cart items
+  // ✅ Fetch products with addons AND customization rules for cart items
+  // Using ref to prevent duplicate fetches
+  const cartProductIds = useMemo(() => cart.map(item => item.productId).join(','), [cart])
+  
   useEffect(() => {
     if (!isOpen || cart.length === 0) return
 
     const fetchProductsWithAddons = async () => {
-      const newProductsMap = new Map()
+      const newProductsMap = new Map(productsWithAddons)
+      let hasNewProducts = false
 
       for (const item of cart) {
-        // Skip if already fetched
-        if (productsWithAddons.has(item.productId)) {
-          newProductsMap.set(item.productId, productsWithAddons.get(item.productId))
-          continue
-        }
+        // Skip if already fetched (using ref)
+        if (fetchedRef.current.has(item.productId)) continue
 
         try {
+          debug.cart(`Fetching product: ${item.productId}`)
           const productWithAddons = await getProduct(item.productId, { expand: ['options'] })
 
           // If product has customization selections, fetch customization rules
           if (item.selections) {
             const { getCustomizationRules } = await import('@/lib/api')
             const customizationRules = await getCustomizationRules(item.productId, 'ar')
-              ; (productWithAddons as any).customizationRules = customizationRules
+            ;(productWithAddons as any).customizationRules = customizationRules
           }
 
           newProductsMap.set(item.productId, productWithAddons)
+          fetchedRef.current.add(item.productId)
+          hasNewProducts = true
         } catch (error) {
-          console.error(`Failed to fetch addons for product ${item.productId}:`, error)
+          debug.error(`Failed to fetch product ${item.productId}`, error)
         }
       }
 
-      setProductsWithAddons(newProductsMap)
+      if (hasNewProducts) {
+        setProductsWithAddons(newProductsMap)
+      }
     }
 
     fetchProductsWithAddons()
-  }, [cart, isOpen])
+  }, [cartProductIds, isOpen])
 
-  // Calculate nutrition summary from cart items (including customizations)
+  // ✅ Calculate nutrition using nutritionCalculator utility
+  const nutritionData = useMemo(() => {
+    if (cart.length === 0) return null
+
+    let total = createEmptyNutrition()
+
+    cart.forEach(item => {
+      const product = allProducts.find(p => p.id === item.productId) as any
+      if (product) {
+        // Add base product nutrition × quantity
+        const productNutrition = multiplyNutrition({
+          calories: product.calories || 0,
+          protein: product.protein || 0,
+          carbs: product.carbs || 0,
+          sugar: product.sugar || 0,
+          fat: product.fat || 0,
+          fiber: product.fiber || 0
+        }, item.quantity)
+        total = addNutrition(total, productNutrition)
+      }
+
+      // Add customization nutrition
+      if (item.selections) {
+        const productWithAddons = productsWithAddons.get(item.productId)
+        const customizationRules = (productWithAddons as any)?.customizationRules || []
+
+        const localOptionsMap: Record<string, any> = {}
+        customizationRules.forEach((group: any) => {
+          group.options.forEach((option: any) => {
+            localOptionsMap[option.id] = option
+          })
+        })
+
+        Object.entries(item.selections).forEach(([key, values]) => {
+          if (key.startsWith('_')) return
+          if (!Array.isArray(values)) return
+
+          values.forEach((optionId: string) => {
+            const option = localOptionsMap[optionId]
+            if (option) {
+              const nutrition = option.nutrition || option
+              const optionNutrition = multiplyNutrition({
+                calories: nutrition.calories || 0,
+                protein: nutrition.protein || 0,
+                carbs: nutrition.carbs || 0,
+                sugar: nutrition.sugar || 0,
+                fat: nutrition.fat || 0,
+                fiber: nutrition.fiber || 0
+              }, item.quantity)
+              total = addNutrition(total, optionNutrition)
+            }
+          })
+        })
+      }
+    })
+
+    return {
+      totalCalories: total.calories,
+      totalProtein: total.protein,
+      totalCarbs: total.carbs,
+      totalFat: total.fat
+    }
+  }, [cart, allProducts, productsWithAddons.size])
+
+  // ✅ Memoize all calculations to prevent re-renders
+  const { productsMap, addonsMap, optionsMap } = useMemo(() => {
+    const pMap = allProducts.reduce((map, product) => {
+      map[product.id] = product
+      return map
+    }, {} as Record<string, Product>)
+
+    const aMap: Record<string, any> = {}
+    const oMap: Record<string, any> = {}
+
+    productsWithAddons.forEach((productData) => {
+      if (productData.addonsList) {
+        productData.addonsList.forEach((addon: any) => {
+          aMap[addon.id] = addon
+        })
+      }
+      if (productData.customizationRules) {
+        productData.customizationRules.forEach((group: any) => {
+          group.options.forEach((option: any) => {
+            oMap[option.id] = {
+              id: option.id,
+              name: option.name_ar,
+              name_en: option.name_en,
+              price: option.price || option.base_price || 0
+            }
+          })
+        })
+      }
+    })
+
+    return { productsMap: pMap, addonsMap: aMap, optionsMap: oMap }
+  }, [allProducts, productsWithAddons.size])
+
+  // ✅ Log only when values actually change
   useEffect(() => {
-    if (cart.length === 0) {
-      setNutritionData(null)
-      return
-    }
+    debug.cart('Cart calculation', {
+      productsCount: Object.keys(productsMap).length,
+      addonsCount: Object.keys(addonsMap).length,
+      optionsCount: Object.keys(optionsMap).length
+    })
+  }, [productsMap, addonsMap, optionsMap])
 
-    const calculateNutrition = () => {
-      let totalCalories = 0
-      let totalProtein = 0
-      let totalCarbs = 0
-      let totalFat = 0
-
-      cart.forEach(item => {
-        const product = allProducts.find(p => p.id === item.productId)
-        if (product) {
-          // Base product nutrition
-          const prod = product as any
-          totalCalories += (prod.calories || 0) * item.quantity
-          totalProtein += (prod.protein || 0) * item.quantity
-          totalCarbs += (prod.carbs || 0) * item.quantity
-          totalFat += (prod.fat || 0) * item.quantity
-        }
-
-        // ✅ Add customization nutrition
-        if (item.selections) {
-          const productWithAddons = productsWithAddons.get(item.productId)
-          const customizationRules = (productWithAddons as any)?.customizationRules || []
-
-          // Build options map
-          const optionsMap: Record<string, any> = {}
-          customizationRules.forEach((group: any) => {
-            group.options.forEach((option: any) => {
-              optionsMap[option.id] = option
-            })
-          })
-
-          // Calculate nutrition from selected options
-          Object.entries(item.selections).forEach(([key, values]) => {
-            if (key.startsWith('_')) return // Skip special keys
-            if (!Array.isArray(values)) return
-
-            values.forEach((optionId: string) => {
-              const option = optionsMap[optionId]
-              if (option) {
-                const nutrition = option.nutrition || option
-                totalCalories += (nutrition.calories || 0) * item.quantity
-                totalProtein += (nutrition.protein || 0) * item.quantity
-                totalCarbs += (nutrition.carbs || 0) * item.quantity
-                totalFat += (nutrition.fat || 0) * item.quantity
-              }
-            })
-          })
-        }
-      })
-
-      setNutritionData({
-        totalCalories: Math.round(totalCalories),
-        totalProtein: Math.round(totalProtein * 10) / 10,
-        totalCarbs: Math.round(totalCarbs * 10) / 10,
-        totalFat: Math.round(totalFat * 10) / 10
-      })
-    }
-
-    calculateNutrition()
-  }, [cart, allProducts, productsWithAddons])
+  const total = useMemo(() => 
+    getCartTotal(productsMap, addonsMap, optionsMap),
+    [getCartTotal, productsMap, addonsMap, optionsMap]
+  )
 
   if (!isOpen) return null
 
   const totalItems = getCartCount()
-
-  // ✅ FIX: Build products map for getCartTotal
-  const productsMap = allProducts.reduce((map, product) => {
-    map[product.id] = product
-    return map
-  }, {} as Record<string, Product>)
-
-  // ✅ Build addons map and options map from fetched products
-  const addonsMap: Record<string, any> = {}
-  const optionsMap: Record<string, any> = {}
-
-  productsWithAddons.forEach((productData) => {
-    // Add legacy addons
-    if (productData.addonsList) {
-      productData.addonsList.forEach((addon: any) => {
-        addonsMap[addon.id] = addon
-      })
-    }
-
-    // Add BYO customization options
-    if (productData.customizationRules) {
-      productData.customizationRules.forEach((group: any) => {
-        group.options.forEach((option: any) => {
-          optionsMap[option.id] = {
-            id: option.id,
-            name: option.name_ar,
-            name_en: option.name_en,
-            price: option.price || option.base_price || 0
-          }
-        })
-      })
-    }
-  })
-
-  console.log('💰 Cart calculation:', {
-    productsCount: Object.keys(productsMap).length,
-    addonsCount: Object.keys(addonsMap).length,
-    optionsCount: Object.keys(optionsMap).length
-  })
-
-  // ✅ FIX: Use getCartTotal with addons and options maps
-  const total = getCartTotal(productsMap, addonsMap, optionsMap)
 
   const isEmpty = cart.length === 0
 

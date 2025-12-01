@@ -101,12 +101,11 @@ export default function NutritionShowcase() {
                         return (
                             <motion.div
                                 key={item.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                whileInView={{ opacity: 1, scale: 1 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.1 }}
-                                whileHover={{ y: -10, scale: 1.05 }}
-                                className="group max-sm:min-w-[280px] max-sm:snap-center"
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: "-50px" }}
+                                transition={{ delay: index * 0.1, duration: 0.4 }}
+                                className="group max-sm:min-w-[280px] max-sm:snap-center hover:-translate-y-2 hover:scale-[1.02] transition-transform duration-300 will-change-transform"
                             >
                                 <div className="
                   relative bg-white dark:bg-slate-800 
@@ -126,18 +125,17 @@ export default function NutritionShowcase() {
                                     {/* Content */}
                                     <div className="relative z-10 flex flex-col items-center text-center space-y-4">
                                         {/* Icon */}
-                                        <motion.div
-                                            whileHover={{ rotate: 360 }}
-                                            transition={{ duration: 0.6 }}
+                                        <div
                                             className={`
                         w-14 h-14 rounded-2xl 
                         bg-gradient-to-br ${item.color} 
                         flex items-center justify-center
                         shadow-lg
+                        group-hover:rotate-12 transition-transform duration-300
                       `}
                                         >
                                             <IconComponent className="w-7 h-7 text-white" strokeWidth={2} />
-                                        </motion.div>
+                                        </div>
 
                                         {/* Title */}
                                         <h3 className="text-xl font-bold text-slate-900 dark:text-white">

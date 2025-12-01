@@ -13,7 +13,7 @@ import { useProductsData } from '@/providers/ProductsProvider'
 import { useModalStore } from '@/stores/modalStore'
 import { useWindowEvent } from '@/hooks/useWindowEvent'
 import Header from '@/components/ui/Header'
-import FilterBar from '@/components/pages/Home/FilterBar'
+import FilterBar from '@/components/home/FilterBar'
 import TrustBanner from '@/components/ui/TrustBanner'
 import ToastContainer from '@/components/ui/ToastContainer'
 
@@ -43,7 +43,7 @@ const NutritionSummary = dynamic(() => import('@/components/ui/NutritionSummary'
   loading: () => null,
 })
 
-const Sidebar = dynamic(() => import('@/components/pages/Sidebar'), {
+const Sidebar = dynamic(() => import('@/components/shared/Sidebar'), {
   ssr: false,
   loading: () => null,
 })
@@ -77,7 +77,7 @@ interface PageContentClientProps {
   children?: ReactNode
 }
 
-export default function PageContentClient({ children }: PageContentClientProps) {
+export default function HomePageClient({ children }: PageContentClientProps) {
   const { products, selectedProduct, closeProduct } = useProductsData()
   
   // ✅ SIMPLIFIED: Single store instead of 15+ useState hooks
@@ -236,4 +236,4 @@ export default function PageContentClient({ children }: PageContentClientProps) 
   )
 }
 
-console.log('✅ PageContentClient refactored with ModalStore')
+console.log('✅ HomePageClient refactored with ModalStore')

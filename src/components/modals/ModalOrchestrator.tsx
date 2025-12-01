@@ -16,7 +16,7 @@ const CartModal = dynamic(() => import('@/components/modals/CartModal'), { ssr: 
 const CheckoutModal = dynamic(() => import('@/components/modals/CheckoutModal'), { ssr: false })
 const OrderSuccessModal = dynamic(() => import('@/components/modals/OrderSuccessModal'), { ssr: false })
 const TrackingModal = dynamic(() => import('@/components/modals/TrackingModal'), { ssr: false })
-const Sidebar = dynamic(() => import('@/components/pages/Sidebar'), { ssr: false })
+const Sidebar = dynamic(() => import('@/components/shared/Sidebar'), { ssr: false })
 const MyOrdersModal = dynamic(() => import('@/components/modals/MyOrdersModal'), { ssr: false })
 const EditOrderModal = dynamic(() => import('@/components/modals/EditOrderModal'), { ssr: false })
 

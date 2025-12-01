@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
-import ProductsGrid from '@/components/pages/ProductsGrid'
+import ProductsGrid from '@/components/shared/ProductsGrid'
 import Footer from '@/components/server/Footer'
-import PageContentClient from '@/components/pages/PageContentClient'
+import HomePageClient from '@/components/home/HomePageClient'
 import ProductsProvider from '@/providers/ProductsProvider'
 import StorytellingHero from '@/components/StorytellingHero'
 import ScrollProgressButton from '@/components/ui/ScrollProgressButton'
@@ -32,14 +32,14 @@ interface PageContentProps {
   initialProducts: Product[]
 }
 
-export default function PageContent({ initialProducts }: PageContentProps) {
+export default function HomePageContent({ initialProducts }: PageContentProps) {
   return (
     <ProductsProvider initialProducts={initialProducts}>
-      <PageContentClient>
+      <HomePageClient>
         <Suspense fallback={<div className="h-[70vh] bg-gradient-to-b from-slate-950 via-slate-900 to-black animate-pulse" />}>
           <StorytellingHero />
         </Suspense>
-      </PageContentClient>
+      </HomePageClient>
       <main className="min-h-screen bg-white dark:bg-slate-950">
 
         {/* Products Grid */}
