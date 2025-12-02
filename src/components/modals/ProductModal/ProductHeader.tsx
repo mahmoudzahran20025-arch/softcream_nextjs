@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Sparkles, Star, ChevronDown, ChevronUp } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import PriceDisplay from '@/components/ui/common/PriceDisplay'
+import { HealthBadges } from '@/components/ui/health'
+import { parseHealthKeywords } from '@/lib/health/keywords'
 
 interface Product {
   id: string
@@ -15,6 +17,7 @@ interface Product {
   category?: string
   rating?: number
   reviewCount?: number
+  health_keywords?: string
 }
 
 interface ProductHeaderProps {
@@ -24,7 +27,7 @@ interface ProductHeaderProps {
 
 export default function ProductHeader({ product, displayPrice }: ProductHeaderProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
-  
+
   // Check if description is long enough to need expansion
   const descriptionLength = product.description?.length || 0
   const needsExpansion = descriptionLength > 120
@@ -75,23 +78,34 @@ export default function ProductHeader({ product, displayPrice }: ProductHeaderPr
           <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white font-cairo leading-tight">
             {product.name}
           </h2>
-          
+
           {/* English Name */}
           {product.nameEn && (
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-medium">
               {product.nameEn}
             </p>
           )}
+
+          {/* Health Badges */}
+          {product.health_keywords && (
+            <div className="mt-2">
+              <HealthBadges
+                keywords={parseHealthKeywords(product.health_keywords)}
+                maxBadges={3}
+                size="sm"
+              />
+            </div>
+          )}
         </div>
 
         {/* Price + Energy Badge */}
         <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-          <PriceDisplay 
-            price={displayPrice ?? product.price} 
-            size="lg" 
+          <PriceDisplay
+            price={displayPrice ?? product.price}
+            size="lg"
             className="text-pink-600 dark:text-pink-400"
           />
-          
+
           {/* Energy Score Badge */}
           {product.energy_score && (
             <motion.span
@@ -116,9 +130,8 @@ export default function ProductHeader({ product, displayPrice }: ProductHeaderPr
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className={`text-slate-500 dark:text-slate-400 text-sm leading-relaxed ${
-                !isDescriptionExpanded && needsExpansion ? 'line-clamp-2' : ''
-              }`}
+              className={`text-slate-500 dark:text-slate-400 text-sm leading-relaxed ${!isDescriptionExpanded && needsExpansion ? 'line-clamp-2' : ''
+                }`}
             >
               {product.description}
             </motion.p>

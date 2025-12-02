@@ -62,10 +62,22 @@ export {
   createBYOOption,
   updateBYOOption,
   deleteBYOOption,
+  // Unified product operations
+  getProductFull,
+  createProductUnified,
+  updateProductUnified,
+  // Bulk operations
+  bulkAssignOptionGroup,
+  bulkRemoveOptionGroup,
   type Product,
   type BYOOption,
   type BYOOptionGroup,
-  type ProductConfiguration
+  type ProductConfiguration,
+  type CustomizationRule,
+  type UpdateProductCustomizationData,
+  type BulkAssignOptionGroupRequest,
+  type BulkAssignOptionGroupResponse,
+  type BulkAssignProductResult
 } from './products.api'
 
 // Analytics
@@ -112,6 +124,71 @@ export {
   smartPolling,
   OrdersPolling
 } from './polling'
+
+// Templates
+export {
+  PRODUCT_TEMPLATES,
+  getTemplateForProductType,
+  applySuggestedGroups,
+  hasTemplateForProductType,
+  getAvailableProductTypes,
+  suggestsContainers,
+  suggestsSizes,
+  type ProductTemplate,
+  type SuggestedGroup
+} from './templates'
+
+// Validation
+export {
+  ERROR_CODES,
+  WARNING_CODES,
+  ERROR_MESSAGES,
+  WARNING_MESSAGES,
+  validateProductData,
+  validateOptionGroupAssignment,
+  validateNoDuplicateGroups,
+  validateContainerAssignments,
+  validateSizeAssignments,
+  validateCustomizableProductHasGroups,
+  validateUnifiedProductData,
+  autoCorrectOptionGroupAssignment,
+  autoCorrectUnifiedProductData,
+  createEmptyValidationResult,
+  createValidationError,
+  createValidationWarning,
+  mergeValidationResults,
+  type ValidationResult,
+  type ValidationError,
+  type ValidationWarning,
+  type ErrorCode,
+  type WarningCode,
+  type ProductFormData as ValidationProductFormData,
+  type OptionGroupAssignment,
+  type OptionGroup as ValidationOptionGroup,
+  type ContainerAssignment,
+  type SizeAssignment,
+  type UnifiedProductData
+} from './validation'
+
+// Error Messages (Requirement 5.5)
+export {
+  API_ERROR_MESSAGES,
+  HTTP_STATUS_MESSAGES,
+  translateApiError,
+  extractApiErrorDetails
+} from './errorMessages'
+
+// Options API (Option Groups Management)
+export {
+  getOptionGroups,
+  createOptionGroup,
+  updateOptionGroup,
+  deleteOptionGroup,
+  createOption,
+  updateOption,
+  deleteOption,
+  toggleOptionAvailability
+} from './options.api'
 
 // Re-import for default export (backward compatibility)
 import {

@@ -4,7 +4,18 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import type { ProductFormProps, ProductFormData } from './types';
-import { INITIAL_FORM_DATA } from './types';
+import { INITIAL_FORM_DATA, HEALTH_KEYWORDS_OPTIONS } from './types';
+
+// Helper to parse health_keywords from JSON string
+const parseHealthKeywords = (value: string | null | undefined): string[] => {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 const ProductForm: React.FC<ProductFormProps> = ({ 
   isOpen, 
@@ -40,7 +51,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
         tags: editingProduct.tags || '',
         ingredients: editingProduct.ingredients || '',
         nutrition_facts: editingProduct.nutrition_facts || '',
-        allergens: editingProduct.allergens || ''
+        allergens: editingProduct.allergens || '',
+        health_keywords: parseHealthKeywords((editingProduct as any).health_keywords),
+        health_benefit_ar: (editingProduct as any).health_benefit_ar || ''
       });
     } else {
       setFormData(INITIAL_FORM_DATA);
@@ -273,6 +286,100 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   placeholder="45"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Health Keywords */}
+          <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-5 border-2 border-teal-200">
+            <h3 className="text-lg font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
+              <span>💚</span> معلومات صحية (Health-Driven Cart)
+            </h3>
+            
+            {/* Health Keywords Multi-Select */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                الكلمات المفتاحية الصحية (اختر حتى 3)
+              </label>
+              <div className="space-y-3">
+                {/* Nutritional Keywords */}
+                <div>
+                  <p className="text-xs font-medium text-teal-600 mb-2">🥗 تغذوية</p>
+                  <div className="flex flex-wrap gap-2">
+                    {HEALTH_KEYWORDS_OPTIONS.nutritional.map(kw => (
+                      <button
+                        key={kw.value}
+                        type="button"
+                        onClick={() => {
+                          const current = formData.health_keywords;
+                          if (current.includes(kw.value)) {
+                            setFormData({ ...formData, health_keywords: current.filter(k => k !== kw.value) });
+                          } else if (current.length < 3) {
+                            setFormData({ ...formData, health_keywords: [...current, kw.value] });
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          formData.health_keywords.includes(kw.value)
+                            ? 'bg-teal-500 text-white shadow-md'
+                            : 'bg-white border border-teal-200 text-teal-700 hover:bg-teal-50'
+                        } ${formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value)}
+                      >
+                        {kw.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Lifestyle Keywords */}
+                <div>
+                  <p className="text-xs font-medium text-cyan-600 mb-2">🌟 نمط الحياة</p>
+                  <div className="flex flex-wrap gap-2">
+                    {HEALTH_KEYWORDS_OPTIONS.lifestyle.map(kw => (
+                      <button
+                        key={kw.value}
+                        type="button"
+                        onClick={() => {
+                          const current = formData.health_keywords;
+                          if (current.includes(kw.value)) {
+                            setFormData({ ...formData, health_keywords: current.filter(k => k !== kw.value) });
+                          } else if (current.length < 3) {
+                            setFormData({ ...formData, health_keywords: [...current, kw.value] });
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          formData.health_keywords.includes(kw.value)
+                            ? 'bg-cyan-500 text-white shadow-md'
+                            : 'bg-white border border-cyan-200 text-cyan-700 hover:bg-cyan-50'
+                        } ${formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value)}
+                      >
+                        {kw.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                المختار: {formData.health_keywords.length}/3
+              </p>
+            </div>
+            
+            {/* Health Benefit Arabic */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                الفائدة الصحية (بالعربية)
+              </label>
+              <textarea
+                value={formData.health_benefit_ar}
+                onChange={(e) => setFormData({ ...formData, health_benefit_ar: e.target.value })}
+                rows={2}
+                className="w-full px-4 py-2.5 border-2 border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-white resize-none"
+                placeholder="مثال: غني بالبروتين ومنخفض السكر - مثالي للرياضيين"
+                maxLength={200}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.health_benefit_ar.length}/200 حرف
+              </p>
             </div>
           </div>
 

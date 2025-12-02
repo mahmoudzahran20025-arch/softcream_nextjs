@@ -1,6 +1,7 @@
 'use client'
 
-import { Trash2 } from 'lucide-react'
+import { useMemo } from 'react'
+import { Trash2, Flame, Dumbbell, Leaf } from 'lucide-react'
 import QuantitySelector from '@/components/ui/common/QuantitySelector'
 import PriceDisplay from '@/components/ui/common/PriceDisplay'
 
@@ -12,6 +13,11 @@ interface Product {
   image?: string
   category?: string
   description?: string
+  calories?: number
+  protein?: number
+  carbs?: number
+  sugar?: number
+  fat?: number
 }
 
 interface CartItemData {
@@ -68,6 +74,30 @@ export default function CartItem({ item, product, addons = [], customizationOpti
     ? Object.entries(item.selections).filter(([key]) => !key.startsWith('_'))
     : []
   const isCustomizable = customSelections.length > 0 || !!containerInfo || !!sizeInfo
+
+  // ✅ Calculate item nutrition for badges
+  const itemNutrition = useMemo(() => {
+    let calories = product.calories || 0
+    let protein = product.protein || 0
+    let sugar = product.sugar || 0
+
+    // Add customization nutrition
+    if (item.selections) {
+      Object.entries(item.selections).forEach(([key, values]) => {
+        if (key.startsWith('_')) return
+        if (!Array.isArray(values)) return
+        values.forEach(optionId => {
+          const option = customizationOptions.find(o => o.id === optionId)
+          if (option) {
+            calories += option.calories || option.nutrition?.calories || 0
+            protein += option.protein || option.nutrition?.protein || 0
+            sugar += option.sugar || option.nutrition?.sugar || 0
+          }
+        })
+      })
+    }
+    return { calories, protein, sugar }
+  }, [product, item.selections, customizationOptions])
 
   return (
     <div className="flex gap-4 p-4 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-700 dark:to-slate-600 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
@@ -162,45 +192,30 @@ export default function CartItem({ item, product, addons = [], customizationOpti
           </div>
         )}
 
-        {/* ✅ Nutrition Summary (New) */}
-        {customSelections.length > 0 && (
-          <div className="mt-3 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-            {(() => {
-              const nutrition = customSelections.flatMap(([, values]) => values).reduce((acc, optionId) => {
-                const option = customizationOptions.find(o => o.id === optionId)
-                if (option?.nutrition) {
-                  acc.calories += option.nutrition.calories || 0
-                  acc.protein += option.nutrition.protein || 0
-                } else if (option?.calories) { // Fallback if nutrition is flat
-                  acc.calories += option.calories || 0
-                  acc.protein += option.protein || 0
-                }
-                return acc
-              }, { calories: 0, protein: 0 })
+        {/* ✅ Nutrition Badges & Info */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {/* High Protein Badge */}
+          {itemNutrition.protein >= 15 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] font-bold border border-blue-100 dark:border-blue-800">
+              <Dumbbell className="w-3 h-3" />
+              <span>عالي البروتين</span>
+            </span>
+          )}
 
-              // Add base product nutrition if available (optional, maybe just show added nutrition)
-              // For now, let's show total if we have data
+          {/* Low Sugar Badge */}
+          {itemNutrition.sugar <= 10 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-[10px] font-bold border border-green-100 dark:border-green-800">
+              <Leaf className="w-3 h-3" />
+              <span>سكر قليل</span>
+            </span>
+          )}
 
-              if (nutrition.calories > 0) {
-                return (
-                  <>
-                    <span className="flex items-center gap-1 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-md">
-                      <span>🔥</span>
-                      <span>{nutrition.calories} سعرة</span>
-                    </span>
-                    {nutrition.protein > 0 && (
-                      <span className="flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md">
-                        <span>💪</span>
-                        <span>{nutrition.protein}g بروتين</span>
-                      </span>
-                    )}
-                  </>
-                )
-              }
-              return null
-            })()}
-          </div>
-        )}
+          {/* Calories */}
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 text-[10px] font-medium border border-orange-100 dark:border-orange-800">
+            <Flame className="w-3 h-3" />
+            <span>{Math.round(itemNutrition.calories)} سعرة</span>
+          </span>
+        </div>
 
         {/* Quantity Controls */}
         <div className="flex items-center gap-3 mt-3">

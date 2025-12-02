@@ -1,6 +1,6 @@
 'use client'
 
-import { Sparkles } from 'lucide-react'
+import { Sparkles, ShoppingBag } from 'lucide-react'
 import { motion } from 'framer-motion'
 import PriceDisplay from '@/components/ui/common/PriceDisplay'
 import { Addon } from '@/lib/api'
@@ -14,8 +14,31 @@ interface AddonsListProps {
 }
 
 export default function AddonsList({ addons, tags, selectedAddons, onToggleAddon, isLoading }: AddonsListProps) {
+  const hasNoOptions = addons.length === 0 && tags.length === 0 && !isLoading
+
   return (
     <>
+      {/* Ready State - No customization available (Requirements 4.5) */}
+      {hasNoOptions && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-10"
+        >
+          <motion.div
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-900/30 dark:to-rose-900/30 rounded-2xl flex items-center justify-center"
+          >
+            <ShoppingBag className="w-8 h-8 text-pink-400 dark:text-pink-300" />
+          </motion.div>
+          <h4 className="font-bold text-slate-900 dark:text-white mb-1">جاهز للطلب!</h4>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            أضفه للسلة مباشرة
+          </p>
+        </motion.div>
+      )}
+
       {/* Add-ons Section */}
       {addons.length > 0 && (
         <motion.div

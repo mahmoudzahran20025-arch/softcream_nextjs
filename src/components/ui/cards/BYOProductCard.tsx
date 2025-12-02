@@ -5,6 +5,8 @@ import { motion } from 'framer-motion'
 import { Sparkles, Palette, IceCream, ChevronLeft } from 'lucide-react'
 import Image from 'next/image'
 import { CategoryConfig } from '@/config/categories'
+import { HealthBadges } from '../health'
+import { parseHealthKeywords } from '@/lib/health/keywords'
 
 interface Product {
   id: string
@@ -13,6 +15,7 @@ interface Product {
   price: number
   image?: string
   description?: string
+  health_keywords?: string
 }
 
 interface BYOProductCardProps {
@@ -39,7 +42,7 @@ export default function BYOProductCard({ product, config: _config }: BYOProductC
     >
       {/* Main Card */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#FF6B9D] via-[#FF5A8E] to-[#E91E63] shadow-xl shadow-pink-500/25 hover:shadow-2xl hover:shadow-pink-500/40 transition-all duration-500">
-        
+
         {/* Animated Background Pattern */}
         <div className="absolute inset-0 opacity-30">
           <motion.div
@@ -89,7 +92,7 @@ export default function BYOProductCard({ product, config: _config }: BYOProductC
             </motion.div>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <motion.span 
+              <motion.span
                 animate={isHovered ? { scale: 1.2, rotate: 10 } : {}}
                 className="text-8xl drop-shadow-lg"
               >
@@ -111,16 +114,27 @@ export default function BYOProductCard({ product, config: _config }: BYOProductC
             {product.description || 'صمم آيس كريمك الخاص بنكهاتك المفضلة'}
           </p>
 
-          {/* Features */}
+          {/* Features / Health Badges */}
           <div className="flex flex-wrap gap-2 mb-4">
-            <span className="text-[11px] bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1">
-              <Palette className="w-3 h-3" />
-              تخصيص كامل
-            </span>
-            <span className="text-[11px] bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1">
-              <IceCream className="w-3 h-3" />
-              20+ نكهة
-            </span>
+            {product.health_keywords ? (
+              <HealthBadges
+                keywords={parseHealthKeywords(product.health_keywords)}
+                maxBadges={3}
+                size="xs"
+                variant="overlay"
+              />
+            ) : (
+              <>
+                <span className="text-[11px] bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <Palette className="w-3 h-3" />
+                  تخصيص كامل
+                </span>
+                <span className="text-[11px] bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <IceCream className="w-3 h-3" />
+                  20+ نكهة
+                </span>
+              </>
+            )}
           </div>
 
           {/* Price */}

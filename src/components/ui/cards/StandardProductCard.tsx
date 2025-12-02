@@ -9,6 +9,8 @@ import { CategoryConfig } from '@/config/categories'
 import QuantitySelector from '../common/QuantitySelector'
 import PriceDisplay from '../common/PriceDisplay'
 import { useRotatingText } from '@/hooks/useRotatingText'
+import { HealthBadges } from '../health'
+import { parseHealthKeywords } from '@/lib/health/keywords'
 
 interface Product {
   id: string
@@ -22,6 +24,7 @@ interface Product {
   energy_type?: string
   energy_score?: number
   badge?: string
+  health_keywords?: string
 }
 
 interface StandardProductCardProps {
@@ -174,6 +177,17 @@ export default function StandardProductCard({ product, config: _config }: Standa
           {product.name}
         </h3>
 
+        {/* Health Badges */}
+        {product.health_keywords && (
+          <div className="mb-1.5">
+            <HealthBadges
+              keywords={parseHealthKeywords(product.health_keywords)}
+              maxBadges={2}
+              size="xs"
+            />
+          </div>
+        )}
+
         {/* Description */}
         {product.description && (
           <p className="text-xs text-slate-600 dark:text-slate-400 mb-2 line-clamp-1">
@@ -185,10 +199,9 @@ export default function StandardProductCard({ product, config: _config }: Standa
         <div className="min-h-[18px] mb-2 flex items-center gap-1 will-change-contents">
           <span className="text-sm flex-shrink-0">{currentIcon}</span>
           <p
-            className={`text-xs font-semibold transition-all duration-300 ${
-              isTransitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
-            } ${currentColor}`}
-            style={{ 
+            className={`text-xs font-semibold transition-all duration-300 ${isTransitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
+              } ${currentColor}`}
+            style={{
               minHeight: '18px',
               display: 'flex',
               alignItems: 'center'
@@ -225,11 +238,10 @@ export default function StandardProductCard({ product, config: _config }: Standa
               whileTap={{ scale: 0.95 }}
               onClick={handleAddToCart}
               disabled={isAdding}
-              className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all shadow-md hover:shadow-lg active:scale-[0.98] ${
-                isAdding
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] hover:from-[#FF5A8E] hover:to-[#FF4979] text-white'
-              }`}
+              className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all shadow-md hover:shadow-lg active:scale-[0.98] ${isAdding
+                ? 'bg-emerald-500 text-white'
+                : 'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] hover:from-[#FF5A8E] hover:to-[#FF4979] text-white'
+                }`}
               style={{ willChange: 'transform' }}
               aria-label="إضافة إلى السلة"
             >

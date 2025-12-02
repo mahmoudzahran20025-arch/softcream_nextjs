@@ -6,6 +6,8 @@ import { ShoppingCart, Check } from 'lucide-react'
 import Image from 'next/image'
 import { useCart } from '@/providers/CartProvider'
 import { CategoryConfig } from '@/config/categories'
+import { HealthBadges } from '../health'
+import { parseHealthKeywords } from '@/lib/health/keywords'
 
 interface Product {
   id: string
@@ -15,6 +17,7 @@ interface Product {
   image?: string
   description?: string
   calories?: number
+  health_keywords?: string
 }
 
 interface CompactProductCardProps {
@@ -52,7 +55,7 @@ export default function CompactProductCard({ product, config }: CompactProductCa
     >
       {/* Compact Card */}
       <div className="relative overflow-hidden rounded-xl bg-white dark:bg-slate-800 shadow-md hover:shadow-lg transition-all duration-200 border border-slate-100 dark:border-slate-700">
-        
+
         {/* Square Image */}
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800">
           {product.image ? (
@@ -88,11 +91,10 @@ export default function CompactProductCard({ product, config }: CompactProductCa
               whileTap={{ scale: 0.9 }}
               onClick={handleAddToCart}
               disabled={isAdding}
-              className={`px-4 py-2 rounded-full font-bold text-xs flex items-center gap-1.5 shadow-lg transition-all ${
-                justAdded 
-                  ? 'bg-green-500 text-white' 
+              className={`px-4 py-2 rounded-full font-bold text-xs flex items-center gap-1.5 shadow-lg transition-all ${justAdded
+                  ? 'bg-green-500 text-white'
                   : 'bg-white text-slate-800 hover:bg-[#FF6B9D] hover:text-white'
-              }`}
+                }`}
             >
               {justAdded ? (
                 <>
@@ -112,9 +114,20 @@ export default function CompactProductCard({ product, config }: CompactProductCa
         {/* Compact Info */}
         <div className="p-3">
           {/* Name */}
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 mb-1.5">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 mb-1">
             {product.name}
           </h3>
+
+          {/* Health Badges */}
+          {product.health_keywords && (
+            <div className="mb-1.5">
+              <HealthBadges
+                keywords={parseHealthKeywords(product.health_keywords)}
+                maxBadges={1}
+                size="xs"
+              />
+            </div>
+          )}
 
           {/* Price Row */}
           <div className="flex items-center justify-between">
@@ -128,11 +141,10 @@ export default function CompactProductCard({ product, config }: CompactProductCa
               whileTap={{ scale: 0.9 }}
               onClick={handleAddToCart}
               disabled={isAdding}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition-all ${
-                justAdded
+              className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition-all ${justAdded
                   ? 'bg-green-500 text-white'
                   : 'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white hover:shadow-md'
-              }`}
+                }`}
               aria-label="إضافة للسلة"
             >
               {justAdded ? (

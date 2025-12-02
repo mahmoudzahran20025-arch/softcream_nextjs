@@ -8,6 +8,8 @@ import { useCart } from '@/providers/CartProvider'
 import { CategoryConfig } from '@/config/categories'
 import QuantitySelector from '../common/QuantitySelector'
 import PriceDisplay from '../common/PriceDisplay'
+import { HealthBadges } from '../health'
+import { parseHealthKeywords } from '@/lib/health/keywords'
 
 interface Product {
   id: string
@@ -21,6 +23,7 @@ interface Product {
   badge?: string
   energy_type?: string
   energy_score?: number
+  health_keywords?: string
 }
 
 interface FeaturedProductCardProps {
@@ -54,7 +57,7 @@ export default function FeaturedProductCard({ product, config }: FeaturedProduct
     >
       {/* Card */}
       <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800 shadow-lg hover:shadow-2xl transition-all duration-300 border border-slate-100 dark:border-slate-700 h-full flex flex-col">
-        
+
         {/* Image Section */}
         <div className="relative aspect-[4/5] overflow-hidden">
           {product.image ? (
@@ -86,27 +89,17 @@ export default function FeaturedProductCard({ product, config }: FeaturedProduct
             </motion.div>
           )}
 
-          {/* Nutrition Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-            {product.calories && (
-              <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1 shadow-md">
-                <Flame className="w-3 h-3" />
-                <span>{product.calories}</span>
-              </div>
-            )}
-            {product.protein && product.protein > 0 && (
-              <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 shadow-md">
-                <span>💪</span>
-                <span>{product.protein}g</span>
-              </div>
-            )}
-            {product.energy_score && product.energy_score > 0 && (
-              <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1 shadow-md">
-                <Zap className="w-3 h-3" />
-                <span>{product.energy_score}</span>
-              </div>
-            )}
-          </div>
+          {/* Health Badges Overlay */}
+          {product.health_keywords && (
+            <div className="absolute bottom-3 right-3">
+              <HealthBadges
+                keywords={parseHealthKeywords(product.health_keywords)}
+                maxBadges={2}
+                size="xs"
+                variant="overlay"
+              />
+            </div>
+          )}
 
           {/* Bottom Content Overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -145,11 +138,10 @@ export default function FeaturedProductCard({ product, config }: FeaturedProduct
               whileTap={{ scale: 0.95 }}
               onClick={handleAddToCart}
               disabled={isAdding}
-              className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all ${
-                isAdding
+              className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all ${isAdding
                   ? 'bg-emerald-500 text-white'
                   : 'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] hover:from-[#FF5A8E] hover:to-[#FF4979] text-white'
-              }`}
+                }`}
               aria-label="إضافة للسلة"
             >
               {isAdding ? (

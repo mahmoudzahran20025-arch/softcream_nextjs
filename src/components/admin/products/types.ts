@@ -13,6 +13,10 @@ export interface ProductCardProps {
   onDelete: (productId: string) => void;
   onToggleAvailability: (product: Product) => void;
   onOpenConfig: (product: Product) => void;
+  // Selection props for bulk actions
+  isSelected?: boolean;
+  onSelectionChange?: (productId: string, selected: boolean) => void;
+  selectionMode?: boolean;
 }
 
 export interface ProductFormProps {
@@ -22,6 +26,11 @@ export interface ProductFormProps {
   onSubmit: (formData: ProductFormData) => Promise<void>;
 }
 
+/**
+ * @deprecated ConfigModal is deprecated. Use UnifiedProductForm instead.
+ * This interface is kept for backward compatibility only.
+ * @see UnifiedProductForm
+ */
 export interface ConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -57,6 +66,9 @@ export interface ProductFormData {
   ingredients: string;
   nutrition_facts: string;
   allergens: string;
+  // Health-Driven Cart fields
+  health_keywords: string[];
+  health_benefit_ar: string;
 }
 
 export interface ProductConfig {
@@ -104,5 +116,25 @@ export const INITIAL_FORM_DATA: ProductFormData = {
   tags: '',
   ingredients: '',
   nutrition_facts: '',
-  allergens: ''
+  allergens: '',
+  // Health-Driven Cart fields
+  health_keywords: [],
+  health_benefit_ar: ''
+};
+
+// Health Keywords for admin selection
+export const HEALTH_KEYWORDS_OPTIONS = {
+  nutritional: [
+    { value: 'high-protein', label: 'عالي البروتين', labelEn: 'High Protein' },
+    { value: 'low-sugar', label: 'منخفض السكر', labelEn: 'Low Sugar' },
+    { value: 'calcium', label: 'غني بالكالسيوم', labelEn: 'Rich in Calcium' },
+    { value: 'fiber-rich', label: 'غني بالألياف', labelEn: 'Fiber Rich' },
+    { value: 'probiotic', label: 'بروبيوتيك', labelEn: 'Probiotic' },
+  ],
+  lifestyle: [
+    { value: 'energy-boost', label: 'يعزز الطاقة', labelEn: 'Energy Boost' },
+    { value: 'indulgent', label: 'للاستمتاع', labelEn: 'Indulgent' },
+    { value: 'balanced', label: 'متوازن', labelEn: 'Balanced' },
+    { value: 'refreshing', label: 'منعش', labelEn: 'Refreshing' },
+  ],
 };

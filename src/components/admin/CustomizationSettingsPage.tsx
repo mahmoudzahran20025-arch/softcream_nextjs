@@ -1,13 +1,20 @@
 // src/components/admin/CustomizationSettingsPage.tsx
-// ✅ REFACTORED: Re-exports from modular structure
-// Original file (648 lines) split into:
-//   - customization/index.tsx (main page)
-//   - customization/TreeView.tsx (tree visualization)
-//   - customization/StatsCards.tsx (stats cards)
-//   - customization/QuickInfo.tsx (help section)
-//   - customization/Modal.tsx (edit modal)
-//   - customization/types.ts (shared types)
-//   - customization/api.ts (API functions)
+/**
+ * Customization Settings Page
+ * 
+ * This page renders the OptionsPage component for managing option groups
+ * (flavors, toppings, sauces, etc.) and their individual options.
+ * 
+ * Requirements: 1.1 - Display option groups when admin navigates to customization tab
+ */
 
-export { default } from './customization';
-export * from './customization/types';
+'use client';
+
+import React from 'react';
+import OptionsPage from './options';
+
+const CustomizationSettingsPage: React.FC = () => {
+  return <OptionsPage />;
+};
+
+export default CustomizationSettingsPage;

@@ -1,14 +1,20 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
 import { X, ShoppingCart } from 'lucide-react'
 import { useCart } from '@/providers/CartProvider'
 import { getProduct } from '@/lib/api'
 import { debug } from '@/lib/debug'
-import { createEmptyNutrition, addNutrition, multiplyNutrition } from '@/lib/utils/nutritionCalculator'
+// Note: nutritionCalculator utilities available if needed for future enhancements
+import { calculateHealthScore } from '@/lib/utils/healthScore'
+import { selectHealthInsight, parseHealthKeywords, type CartItemWithKeywords } from '@/lib/health/selectInsight'
+
 import CartItem from './CartItem'
 import CartSummary from './CartSummary'
-import NutritionCard from '@/components/ui/NutritionCard'
+import HealthyMeter from './HealthyMeter'
+
+// Lazy load HealthInsightCard for performance
+const HealthInsightCard = lazy(() => import('./HealthInsightCard'))
 
 interface Product {
   id: string
@@ -18,6 +24,12 @@ interface Product {
   image?: string
   category?: string
   description?: string
+  calories?: number
+  protein?: number
+  carbs?: number
+  sugar?: number
+  fat?: number
+  fiber?: number
 }
 
 interface CartModalProps {
@@ -30,7 +42,10 @@ interface CartModalProps {
 export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [] }: CartModalProps) {
   const { cart, updateCartQuantity, removeFromCart, getCartCount, getCartTotal } = useCart()
   const [productsWithAddons, setProductsWithAddons] = useState<Map<string, any>>(new Map())
+  const [insightDismissed, setInsightDismissed] = useState(false)
   const fetchedRef = useRef<Set<string>>(new Set())
+  const healthScoreDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const [debouncedHealthScore, setDebouncedHealthScore] = useState<any>(null)
 
   // ✅ Fetch products with addons AND customization rules for cart items
   // Using ref to prevent duplicate fetches
@@ -74,69 +89,50 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
     fetchProductsWithAddons()
   }, [cartProductIds, isOpen])
 
-  // ✅ Calculate nutrition using nutritionCalculator utility
-  const nutritionData = useMemo(() => {
+  // ✅ Calculate health score with debouncing (300ms)
+  const healthScore = useMemo(() => {
     if (cart.length === 0) return null
+    return calculateHealthScore(cart, productsWithAddons)
+  }, [cart, productsWithAddons])
 
-    let total = createEmptyNutrition()
-
-    cart.forEach(item => {
-      const product = allProducts.find(p => p.id === item.productId) as any
-      if (product) {
-        // Add base product nutrition × quantity
-        const productNutrition = multiplyNutrition({
-          calories: product.calories || 0,
-          protein: product.protein || 0,
-          carbs: product.carbs || 0,
-          sugar: product.sugar || 0,
-          fat: product.fat || 0,
-          fiber: product.fiber || 0
-        }, item.quantity)
-        total = addNutrition(total, productNutrition)
+  // Debounce health score updates for performance
+  useEffect(() => {
+    if (healthScoreDebounceRef.current) {
+      clearTimeout(healthScoreDebounceRef.current)
+    }
+    healthScoreDebounceRef.current = setTimeout(() => {
+      setDebouncedHealthScore(healthScore)
+    }, 300)
+    return () => {
+      if (healthScoreDebounceRef.current) {
+        clearTimeout(healthScoreDebounceRef.current)
       }
+    }
+  }, [healthScore])
 
-      // Add customization nutrition
-      if (item.selections) {
-        const productWithAddons = productsWithAddons.get(item.productId)
-        const customizationRules = (productWithAddons as any)?.customizationRules || []
-
-        const localOptionsMap: Record<string, any> = {}
-        customizationRules.forEach((group: any) => {
-          group.options.forEach((option: any) => {
-            localOptionsMap[option.id] = option
-          })
-        })
-
-        Object.entries(item.selections).forEach(([key, values]) => {
-          if (key.startsWith('_')) return
-          if (!Array.isArray(values)) return
-
-          values.forEach((optionId: string) => {
-            const option = localOptionsMap[optionId]
-            if (option) {
-              const nutrition = option.nutrition || option
-              const optionNutrition = multiplyNutrition({
-                calories: nutrition.calories || 0,
-                protein: nutrition.protein || 0,
-                carbs: nutrition.carbs || 0,
-                sugar: nutrition.sugar || 0,
-                fat: nutrition.fat || 0,
-                fiber: nutrition.fiber || 0
-              }, item.quantity)
-              total = addNutrition(total, optionNutrition)
-            }
-          })
-        })
+  // ✅ Extract health keywords from cart items for insight selection
+  const cartItemsWithKeywords: CartItemWithKeywords[] = useMemo(() => {
+    return cart.map(item => {
+      const product = productsWithAddons.get(item.productId)
+      const healthKeywords = parseHealthKeywords(product?.health_keywords)
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        health_keywords: healthKeywords
       }
     })
+  }, [cart, productsWithAddons])
 
-    return {
-      totalCalories: total.calories,
-      totalProtein: total.protein,
-      totalCarbs: total.carbs,
-      totalFat: total.fat
-    }
-  }, [cart, allProducts, productsWithAddons.size])
+  // ✅ Select health insight based on score and keywords
+  const healthInsightResult = useMemo(() => {
+    if (!debouncedHealthScore || cart.length === 0) return null
+    return selectHealthInsight(debouncedHealthScore.score, cartItemsWithKeywords)
+  }, [debouncedHealthScore, cartItemsWithKeywords, cart.length])
+
+  // Reset insight dismissed state when cart changes significantly
+  useEffect(() => {
+    setInsightDismissed(false)
+  }, [cart.length])
 
   // ✅ Memoize all calculations to prevent re-renders
   const { productsMap, addonsMap, optionsMap } = useMemo(() => {
@@ -315,9 +311,35 @@ export default function CartModal({ isOpen, onClose, onCheckout, allProducts = [
                 })}
               </div>
 
-              {/* Nutrition Summary */}
-              {nutritionData && (
-                <NutritionCard nutritionData={nutritionData} />
+              {/* Healthy Meter */}
+              {debouncedHealthScore && (
+                <div className="mt-6 px-1">
+                  <HealthyMeter result={debouncedHealthScore} />
+                </div>
+              )}
+
+              {/* Health Insight Card */}
+              {healthInsightResult && !insightDismissed && (
+                <div className="mt-4 px-1">
+                  <Suspense fallback={
+                    <div className="rounded-2xl bg-gradient-to-br from-green-50 to-blue-50 p-4 animate-pulse">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 bg-slate-200 rounded-full" />
+                        <div className="w-24 h-4 bg-slate-200 rounded" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="w-full h-3 bg-slate-200 rounded" />
+                        <div className="w-3/4 h-3 bg-slate-200 rounded" />
+                      </div>
+                    </div>
+                  }>
+                    <HealthInsightCard 
+                      insight={healthInsightResult.insight}
+                      onDismiss={() => setInsightDismissed(true)}
+                      delay={0.5}
+                    />
+                  </Suspense>
+                </div>
               )}
             </>
           )}
