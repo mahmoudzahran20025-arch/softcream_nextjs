@@ -25,7 +25,7 @@ export async function getOptionGroups(): Promise<OptionGroupsResponse> {
 
 /**
  * Create a new option group
- * Requirements: 2.4
+ * Requirements: 2.4, 3.1, 3.4
  */
 export async function createOptionGroup(
   data: OptionGroupFormData
@@ -40,13 +40,14 @@ export async function createOptionGroup(
       description_en: data.description_en || null,
       icon: data.icon,
       display_order: data.display_order,
+      ui_config: data.ui_config || null,
     },
   });
 }
 
 /**
  * Update an existing option group
- * Requirements: 3.3
+ * Requirements: 3.3, 3.1, 3.4
  */
 export async function updateOptionGroup(
   groupId: string,
@@ -61,6 +62,7 @@ export async function updateOptionGroup(
       description_en: data.description_en,
       icon: data.icon,
       display_order: data.display_order,
+      ui_config: data.ui_config,
     },
   });
 }
@@ -75,6 +77,28 @@ export async function deleteOptionGroup(
   return apiRequest(`/admin/option-groups/${groupId}`, {
     method: 'DELETE',
   });
+}
+
+/**
+ * Reorder option groups by updating display_order
+ * Note: This endpoint is not yet implemented in the backend
+ * TODO: Implement PUT /admin/option-groups/reorder in backend
+ * 
+ * @param orderedIds - Array of group IDs in the new order
+ * @deprecated Backend endpoint not available - use updateOptionGroup for individual updates
+ */
+export async function reorderOptionGroups(
+  orderedIds: string[]
+): Promise<ApiResponse<void>> {
+  // Fallback: Update each group's display_order individually
+  const results = await Promise.all(
+    orderedIds.map((id, index) => 
+      updateOptionGroup(id, { display_order: index })
+    )
+  );
+  
+  const allSucceeded = results.every(r => r.success);
+  return { success: allSucceeded };
 }
 
 // ===========================

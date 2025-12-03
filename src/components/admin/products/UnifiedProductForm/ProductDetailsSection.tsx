@@ -3,16 +3,17 @@
  * 
  * Displays and manages product details fields in the unified form.
  * Includes product_type selector with template trigger.
+ * Nutrition fields moved to NutritionSection (Requirements 5.3)
  * 
  * @module admin/products/UnifiedProductForm/ProductDetailsSection
- * Requirements: 1.1, 1.2
+ * Requirements: 1.1, 1.2, 2.4, 5.3 - Added template_id and card_style fields
  */
 
 'use client';
 
 import React from 'react';
 import type { ProductDetailsSectionProps } from './types';
-import { PRODUCT_TYPES, HEALTH_KEYWORDS_OPTIONS } from './types';
+import { PRODUCT_TYPES, CARD_STYLE_OPTIONS } from './types';
 
 const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
   formData,
@@ -20,22 +21,17 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
   isEditing,
   onProductTypeChange,
 }) => {
+  // Debug: Log formData on every render
+  console.log('🎯 ProductDetailsSection render, formData:', formData);
+
   const handleChange = (field: string, value: string | number | string[]) => {
+    console.log('🔄 ProductDetailsSection handleChange:', { field, value });
     onChange({ ...formData, [field]: value });
   };
 
   const handleProductTypeChange = (newType: string) => {
     handleChange('product_type', newType);
     onProductTypeChange?.(newType);
-  };
-
-  const handleHealthKeywordToggle = (keyword: string) => {
-    const current = formData.health_keywords;
-    if (current.includes(keyword)) {
-      handleChange('health_keywords', current.filter(k => k !== keyword));
-    } else if (current.length < 3) {
-      handleChange('health_keywords', [...current, keyword]);
-    }
   };
 
   return (
@@ -62,6 +58,8 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
             <label className="block text-sm font-semibold text-gray-700 mb-2">الاسم (العربية) *</label>
             <input
               type="text"
+              onFocus={() => console.log('👆 Input focused: name')}
+              onClick={() => console.log('🖱️ Input clicked: name')}
               required
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
@@ -101,7 +99,7 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">السعر * (جنيه)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">السعر الحالي * (جنيه)</label>
             <div className="relative">
               <input
                 type="number"
@@ -115,6 +113,7 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">ج</span>
             </div>
+            <p className="text-xs text-gray-500 mt-1">هذا هو السعر النهائي بعد الخصم</p>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">شارة مميزة</label>
@@ -139,6 +138,137 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
         </div>
       </div>
 
+      {/* Pricing & Discounts Section */}
+      <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 border-2 border-amber-200">
+        <h3 className="text-lg font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
+          <span>💰</span> التسعير والخصومات
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          اضبط السعر القديم لعرض خصم على المنتج. سيتم حساب نسبة الخصم تلقائياً.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              السعر القديم (قبل الخصم) - اختياري
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.old_price || ''}
+                onChange={(e) => {
+                  const oldPriceStr = e.target.value;
+                  handleChange('old_price', oldPriceStr);
+
+                  // Auto-calculate discount percentage
+                  const oldPrice = oldPriceStr ? parseFloat(oldPriceStr) : 0;
+                  const currentPrice = formData.price ? parseFloat(formData.price) : 0;
+
+                  if (oldPrice && currentPrice && oldPrice > currentPrice) {
+                    const discountPct = Math.round(((oldPrice - currentPrice) / oldPrice) * 100);
+                    handleChange('discount_percentage', discountPct.toString());
+                  } else {
+                    handleChange('discount_percentage', '');
+                  }
+                }}
+                className="w-full px-4 py-2.5 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
+                placeholder="مثال: 50.00"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">ج</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.old_price ? '✅ سيظهر السعر القديم مشطوب' : '💡 اتركه فارغاً إذا لم يكن هناك خصم'}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              نسبة الخصم (%) - تلقائي
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={formData.discount_percentage || ''}
+                onChange={(e) => handleChange('discount_percentage', e.target.value)}
+                className="w-full px-4 py-2.5 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
+                placeholder="يتم حسابها تلقائياً"
+                disabled
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">%</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.discount_percentage ? `🎉 خصم ${formData.discount_percentage}%` : '📊 سيتم الحساب عند إدخال السعر القديم'}
+            </p>
+          </div>
+        </div>
+
+        {/* Discount Preview */}
+        {(() => {
+          const oldPrice = formData.old_price ? parseFloat(formData.old_price) : 0;
+          const currentPrice = formData.price ? parseFloat(formData.price) : 0;
+          const discountPct = formData.discount_percentage ? parseInt(formData.discount_percentage) : 0;
+
+          return oldPrice && currentPrice && oldPrice > currentPrice && (
+            <div className="mt-4 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-green-800">🎯 معاينة الخصم:</p>
+                  <p className="text-xs text-green-600 mt-1">
+                    السعر القديم: <span className="line-through">{oldPrice.toFixed(2)} ج.م</span>
+                  </p>
+                  <p className="text-xs text-green-600">
+                    السعر الجديد: <span className="font-bold text-lg">{currentPrice.toFixed(2)} ج.م</span>
+                  </p>
+                </div>
+                <div className="text-left">
+                  <div className="bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
+                    <p className="text-xs font-medium">وفر</p>
+                    <p className="text-2xl font-bold">{(oldPrice - currentPrice).toFixed(2)} ج</p>
+                    <p className="text-xs">خصم {discountPct}%</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Warning for invalid discount */}
+        {(() => {
+          const oldPrice = formData.old_price ? parseFloat(formData.old_price) : 0;
+          const currentPrice = formData.price ? parseFloat(formData.price) : 0;
+
+          return oldPrice && currentPrice && oldPrice <= currentPrice && (
+            <div className="mt-4 p-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg flex items-start gap-2">
+              <span className="text-lg">⚠️</span>
+              <p className="text-sm text-yellow-800">
+                <strong>تنبيه:</strong> السعر القديم يجب أن يكون <strong>أكبر</strong> من السعر الحالي لعرض الخصم.
+              </p>
+            </div>
+          )
+        })()}
+      </div>
+
+      {/* Template ID Display - Requirement 2.4 (read-only reference) */}
+      {formData.template_id && (
+        <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-4 border-2 border-violet-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🎨</span>
+              <span className="text-sm font-semibold text-violet-700">القالب المختار:</span>
+              <span className="px-3 py-1 bg-violet-100 text-violet-800 rounded-full text-sm font-medium">
+                {formData.template_id}
+              </span>
+            </div>
+            <span className="text-xs text-gray-500">
+              يمكنك تغييره من تبويب &quot;القالب&quot;
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Product Type - Requirement 1.2 */}
       <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border-2 border-purple-200">
         <h3 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
@@ -153,11 +283,10 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
               key={type.value}
               type="button"
               onClick={() => handleProductTypeChange(type.value)}
-              className={`p-4 rounded-xl border-2 text-right transition-all ${
-                formData.product_type === type.value
-                  ? 'border-purple-500 bg-purple-50 shadow-md'
-                  : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
-              }`}
+              className={`p-4 rounded-xl border-2 text-right transition-all ${formData.product_type === type.value
+                ? 'border-purple-500 bg-purple-50 shadow-md'
+                : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
+                }`}
             >
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{type.icon}</span>
@@ -169,6 +298,42 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Card Style - Requirement 2.4 */}
+      <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl p-5 border-2 border-indigo-200">
+        <h3 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
+          <span>🎴</span> نمط عرض البطاقة
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          اختر كيف سيظهر المنتج في واجهة العملاء
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {CARD_STYLE_OPTIONS.map((style) => (
+            <button
+              key={style.value}
+              type="button"
+              onClick={() => handleChange('card_style', style.value)}
+              className={`p-4 rounded-xl border-2 text-right transition-all ${formData.card_style === style.value
+                ? 'border-indigo-500 bg-indigo-50 shadow-md'
+                : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50'
+                }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{style.icon}</span>
+                <div>
+                  <div className="font-semibold text-gray-800">{style.label}</div>
+                  <div className="text-xs text-gray-500">{style.description}</div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+        {!formData.card_style && (
+          <p className="text-xs text-amber-600 mt-2">
+            💡 سيتم استخدام النمط الافتراضي بناءً على القالب المختار
+          </p>
+        )}
       </div>
 
       {/* Description */}
@@ -197,172 +362,6 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
               placeholder="Product description in detail..."
             />
           </div>
-        </div>
-      </div>
-
-      {/* Nutrition */}
-      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-200">
-        <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-          <span>🥗</span> معلومات التغذية
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[
-            { key: 'calories', label: '🔥 السعرات', placeholder: '207' },
-            { key: 'protein', label: '💪 البروتين (g)', placeholder: '3.5' },
-            { key: 'carbs', label: '🍞 الكربوهيدرات (g)', placeholder: '24' },
-            { key: 'fat', label: '🧈 الدهون (g)', placeholder: '11' },
-            { key: 'sugar', label: '🍬 السكر (g)', placeholder: '21' },
-            { key: 'fiber', label: '🌾 الألياف (g)', placeholder: '0.5' },
-          ].map(({ key, label, placeholder }) => (
-            <div key={key}>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">{label}</label>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={formData[key as keyof typeof formData] as string}
-                onChange={(e) => handleChange(key, e.target.value)}
-                className="w-full px-3 py-2 border-2 border-green-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white text-sm"
-                placeholder={placeholder}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Energy */}
-      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-5 border-2 border-yellow-200">
-        <h3 className="text-lg font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-          <span>⚡</span> معلومات الطاقة
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">نوع الطاقة</label>
-            <select
-              value={formData.energy_type}
-              onChange={(e) => handleChange('energy_type', e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all bg-white"
-            >
-              <option value="none">🚫 بدون</option>
-              <option value="mental">🧠 ذهني</option>
-              <option value="physical">💪 جسدي</option>
-              <option value="balanced">⚖️ متوازن</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">درجة الطاقة (0-100)</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              value={formData.energy_score}
-              onChange={(e) => handleChange('energy_score', e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all bg-white"
-              placeholder="45"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Health Keywords */}
-      <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-5 border-2 border-teal-200">
-        <h3 className="text-lg font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-          <span>💚</span> معلومات صحية
-        </h3>
-        
-        <div className="mb-4">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            الكلمات المفتاحية الصحية (اختر حتى 3)
-          </label>
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs font-medium text-teal-600 mb-2">🥗 تغذوية</p>
-              <div className="flex flex-wrap gap-2">
-                {HEALTH_KEYWORDS_OPTIONS.nutritional.map(kw => (
-                  <button
-                    key={kw.value}
-                    type="button"
-                    onClick={() => handleHealthKeywordToggle(kw.value)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      formData.health_keywords.includes(kw.value)
-                        ? 'bg-teal-500 text-white shadow-md'
-                        : 'bg-white border border-teal-200 text-teal-700 hover:bg-teal-50'
-                    } ${formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    disabled={formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value)}
-                  >
-                    {kw.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <p className="text-xs font-medium text-cyan-600 mb-2">🌟 نمط الحياة</p>
-              <div className="flex flex-wrap gap-2">
-                {HEALTH_KEYWORDS_OPTIONS.lifestyle.map(kw => (
-                  <button
-                    key={kw.value}
-                    type="button"
-                    onClick={() => handleHealthKeywordToggle(kw.value)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      formData.health_keywords.includes(kw.value)
-                        ? 'bg-cyan-500 text-white shadow-md'
-                        : 'bg-white border border-cyan-200 text-cyan-700 hover:bg-cyan-50'
-                    } ${formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    disabled={formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value)}
-                  >
-                    {kw.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            المختار: {formData.health_keywords.length}/3
-          </p>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            الفائدة الصحية (بالعربية)
-          </label>
-          <textarea
-            value={formData.health_benefit_ar}
-            onChange={(e) => handleChange('health_benefit_ar', e.target.value)}
-            rows={2}
-            className="w-full px-4 py-2.5 border-2 border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-white resize-none"
-            placeholder="مثال: غني بالبروتين ومنخفض السكر - مثالي للرياضيين"
-            maxLength={200}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            {formData.health_benefit_ar.length}/200 حرف
-          </p>
-        </div>
-      </div>
-
-      {/* Metadata */}
-      <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-5 border-2 border-gray-200">
-        <h3 className="text-lg font-bold bg-gradient-to-r from-gray-700 to-slate-700 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-          <span>🏷️</span> معلومات إضافية (JSON)
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            { key: 'tags', label: '🏷️ الوسوم', placeholder: '["classic","creamy"]' },
-            { key: 'ingredients', label: '🥛 المكونات', placeholder: '["fresh milk","vanilla"]' },
-            { key: 'nutrition_facts', label: '📊 الحقائق الغذائية', placeholder: '{"vitamins":{}}' },
-            { key: 'allergens', label: '⚠️ مسببات الحساسية', placeholder: '["milk"]' },
-          ].map(({ key, label, placeholder }) => (
-            <div key={key}>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
-              <textarea
-                value={formData[key as keyof typeof formData] as string}
-                onChange={(e) => handleChange(key, e.target.value)}
-                rows={2}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-all bg-white font-mono text-sm resize-none"
-                placeholder={placeholder}
-              />
-            </div>
-          ))}
         </div>
       </div>
 

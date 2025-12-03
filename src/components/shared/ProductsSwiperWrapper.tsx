@@ -28,6 +28,7 @@ interface Product {
   energy_type?: string
   energy_score?: number
   badge?: string
+  layout_mode?: 'complex' | 'medium' | 'simple' | 'builder' | 'composer' | 'selector' | 'standard'
 }
 
 interface ProductsSwiperWrapperProps {
@@ -36,6 +37,11 @@ interface ProductsSwiperWrapperProps {
 }
 
 export default function ProductsSwiperWrapper({ products, category }: ProductsSwiperWrapperProps) {
+  // Determine slide width based on complexity of the first product
+  // Complex products (BYO) need more space
+  const isComplex = products[0]?.layout_mode === 'complex' || products[0]?.layout_mode === 'builder'
+  const slideWidthClass = isComplex ? '!w-[220px] md:!w-[260px]' : '!w-[160px] md:!w-[200px]'
+
   return (
     <Swiper
       modules={productSwiperConfig.modules}
@@ -50,7 +56,7 @@ export default function ProductsSwiperWrapper({ products, category }: ProductsSw
       {products.map(product => (
         <SwiperSlide
           key={product.id}
-          className="!w-[160px] md:!w-[200px]"
+          className={slideWidthClass}
         >
           <ProductCard product={product} />
         </SwiperSlide>

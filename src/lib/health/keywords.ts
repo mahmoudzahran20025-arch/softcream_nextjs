@@ -124,24 +124,39 @@ export function getKeywordWeight(keyword: string): number {
 }
 
 /**
- * Parse health keywords from JSON string (from backend)
+ * Parse health keywords from JSON string or comma-separated string (from backend)
  * Returns array of keyword objects with id and weight
+ * 
+ * Supports both formats:
+ * - JSON array: '["high-protein", "low-sugar"]'
+ * - Comma-separated: 'high-protein,low-sugar'
  */
 export function parseHealthKeywords(keywordsJson: string | null | undefined): Array<{ id: HealthKeyword; weight: number }> {
-  if (!keywordsJson) return [];
+  if (!keywordsJson || typeof keywordsJson !== 'string') return [];
 
-  try {
-    const parsed = JSON.parse(keywordsJson);
-    const keywords = Array.isArray(parsed) ? parsed : [];
+  const trimmed = keywordsJson.trim();
+  if (!trimmed) return [];
 
-    return keywords
-      .filter(isValidHealthKeyword)
-      .map(keyword => ({
-        id: keyword,
-        weight: HEALTH_KEYWORDS[keyword].weight
-      }));
-  } catch (error) {
-    console.warn('Failed to parse health keywords:', error);
-    return [];
+  let keywords: string[] = [];
+
+  // Try JSON parse first
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      keywords = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      // If JSON parse fails, treat as comma-separated
+      keywords = trimmed.split(',').map(k => k.trim()).filter(Boolean);
+    }
+  } else {
+    // Treat as comma-separated string
+    keywords = trimmed.split(',').map(k => k.trim()).filter(Boolean);
   }
+
+  return keywords
+    .filter(isValidHealthKeyword)
+    .map(keyword => ({
+      id: keyword as HealthKeyword,
+      weight: HEALTH_KEYWORDS[keyword as HealthKeyword].weight
+    }));
 }

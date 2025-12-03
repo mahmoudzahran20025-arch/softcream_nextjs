@@ -49,6 +49,7 @@ import {
 
 /**
  * Product form data structure for validation
+ * Requirements 2.4: Added template_id and card_style
  */
 export interface ProductFormData {
   id: string;
@@ -63,6 +64,12 @@ export interface ProductFormData {
   badge?: string;
   available?: number;
   product_type?: string;
+  // Template fields - Requirements 2.4
+  template_id?: string;
+  card_style?: string;
+  // Discount fields
+  old_price?: string | number;
+  discount_percentage?: string | number;
   // Nutrition fields (optional)
   calories?: string;
   protein?: string;

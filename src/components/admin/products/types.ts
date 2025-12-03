@@ -7,6 +7,18 @@ export interface ProductsPageProps {
   onDelete?: (productId: string) => void;
 }
 
+/**
+ * Information about an assigned option group for display in ProductCard
+ * Requirements: 5.2 - Show assigned option groups count with tooltip
+ */
+export interface AssignedGroupInfo {
+  groupId: string;
+  groupName: string;
+  groupIcon?: string;
+  isRequired: boolean;
+  optionsCount: number;
+}
+
 export interface ProductCardProps {
   product: Product;
   onEdit: (product: Product) => void;
@@ -17,6 +29,13 @@ export interface ProductCardProps {
   isSelected?: boolean;
   onSelectionChange?: (productId: string, selected: boolean) => void;
   selectionMode?: boolean;
+  // Template badge props (Requirements: 5.1)
+  templateId?: string | null;
+  templateComplexity?: 'simple' | 'medium' | 'complex' | null;
+  templateNameAr?: string;
+  templateNameEn?: string;
+  // Option groups badge props (Requirements: 5.2)
+  assignedGroups?: AssignedGroupInfo[];
 }
 
 export interface ProductFormProps {

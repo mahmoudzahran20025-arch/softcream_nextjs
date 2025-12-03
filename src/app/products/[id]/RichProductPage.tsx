@@ -5,9 +5,7 @@ import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import ProductHeader from '@/components/modals/ProductModal/ProductHeader'
 import NutritionInfo from '@/components/modals/ProductModal/NutritionInfo'
-import AddonsList from '@/components/modals/ProductModal/AddonsList'
 import ActionFooter from '@/components/modals/ProductModal/ActionFooter'
-import { useCustomization } from '@/components/modals/ProductModal/useCustomization'
 import { useProductConfiguration } from '@/hooks/useProductConfiguration'
 import { useAddToCart } from '@/hooks/useAddToCart'
 import { ProductTemplateRenderer } from '@/components/modals/ProductModal/templates'
@@ -112,37 +110,25 @@ function RichProductPageContent({ product, allProducts }: Props) {
 
   const {
     displayProduct,
-    isFetchingAddons,
     quantity,
     setQuantity,
     selectedAddons,
-    toggleAddon,
-    addons,
-    addonsTotal,
     totalPrice,
-    tags,
     ingredients,
     allergens,
   } = useProductLogic({ product, isOpen: true })
 
-  // Initialize Customization Hook
-  const customization = useCustomization({
-    productId: displayProduct?.id || product?.id || null,
-    isOpen: true,
-    basePrice: displayProduct?.price || product?.price || 0
-  })
-
-  // Use product configuration hook for sizes & containers
+  // ✅ Use unified product configuration (Unified Options System)
   const productConfig = useProductConfiguration({
     productId: displayProduct?.id || product?.id || null,
     isOpen: true
   })
 
-  // Use unified add to cart hook
+  // ✅ Use unified add to cart hook
   const { handleAddToCart } = useAddToCart({
     product: displayProduct || null,
     quantity,
-    productConfig: (productConfig.hasContainers || productConfig.hasSizes) ? {
+    productConfig: {
       hasContainers: productConfig.hasContainers,
       hasSizes: productConfig.hasSizes,
       hasCustomization: productConfig.hasCustomization,
@@ -153,14 +139,8 @@ function RichProductPageContent({ product, allProducts }: Props) {
       selections: productConfig.selections,
       totalPrice: productConfig.totalPrice,
       validationResult: productConfig.validationResult
-    } : null,
-    customization: customization.isCustomizable ? {
-      isCustomizable: true,
-      selections: customization.selections,
-      selectedOptions: customization.selectedOptions,
-      totalPrice: customization.totalPrice,
-      validationResult: customization.validationResult
-    } : null,
+    },
+    customization: null,
     legacy: {
       selectedAddons,
       totalPrice
@@ -243,34 +223,19 @@ function RichProductPageContent({ product, allProducts }: Props) {
                   }
                 />
 
-                {/* ✅ NOW WITH DYNAMIC NUTRITION! */}
+                {/* ✅ Using Unified Options System */}
                 <NutritionInfo
                   product={displayProduct}
                   ingredients={ingredients}
                   allergens={allergens}
-                  customizationNutrition={
-                    // Use productConfig nutrition if it has sizes OR containers OR customization
-                    (productConfig.hasSizes || productConfig.hasContainers || productConfig.hasCustomization)
-                      ? productConfig.totalNutrition 
-                      : customization.customizationNutrition
-                  }
+                  customizationNutrition={productConfig.totalNutrition}
                 />
 
-                {/* Product Template System - Dynamic based on configuration */}
-                {(productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization) ? (
-                  <ProductTemplateRenderer
-                    product={displayProduct}
-                    productConfig={productConfig}
-                  />
-                ) : (
-                  <AddonsList
-                    addons={addons}
-                    tags={tags}
-                    selectedAddons={selectedAddons}
-                    onToggleAddon={toggleAddon}
-                    isLoading={isFetchingAddons}
-                  />
-                )}
+                {/* ✅ Product Template System - All products use unified templates */}
+                <ProductTemplateRenderer
+                  product={displayProduct}
+                  productConfig={productConfig}
+                />
 
                 {/* Inline Action Footer - Always at the end of product details */}
                 <div className="mt-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-lg overflow-hidden">
@@ -279,43 +244,15 @@ function RichProductPageContent({ product, allProducts }: Props) {
                     onIncrease={() => setQuantity(quantity + 1)}
                     onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
                     onAddToCart={handleAddToCart}
-                    totalPrice={
-                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                        ? productConfig.totalPrice * quantity
-                        : totalPrice
-                    }
-                    basePrice={
-                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                        ? (productConfig.config?.product.basePrice || displayProduct.price)
-                        : displayProduct.price
-                    }
-                    addonsPrice={
-                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                        ? (productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal
-                        : addonsTotal
-                    }
-                    selectedAddonsCount={
-                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                        ? productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)
-                        : selectedAddons.length
-                    }
-                    selectedOptions={
-                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                        ? productConfig.selectedOptions
-                        : customization.selectedOptions
-                    }
+                    totalPrice={productConfig.totalPrice * quantity}
+                    basePrice={productConfig.config?.product.basePrice || displayProduct.price}
+                    addonsPrice={(productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal}
+                    selectedAddonsCount={productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)}
+                    selectedOptions={productConfig.selectedOptions}
                     containerName={productConfig.containerObj?.name}
                     sizeName={productConfig.sizeObj?.name}
-                    isValid={
-                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                        ? productConfig.validationResult.isValid
-                        : (customization.isCustomizable ? customization.validationResult.isValid : true)
-                    }
-                    validationMessage={
-                      (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                        ? productConfig.validationResult.errors[0]
-                        : (customization.isCustomizable ? customization.validationResult.errors[0] : undefined)
-                    }
+                    isValid={productConfig.validationResult.isValid}
+                    validationMessage={productConfig.validationResult.errors[0]}
                   />
                 </div>
               </div>

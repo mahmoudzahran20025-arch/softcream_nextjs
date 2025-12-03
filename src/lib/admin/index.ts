@@ -125,7 +125,7 @@ export {
   OrdersPolling
 } from './polling'
 
-// Templates
+// Templates (local definitions)
 export {
   PRODUCT_TEMPLATES,
   getTemplateForProductType,
@@ -134,9 +134,22 @@ export {
   getAvailableProductTypes,
   suggestsContainers,
   suggestsSizes,
-  type ProductTemplate,
+  type ProductTemplate as LocalProductTemplate,
   type SuggestedGroup
 } from './templates'
+
+// Templates API (database-backed)
+export {
+  getTemplates,
+  getTemplateById,
+  getSuggestedGroupsForTemplate,
+  checkTemplateCompatibility,
+  type ProductTemplate,
+  type TemplatesResponse,
+  type TemplateResponse,
+  type TemplateUIConfig,
+  type CardPreviewConfig
+} from './templates.api'
 
 // Validation
 export {

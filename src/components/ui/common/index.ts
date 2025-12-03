@@ -1,3 +1,6 @@
 export { default as QuantitySelector } from './QuantitySelector'
 export { default as PriceDisplay } from './PriceDisplay'
 export { default as NutritionIcon } from './NutritionIcon'
+export { default as NutritionSwiper } from './NutritionSwiper'
+export { default as UnavailableOverlay } from './UnavailableOverlay'
+export { default as DiscountBadge } from './DiscountBadge'

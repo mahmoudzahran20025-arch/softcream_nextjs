@@ -107,6 +107,7 @@ export interface SizeInfo {
 /**
  * Product details form data
  * Requirement 1.1: Product details section in unified form
+ * Requirements 2.4: template_id and card_style fields
  */
 export interface ProductFormData {
   id: string;
@@ -121,6 +122,12 @@ export interface ProductFormData {
   badge: string;
   available: number;
   product_type: string;
+  // Template fields - Requirements 2.4
+  template_id: string;
+  card_style: 'compact' | 'standard' | 'wizard' | '';
+  // Discount fields - Pricing with Discounts
+  old_price: string;
+  discount_percentage: string;
   // Nutrition fields
   calories: string;
   protein: string;
@@ -267,10 +274,11 @@ export interface ValidationSummaryProps {
 
 /**
  * Active tab in the unified form
- * Requirements: 5.3 - Removed separate containers/sizes tabs, using unified option groups
+ * Requirements: 5.3 - Organize form in tabs (Details, Template, Options, Nutrition)
+ * Requirements: 2.1, 2.2 - Added template tab for template selection
  * Containers and sizes are now part of option_groups with group_id 'containers' and 'sizes'
  */
-export type FormTab = 'details' | 'optionGroups';
+export type FormTab = 'details' | 'template' | 'optionGroups' | 'nutrition';
 
 /**
  * Form state for tracking changes
@@ -386,6 +394,7 @@ export interface ChangePreviewModalProps {
 
 /**
  * Initial product form data for new products
+ * Requirements 2.4: Added template_id and card_style
  */
 export const INITIAL_PRODUCT_FORM_DATA: ProductFormData = {
   id: '',
@@ -400,6 +409,10 @@ export const INITIAL_PRODUCT_FORM_DATA: ProductFormData = {
   badge: '',
   available: 1,
   product_type: 'standard',
+  template_id: '',
+  card_style: '',
+  old_price: '',
+  discount_percentage: '',
   calories: '',
   protein: '',
   carbs: '',
@@ -462,6 +475,16 @@ export const PRODUCT_TYPES = [
   { value: 'milkshake', label: 'ميلك شيك', icon: '🥤', description: 'ميلك شيك مع خيارات النكهات' },
   { value: 'preset_ice_cream', label: 'آيس كريم جاهز', icon: '🍨', description: 'آيس كريم بوصفة محددة' },
   { value: 'dessert', label: 'حلويات', icon: '🍰', description: 'حلويات متنوعة' },
+] as const;
+
+/**
+ * Card style options for product display
+ * Requirements 2.4: card_style field options
+ */
+export const CARD_STYLE_OPTIONS = [
+  { value: 'compact', label: 'مضغوط', labelEn: 'Compact', icon: '📦', description: 'عرض مختصر للمنتج' },
+  { value: 'standard', label: 'قياسي', labelEn: 'Standard', icon: '🎴', description: 'عرض متوسط مع التفاصيل' },
+  { value: 'wizard', label: 'معالج', labelEn: 'Wizard', icon: '✨', description: 'عرض تفاعلي خطوة بخطوة' },
 ] as const;
 
 /**

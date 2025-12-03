@@ -14,7 +14,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Save, FileText, Layers } from 'lucide-react';
+import { X, Save, FileText, Layers, LayoutTemplate, Apple } from 'lucide-react';
 import type {
   UnifiedProductFormProps,
   UnifiedProductData,
@@ -32,8 +32,11 @@ import {
 import { getChanges, cloneUnifiedProductData } from './changeTracking';
 import ProductDetailsSection from './ProductDetailsSection';
 import OptionGroupsSection from './OptionGroupsSection';
+import NutritionSection from './NutritionSection';
 import ValidationSummary from './ValidationSummary';
 import ChangePreviewModal from './ChangePreviewModal';
+import TemplateSelector from '../TemplateSelector';
+import { getTemplates, getSuggestedGroupsForTemplate, checkTemplateCompatibility, type ProductTemplate } from '@/lib/admin/templates.api';
 import {
   validateUnifiedProductData,
   autoCorrectUnifiedProductData,
@@ -45,6 +48,7 @@ import {
 } from '@/lib/admin';
 
 // Convert form data to validation format
+// Requirements 2.4: Added template_id, card_style, old_price, discount_percentage
 function toValidationFormat(data: UnifiedProductData): ValidationUnifiedProductData {
   return {
     product: {
@@ -60,6 +64,12 @@ function toValidationFormat(data: UnifiedProductData): ValidationUnifiedProductD
       badge: data.product.badge || undefined,
       available: data.product.available,
       product_type: data.product.product_type || undefined,
+      template_id: data.product.template_id || undefined,
+      card_style: data.product.card_style || undefined,
+      // Discount fields
+      old_price: data.product.old_price || undefined,
+      discount_percentage: data.product.discount_percentage || undefined,
+      // Nutrition fields
       calories: data.product.calories || undefined,
       protein: data.product.protein || undefined,
       carbs: data.product.carbs || undefined,
@@ -83,12 +93,15 @@ function toValidationFormat(data: UnifiedProductData): ValidationUnifiedProductD
 
 /**
  * Tab configuration
- * Requirements: 5.3 - Remove separate containers/sizes tabs, use unified option groups
+ * Requirements: 5.3 - Organize form in tabs (Details, Template, Options, Nutrition)
+ * Requirements: 2.1, 2.2, 2.5 - Added Template tab for template selection
  * Containers and sizes are now part of option_groups with group_id 'containers' and 'sizes'
  */
 const TABS: Array<{ id: FormTab; label: string; icon: React.ReactNode }> = [
   { id: 'details', label: 'تفاصيل المنتج', icon: <FileText size={18} /> },
+  { id: 'template', label: 'القالب', icon: <LayoutTemplate size={18} /> },
   { id: 'optionGroups', label: 'مجموعات الخيارات', icon: <Layers size={18} /> },
+  { id: 'nutrition', label: 'القيم الغذائية', icon: <Apple size={18} /> },
 ];
 
 // Helper to parse health_keywords from JSON string
@@ -138,11 +151,32 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
   
   // API error state for displaying meaningful error messages (Requirement 5.5)
   const [apiError, setApiError] = useState<string | null>(null);
+  
+  // Templates state - Requirements 2.1, 2.2, 2.5
+  const [templates, setTemplates] = useState<ProductTemplate[]>([]);
+  
+  // Template compatibility warning - Requirements 5.5
+  const [templateCompatibilityWarning, setTemplateCompatibilityWarning] = useState<string | null>(null);
+
+  // Fetch templates on mount - Requirements 2.1, 2.2
+  useEffect(() => {
+    async function fetchTemplates() {
+      try {
+        const response = await getTemplates();
+        if (response.success) {
+          setTemplates(response.data);
+        }
+      } catch (err) {
+        console.error('Error fetching templates:', err);
+      }
+    }
+    fetchTemplates();
+  }, []);
 
   // Initialize form data when editing product changes
   useEffect(() => {
     if (editingProduct) {
-      // Load existing product data
+      // Load existing product data - Requirements 2.4: Added template_id and card_style
       const productData: ProductFormData = {
         id: editingProduct.id,
         name: editingProduct.name,
@@ -156,6 +190,12 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
         badge: editingProduct.badge || '',
         available: editingProduct.available,
         product_type: (editingProduct as any).product_type || 'standard',
+        template_id: (editingProduct as any).template_id || '',
+        card_style: (editingProduct as any).card_style || '',
+        // Discount fields
+        old_price: (editingProduct as any).old_price?.toString() || '',
+        discount_percentage: (editingProduct as any).discount_percentage?.toString() || '',
+        // Nutrition fields
         calories: editingProduct.calories?.toString() || '',
         protein: editingProduct.protein?.toString() || '',
         carbs: editingProduct.carbs?.toString() || '',
@@ -209,14 +249,87 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
     setValidationResult(result);
   }, [unifiedData, getValidationOptionGroups]);
 
+  // Check template compatibility - Requirements 5.5
+  useEffect(() => {
+    if (unifiedData.product.template_id && templates.length > 0) {
+      const selectedTemplate = templates.find(t => t.id === unifiedData.product.template_id);
+      if (selectedTemplate) {
+        const compatibility = checkTemplateCompatibility(
+          selectedTemplate,
+          unifiedData.optionGroupAssignments.length
+        );
+        setTemplateCompatibilityWarning(compatibility.compatible ? null : compatibility.message || null);
+      } else {
+        setTemplateCompatibilityWarning(null);
+      }
+    } else {
+      setTemplateCompatibilityWarning(null);
+    }
+  }, [unifiedData.product.template_id, unifiedData.optionGroupAssignments.length, templates]);
+
   // Handle product details change
   const handleProductChange = useCallback((productData: ProductFormData) => {
-    setUnifiedData(prev => ({
-      ...prev,
-      product: productData,
-    }));
+    console.log('📥 UnifiedProductForm handleProductChange received:', productData);
+    setUnifiedData(prev => {
+      const newData = {
+        ...prev,
+        product: productData,
+      };
+      console.log('📤 UnifiedProductForm new unifiedData:', newData);
+      return newData;
+    });
     setFormState(prev => ({ ...prev, isDirty: true }));
   }, []);
+
+  /**
+   * Handle template selection change
+   * Requirements: 2.1, 2.2, 2.5 - Select template and apply suggested groups
+   */
+  const handleTemplateChange = useCallback((templateId: string) => {
+    // Update template_id in product data
+    setUnifiedData(prev => ({
+      ...prev,
+      product: {
+        ...prev.product,
+        template_id: templateId,
+      },
+    }));
+    setFormState(prev => ({ ...prev, isDirty: true }));
+
+    // Find the selected template and apply suggested groups
+    const selectedTemplate = templates.find(t => t.id === templateId);
+    if (selectedTemplate) {
+      const suggestedGroupIds = getSuggestedGroupsForTemplate(selectedTemplate);
+      
+      // Only apply suggestions if there are no current assignments
+      if (suggestedGroupIds.length > 0) {
+        // Find matching option groups from available groups
+        const suggestedAssignments = suggestedGroupIds
+          .map((groupId, index) => {
+            const group = optionGroups.find(g => g.id === groupId);
+            if (group) {
+              return {
+                groupId: group.id,
+                isRequired: false,
+                minSelections: 0,
+                maxSelections: group.optionsCount || 5,
+                displayOrder: index + 1,
+              };
+            }
+            return null;
+          })
+          .filter((a): a is NonNullable<typeof a> => a !== null);
+
+        // Apply suggested groups if we found any matches
+        if (suggestedAssignments.length > 0) {
+          setUnifiedData(prev => ({
+            ...prev,
+            optionGroupAssignments: suggestedAssignments,
+          }));
+        }
+      }
+    }
+  }, [templates, optionGroups]);
 
   /**
    * Handle product type change with template application
@@ -274,6 +387,16 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
     // Validate before showing summary
     const validationData = toValidationFormat(unifiedData);
     const result = validateUnifiedProductData(validationData, getValidationOptionGroups());
+    
+    // Add template compatibility warning to validation result - Requirements 5.5
+    if (templateCompatibilityWarning) {
+      result.warnings.push({
+        field: 'template_compatibility',
+        message: templateCompatibilityWarning,
+        code: 'TEMPLATE_INCOMPATIBLE'
+      });
+    }
+    
     setValidationResult(result);
     
     // Show validation summary if there are errors or warnings
@@ -430,6 +553,16 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
                   ) && (
                     <span className="w-2 h-2 bg-red-500 rounded-full" />
                   )}
+                  {/* Template tab indicator - Requirements 2.1, 2.2, 5.5 */}
+                  {tab.id === 'template' && (
+                    templateCompatibilityWarning ? (
+                      <span className="w-2 h-2 bg-amber-500 rounded-full" title={templateCompatibilityWarning} />
+                    ) : unifiedData.product.template_id ? (
+                      <span className="w-2 h-2 bg-green-500 rounded-full" />
+                    ) : (
+                      <span className="w-2 h-2 bg-gray-300 rounded-full" />
+                    )
+                  )}
                   {tab.id === 'optionGroups' && (
                     getOptionGroupErrors().length > 0 ? (
                       <span className="w-2 h-2 bg-red-500 rounded-full" />
@@ -444,6 +577,7 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
 
           {/* Form Content */}
           {/* Requirements: 5.3 - Unified option groups interface */}
+          {/* Requirements: 2.1, 2.2, 2.5 - Template selection tab */}
           {/* Containers and sizes are now part of option groups with group_id 'containers' and 'sizes' */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
             {formState.activeTab === 'details' && (
@@ -455,13 +589,126 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
               />
             )}
             
+            {/* Template Tab - Requirements 2.1, 2.2, 2.5, 5.5 */}
+            {formState.activeTab === 'template' && (
+              <div className="space-y-6">
+                {/* Template Compatibility Warning - Requirements 5.5 */}
+                {templateCompatibilityWarning && (
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border-2 border-amber-300">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                        <span className="text-amber-600 text-lg">⚠️</span>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-amber-800 mb-1">تحذير التوافق</h4>
+                        <p className="text-sm text-amber-700">{templateCompatibilityWarning}</p>
+                        <p className="text-xs text-amber-600 mt-2">
+                          يمكنك تعديل مجموعات الخيارات من تبويب &quot;مجموعات الخيارات&quot; لتتوافق مع القالب المختار.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-5 border-2 border-violet-200">
+                  <h3 className="text-lg font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
+                    <span>🎨</span> قالب المنتج
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    اختر القالب المناسب لتحديد كيفية عرض المنتج وخياراته للعملاء.
+                    سيتم اقتراح مجموعات الخيارات المناسبة تلقائياً.
+                  </p>
+                  <TemplateSelector
+                    value={unifiedData.product.template_id || null}
+                    onChange={handleTemplateChange}
+                    optionGroupsCount={unifiedData.optionGroupAssignments.length}
+                  />
+                </div>
+                
+                {/* Current Template Info */}
+                {unifiedData.product.template_id && (
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-200">
+                    <h4 className="text-sm font-bold text-green-700 mb-2 flex items-center gap-2">
+                      <span>✅</span> القالب المختار
+                    </h4>
+                    {(() => {
+                      const selectedTemplate = templates.find(t => t.id === unifiedData.product.template_id);
+                      if (selectedTemplate) {
+                        return (
+                          <div className="space-y-2">
+                            <p className="font-semibold text-gray-800">{selectedTemplate.name_ar}</p>
+                            <p className="text-sm text-gray-600">{selectedTemplate.description_ar}</p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                              <span>📊 مجموعات الخيارات: {selectedTemplate.option_groups_min}-{selectedTemplate.option_groups_max}</span>
+                              <span>🎯 التعقيد: {selectedTemplate.complexity === 'simple' ? 'بسيط' : selectedTemplate.complexity === 'medium' ? 'متوسط' : 'معقد'}</span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return <p className="text-sm text-gray-500">جاري تحميل معلومات القالب...</p>;
+                    })()}
+                  </div>
+                )}
+                
+                {/* Suggested Groups Info */}
+                {unifiedData.optionGroupAssignments.length > 0 && (
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 border-2 border-blue-200">
+                    <h4 className="text-sm font-bold text-blue-700 mb-2 flex items-center gap-2">
+                      <span>💡</span> مجموعات الخيارات المُعيّنة
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {unifiedData.optionGroupAssignments.map(assignment => {
+                        const group = optionGroups.find(g => g.id === assignment.groupId);
+                        return (
+                          <span
+                            key={assignment.groupId}
+                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                          >
+                            {group?.name || assignment.groupId}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      يمكنك تعديل هذه المجموعات من تبويب &quot;مجموعات الخيارات&quot;
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            
             {formState.activeTab === 'optionGroups' && (
-              <OptionGroupsSection
-                assignments={unifiedData.optionGroupAssignments}
-                onChange={handleOptionGroupsChange}
-                availableGroups={optionGroups}
-                errors={getOptionGroupErrors()}
-                warnings={getOptionGroupWarnings()}
+              <div className="space-y-6">
+                {/* Template Compatibility Warning in Options Tab - Requirements 5.5 */}
+                {templateCompatibilityWarning && (
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border-2 border-amber-300">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                        <span className="text-amber-600 text-lg">⚠️</span>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-amber-800 mb-1">تحذير التوافق مع القالب</h4>
+                        <p className="text-sm text-amber-700">{templateCompatibilityWarning}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <OptionGroupsSection
+                  assignments={unifiedData.optionGroupAssignments}
+                  onChange={handleOptionGroupsChange}
+                  availableGroups={optionGroups}
+                  errors={getOptionGroupErrors()}
+                  warnings={getOptionGroupWarnings()}
+                />
+              </div>
+            )}
+            
+            {/* Nutrition Tab - Requirements 5.3 */}
+            {formState.activeTab === 'nutrition' && (
+              <NutritionSection
+                formData={unifiedData.product}
+                onChange={handleProductChange}
               />
             )}
           </form>

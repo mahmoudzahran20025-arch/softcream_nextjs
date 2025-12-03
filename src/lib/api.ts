@@ -59,10 +59,16 @@ export interface Product {
   price: number
   image?: string
   category?: string
+  categoryEn?: string
   description?: string
+  descriptionEn?: string
   tags?: string
   ingredients?: string
   allergens?: string
+  nutrition_facts?: string
+  available?: number
+  
+  // Nutrition
   calories?: number
   protein?: number
   carbs?: number
@@ -72,11 +78,32 @@ export interface Product {
   energy_type?: string
   energy_score?: number
   badge?: string
-  
+
   // ✨ Unified Configuration System
   optionGroups?: OptionGroup[]
   product_type?: string
+  layout_mode?: 'complex' | 'medium' | 'simple' | 'builder' | 'composer' | 'selector' | 'standard'
+  options_preview?: any
+
+  // ✅ Template System Fields
+  template_id?: string
+  template_variant?: string
+  is_template_dynamic?: number
+  ui_config?: string
+  card_style?: string
   
+  // ✅ Pricing with Discounts
+  old_price?: number
+  discount_percentage?: number
+  
+  // ✅ Card Configuration
+  card_badge?: string
+  card_badge_color?: string
+  
+  // ✅ Health System Fields
+  health_keywords?: string
+  health_benefit_ar?: string
+
   // Parsed fields (from expand parameter)
   ingredientsList?: string[]
   allergensList?: string[]

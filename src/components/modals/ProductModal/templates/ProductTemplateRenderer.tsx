@@ -3,12 +3,77 @@
 import { motion } from 'framer-motion'
 import { Product } from '@/lib/api'
 import { useProductConfiguration } from '@/hooks/useProductConfiguration'
-import BYOTemplate from './BYOTemplate'
-import DessertTemplate from './DessertTemplate'
-import MilkshakeTemplate from './MilkshakeTemplate'
-import PresetTemplate from './PresetTemplate'
-import StandardTemplate from './StandardTemplate'
+import ComplexTemplate from './builders/ComplexTemplate'
+import MediumTemplate from './composers/MediumTemplate'
+import SimpleTemplate from './selectors/SimpleTemplate'
 import CustomizationSummary from '../CustomizationSummary'
+
+/**
+ * Layout mode type for template rendering
+ */
+export type LayoutMode = 'simple' | 'medium' | 'complex'
+
+/**
+ * Product type for getEffectiveLayoutMode function
+ * Minimal interface for template mapping
+ */
+export interface TemplateProduct {
+  template_id?: string
+  layout_mode?: string
+}
+
+/**
+ * Determine which template to render
+ * Priority: template_id → layout_mode → default (simple)
+ * 
+ * Template ID Mapping (Primary - from Backend):
+ * - template_1 → simple (SimpleTemplate)
+ * - template_2 → medium (MediumTemplate)
+ * - template_3 → complex (ComplexTemplate)
+ * 
+ * This ensures consistency with ProductCard.tsx card selection logic
+ * 
+ * Requirements: 10.2, 11.1, 11.2, 11.3
+ */
+export function getEffectiveLayoutMode(product: TemplateProduct): LayoutMode {
+  // Priority 1: template_id (from Template System)
+  if (product.template_id) {
+    switch (product.template_id) {
+      // Primary IDs (from Backend)
+      case 'template_1':
+      case 'template_simple':  // Legacy alias
+        return 'simple'
+      case 'template_2':
+      case 'template_medium':  // Legacy alias
+        return 'medium'
+      case 'template_3':
+      case 'template_complex':  // Legacy alias
+        return 'complex'
+    }
+  }
+  
+  // Priority 2: layout_mode (fallback)
+  if (product.layout_mode) {
+    // Normalize layout_mode to LayoutMode
+    switch (product.layout_mode) {
+      case 'simple':
+      case 'selector':  // Legacy alias
+        return 'simple'
+      case 'medium':
+      case 'composer':  // Legacy alias
+      case 'standard':  // Legacy alias
+        return 'medium'
+      case 'complex':
+      case 'builder':  // Legacy alias
+        return 'complex'
+      default:
+        return product.layout_mode as LayoutMode
+    }
+  }
+  
+  // Default
+  return 'simple'
+}
 
 interface ProductTemplateRendererProps {
   product: Product
@@ -20,16 +85,13 @@ export default function ProductTemplateRenderer({
   productConfig
 }: ProductTemplateRendererProps) {
   const {
-    productType,
     isLoading,
-    hasContainers,
     containers,
     selectedContainer,
     setSelectedContainer,
     sizes,
     selectedSize,
     setSelectedSize,
-    hasCustomization,
     customizationRules,
     selections,
     updateGroupSelections,
@@ -57,85 +119,63 @@ export default function ProductTemplateRenderer({
     )
   }
 
-  // Determine which template to render
-  const isBYO = productType === 'byo_ice_cream' || (hasContainers && hasCustomization)
-  const isDessert = productType === 'dessert'
-  const isMilkshake = productType === 'milkshake'
-  const isPreset = productType === 'preset_ice_cream'
+  // Use the exported getEffectiveLayoutMode function
+  const layoutMode = getEffectiveLayoutMode(product)
 
   // Render appropriate template
+  // Note: Legacy aliases (builder, composer, selector) are already normalized
+  // by getEffectiveLayoutMode to (complex, medium, simple)
   const renderTemplate = () => {
-    if (isBYO) {
-      return (
-        <BYOTemplate
-          product={product}
-          containers={containers}
-          selectedContainer={selectedContainer}
-          onContainerSelect={setSelectedContainer}
-          sizes={sizes}
-          selectedSize={selectedSize}
-          onSizeSelect={setSelectedSize}
-          customizationRules={customizationRules}
-          selections={selections}
-          onSelectionChange={updateGroupSelections}
-        />
-      )
-    }
+    switch (layoutMode) {
+      case 'complex':
+        return (
+          <ComplexTemplate
+            product={product}
+            containers={containers}
+            selectedContainer={selectedContainer}
+            onContainerSelect={setSelectedContainer}
+            sizes={sizes}
+            selectedSize={selectedSize}
+            onSizeSelect={setSelectedSize}
+            customizationRules={customizationRules}
+            selections={selections}
+            onSelectionChange={updateGroupSelections}
+          />
+        )
 
-    if (isDessert) {
-      return (
-        <DessertTemplate
-          product={product}
-          sizes={sizes}
-          selectedSize={selectedSize}
-          onSizeSelect={setSelectedSize}
-          customizationRules={customizationRules}
-          selections={selections}
-          onSelectionChange={updateGroupSelections}
-        />
-      )
-    }
+      case 'medium':
+        return (
+          <MediumTemplate
+            product={product}
+            containers={containers}
+            selectedContainer={selectedContainer}
+            onContainerSelect={setSelectedContainer}
+            sizes={sizes}
+            selectedSize={selectedSize}
+            onSizeSelect={setSelectedSize}
+            customizationRules={customizationRules}
+            selections={selections}
+            onSelectionChange={updateGroupSelections}
+          />
+        )
 
-    if (isMilkshake) {
-      return (
-        <MilkshakeTemplate
-          product={product}
-          sizes={sizes}
-          selectedSize={selectedSize}
-          onSizeSelect={setSelectedSize}
-          customizationRules={customizationRules}
-          selections={selections}
-          onSelectionChange={updateGroupSelections}
-        />
-      )
+      case 'simple':
+      default:
+        return (
+          <SimpleTemplate
+            product={product}
+            containers={containers}
+            selectedContainer={selectedContainer}
+            onContainerSelect={setSelectedContainer}
+            sizes={sizes}
+            selectedSize={selectedSize}
+            onSizeSelect={setSelectedSize}
+            customizationRules={customizationRules}
+            selections={selections}
+            onSelectionChange={updateGroupSelections}
+          />
+        )
     }
-
-    if (isPreset) {
-      return (
-        <PresetTemplate
-          product={product}
-          sizes={sizes}
-          selectedSize={selectedSize}
-          onSizeSelect={setSelectedSize}
-          customizationRules={customizationRules}
-          selections={selections}
-          onSelectionChange={updateGroupSelections}
-        />
-      )
-    }
-
-    // Default: Standard template
-    return (
-      <StandardTemplate
-        product={product}
-        sizes={sizes}
-        selectedSize={selectedSize}
-        onSizeSelect={setSelectedSize}
-        customizationRules={customizationRules}
-        selections={selections}
-        onSelectionChange={updateGroupSelections}
-      />
-    )
   }
 
   return (

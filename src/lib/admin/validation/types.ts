@@ -50,6 +50,9 @@ export const WARNING_CODES = {
   NO_DEFAULT_CONTAINER: 'NO_DEFAULT_CONTAINER',
   NO_DEFAULT_SIZE: 'NO_DEFAULT_SIZE',
   
+  // Template compatibility warnings (Requirements 5.5)
+  TEMPLATE_INCOMPATIBLE: 'TEMPLATE_INCOMPATIBLE',
+  
   // General warnings
   POTENTIAL_ISSUE: 'POTENTIAL_ISSUE',
 } as const;
@@ -127,6 +130,7 @@ export const WARNING_MESSAGES: Record<WarningCode, string> = {
   [WARNING_CODES.NO_OPTION_GROUPS]: 'المنتج قابل للتخصيص لكن لا توجد مجموعات خيارات',
   [WARNING_CODES.NO_DEFAULT_CONTAINER]: 'لم يتم تحديد حاوية افتراضية',
   [WARNING_CODES.NO_DEFAULT_SIZE]: 'لم يتم تحديد مقاس افتراضي',
+  [WARNING_CODES.TEMPLATE_INCOMPATIBLE]: 'القالب غير متوافق مع عدد مجموعات الخيارات المحددة',
   [WARNING_CODES.POTENTIAL_ISSUE]: 'قد تكون هناك مشكلة محتملة',
 };
 

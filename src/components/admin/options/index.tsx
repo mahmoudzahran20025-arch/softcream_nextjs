@@ -1,17 +1,34 @@
 /**
  * Options Page - Admin Option Groups Management
- * Requirements: 1.1, 1.5
+ * Requirements: 1.1, 1.5, 4.4
  * 
  * Main page component for managing option groups and their options.
  * Displays all option groups with search functionality, loading states,
- * and empty state handling.
+ * empty state handling, and drag & drop reordering.
  */
 
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, Search, Package } from 'lucide-react';
-import { getOptionGroups, toggleOptionAvailability, createOptionGroup, updateOptionGroup, deleteOptionGroup, deleteOption, createOption, updateOption } from '@/lib/admin/options.api';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { getOptionGroups, toggleOptionAvailability, createOptionGroup, updateOptionGroup, deleteOptionGroup, deleteOption, createOption, updateOption, reorderOptionGroups } from '@/lib/admin/options.api';
 import type { OptionGroup, Option, OptionsPageState, OptionGroupFormData, OptionFormData } from './types';
 import OptionGroupCard from './OptionGroupCard';
 import GroupFormModal from './GroupFormModal';
@@ -20,10 +37,65 @@ import DeleteConfirmModal from './DeleteConfirmModal';
 import OptionGroupSkeleton from './OptionGroupSkeleton';
 
 /**
+ * SortableOptionGroupCard - Wrapper for OptionGroupCard with drag & drop
+ * Requirement 4.4: Drag & Drop reordering
+ */
+interface SortableOptionGroupCardProps {
+  group: OptionGroup;
+  isExpanded: boolean;
+  searchQuery: string;
+  isDragDisabled: boolean;
+  onToggleExpand: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAddOption: () => void;
+  onEditOption: (option: Option) => void;
+  onDeleteOption: (option: Option) => void;
+  onToggleOptionAvailability: (optionId: string, available: boolean) => Promise<void>;
+  onEditUIConfig: () => void;
+}
+
+const SortableOptionGroupCard: React.FC<SortableOptionGroupCardProps> = ({
+  group,
+  isDragDisabled,
+  ...props
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ 
+    id: group.id,
+    disabled: isDragDisabled,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <OptionGroupCard
+        group={group}
+        {...props}
+        showDragHandle={!isDragDisabled}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
+  );
+};
+
+/**
  * OptionsPage Component
  * 
  * Main page for managing option groups and options.
- * Implements Requirements 1.1 (display option groups) and 1.5 (empty state)
+ * Implements Requirements 1.1 (display option groups), 1.5 (empty state), and 4.4 (drag & drop)
  */
 const OptionsPage: React.FC = () => {
   // ===========================
@@ -42,6 +114,23 @@ const OptionsPage: React.FC = () => {
     selectedGroupId: null,
     deleteTarget: null,
   });
+
+  // Track if reordering is in progress
+  const [isReordering, setIsReordering] = useState(false);
+
+  // ===========================
+  // Drag & Drop Sensors (Requirement 4.4)
+  // ===========================
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Minimum drag distance before activation
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // ===========================
   // Data Fetching
@@ -387,6 +476,59 @@ const OptionsPage: React.FC = () => {
   };
 
   /**
+   * Handle drag end for reordering option groups
+   * Requirement 4.4: Update display_order when dragging
+   */
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    // Get current order
+    const oldIndex = state.optionGroups.findIndex(g => g.id === active.id);
+    const newIndex = state.optionGroups.findIndex(g => g.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
+
+    // Optimistic update - reorder locally first
+    const newGroups = arrayMove(state.optionGroups, oldIndex, newIndex);
+    
+    // Update display_order values
+    const updatedGroups = newGroups.map((group, index) => ({
+      ...group,
+      display_order: index,
+    }));
+
+    setState(prev => ({
+      ...prev,
+      optionGroups: updatedGroups,
+    }));
+
+    // Persist to backend
+    setIsReordering(true);
+    try {
+      const orderedIds = updatedGroups.map(g => g.id);
+      const response = await reorderOptionGroups(orderedIds);
+      
+      if (!response.success) {
+        // Rollback on failure
+        console.error('Failed to reorder groups:', response.error);
+        await fetchOptionGroups();
+      }
+    } catch (error) {
+      console.error('Failed to reorder groups:', error);
+      // Rollback on error
+      await fetchOptionGroups();
+    } finally {
+      setIsReordering(false);
+    }
+  }, [state.optionGroups, fetchOptionGroups]);
+
+  /**
    * Handle availability toggle with optimistic UI update
    * Requirements: 8.1 (immediate update), 8.3 (error rollback)
    * 
@@ -440,35 +582,68 @@ const OptionsPage: React.FC = () => {
   };
 
   /**
-   * Option Groups List Component (Requirement 1.1)
-   * Includes smooth transitions for list items
+   * Check if drag & drop should be disabled
+   * Disable when searching to avoid confusion
    */
-  const renderOptionGroups = () => (
-    <div className="space-y-4">
-      {filteredGroups
-        .filter(group => group.id != null) // Filter out groups with null/undefined IDs
-        .map((group, index) => (
-        <div
-          key={group.id}
-          className="animate-fadeIn"
-          style={{ animationDelay: `${index * 50}ms` }}
-        >
-          <OptionGroupCard
-            group={group}
-            isExpanded={state.expandedGroups.has(group.id)}
-            searchQuery={state.searchQuery}
-            onToggleExpand={() => handleToggleExpand(group.id)}
-            onEdit={() => handleEditGroup(group)}
-            onDelete={() => handleDeleteGroup(group)}
-            onAddOption={() => handleAddOption(group.id)}
-            onEditOption={handleEditOption}
-            onDeleteOption={handleDeleteOption}
-            onToggleOptionAvailability={handleToggleOptionAvailability}
-          />
-        </div>
-      ))}
-    </div>
-  );
+  const isDragDisabled = state.searchQuery.trim().length > 0 || isReordering;
+
+  /**
+   * Option Groups List Component (Requirement 1.1, 4.4)
+   * Includes smooth transitions for list items and drag & drop reordering
+   */
+  const renderOptionGroups = () => {
+    const validGroups = filteredGroups.filter(group => group.id != null);
+    const groupIds = validGroups.map(g => g.id);
+
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
+          <div className="space-y-4">
+            {/* Reordering indicator */}
+            {isReordering && (
+              <div className="text-center py-2 text-sm text-gray-500 animate-pulse">
+                جاري حفظ الترتيب...
+              </div>
+            )}
+            
+            {/* Drag hint when not searching */}
+            {!isDragDisabled && validGroups.length > 1 && (
+              <div className="text-center py-2 text-xs text-gray-400">
+                💡 اسحب المجموعات لإعادة ترتيبها
+              </div>
+            )}
+
+            {validGroups.map((group, index) => (
+              <div
+                key={group.id}
+                className="animate-fadeIn"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <SortableOptionGroupCard
+                  group={group}
+                  isExpanded={state.expandedGroups.has(group.id)}
+                  searchQuery={state.searchQuery}
+                  isDragDisabled={isDragDisabled}
+                  onToggleExpand={() => handleToggleExpand(group.id)}
+                  onEdit={() => handleEditGroup(group)}
+                  onDelete={() => handleDeleteGroup(group)}
+                  onAddOption={() => handleAddOption(group.id)}
+                  onEditOption={handleEditOption}
+                  onDeleteOption={handleDeleteOption}
+                  onToggleOptionAvailability={handleToggleOptionAvailability}
+                  onEditUIConfig={() => handleEditGroup(group)}
+                />
+              </div>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    );
+  };
 
   // ===========================
   // Main Render

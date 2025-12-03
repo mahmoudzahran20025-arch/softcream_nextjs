@@ -12,14 +12,12 @@ ProductModal هو المكون الرئيسي لعرض تفاصيل المنتج
 ```
 ProductModal/
 ├── index.tsx                 # 🎯 المكون الرئيسي - Entry Point
-├── useProductLogic.ts        # 🔄 Hook: جلب بيانات المنتج + الإضافات
-├── useCustomization.ts       # 🎨 Hook: إدارة التخصيصات (Legacy)
+├── useProductLogic.ts        # 🔄 Hook: جلب بيانات المنتج
 ├── ProductImage.tsx          # 🖼️ عرض صورة/صور المنتج
 ├── ProductHeader.tsx         # 📝 العنوان والسعر والوصف
 ├── NutritionInfo.tsx         # 🥗 القيم الغذائية
 ├── SizeSelector.tsx          # 📏 اختيار الحجم
 ├── ContainerSelector.tsx     # 🥤 اختيار الحاوية
-├── AddonsList.tsx            # ➕ قائمة الإضافات (Legacy)
 ├── CustomizationSummary.tsx  # 📋 ملخص الاختيارات
 ├── ActionFooter.tsx          # 🛒 زر الإضافة للسلة
 ├── StickyMiniHeader.tsx      # 📌 الهيدر المصغر عند السكرول
@@ -36,11 +34,13 @@ ProductModal/
 │       ├── index.ts         # Barrel exports
 │       ├── OptionCard.tsx   # كارت الخيار الواحد
 │       ├── OptionsGrid.tsx  # شبكة الخيارات
-│       ├── StepSection.tsx  # ✨ NEW: مكون الخطوة
-│       ├── materialColors.ts # ✨ NEW: ألوان المواد
+│       ├── StepSection.tsx  # مكون الخطوة
+│       ├── materialColors.ts # ألوان المواد
 │       └── types.ts         # Types مشتركة
 └── README.md                 # 📖 هذا الملف
 ```
+
+> ✅ **تم التنظيف (ديسمبر 2025):** تم حذف الملفات القديمة (useCustomization.ts, AddonsList.tsx, CustomizationSelector.tsx) - كل المنتجات الآن تستخدم النظام الموحد (Unified Options System)
 
 ---
 
@@ -166,32 +166,7 @@ interface UseProductLogicProps {
 
 ---
 
-### 3. `useCustomization.ts` (Legacy)
-**المسؤولية:** إدارة التخصيصات للمنتجات القديمة
-
-**ملاحظة:** هذا الـ Hook قديم ويُستخدم فقط للمنتجات التي لا تستخدم `useProductConfiguration`
-
-**الـ Output:**
-```typescript
-{
-  customizationRules,      // قواعد التخصيص
-  isCustomizable,          // هل المنتج قابل للتخصيص
-  isLoadingRules,          // حالة التحميل
-  selections,              // الاختيارات الحالية
-  updateGroupSelections,   // تحديث اختيارات مجموعة
-  validationResult,        // نتيجة التحقق
-  customizationTotal,      // مجموع التخصيصات
-  selectedOptions,         // الخيارات المختارة
-  totalPrice,              // السعر الإجمالي
-  customizationNutrition,  // القيم الغذائية
-  energyType,              // نوع الطاقة
-  energyScore,             // درجة الطاقة
-}
-```
-
----
-
-### 4. `ProductImage.tsx`
+### 3. `ProductImage.tsx`
 **المسؤولية:** عرض صورة/صور المنتج مع Swiper
 
 **الميزات:**
@@ -255,14 +230,7 @@ interface ContainerSelectorProps {
 
 ---
 
-### 9. `AddonsList.tsx` (Legacy)
-**المسؤولية:** عرض قائمة الإضافات البسيطة
-
-**ملاحظة:** يُستخدم للمنتجات التي لا تستخدم نظام Templates
-
----
-
-### 10. `CustomizationSummary.tsx`
+### 9. `CustomizationSummary.tsx`
 **المسؤولية:** عرض ملخص الاختيارات المخصصة
 
 **الميزات:**
@@ -375,19 +343,10 @@ interface ContainerSelectorProps {
 
 ## ⚠️ ملاحظات مهمة
 
-### Legacy vs New System:
-- **Legacy:** `useCustomization` + `AddonsList`
-- **New:** `useProductConfiguration` + `Templates`
-
-### متى يُستخدم كل نظام؟
-```typescript
-// في index.tsx
-if (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization) {
-  // استخدم Templates
-} else {
-  // استخدم AddonsList (Legacy)
-}
-```
+### النظام الموحد (Unified Options System):
+- ✅ كل المنتجات الآن تستخدم `useProductConfiguration` + `Templates`
+- ✅ تم حذف الملفات القديمة: `useCustomization.ts`, `AddonsList.tsx`, `CustomizationSelector.tsx`
+- ✅ البيانات تأتي من `/products/:id/configuration` endpoint
 
 ### الـ Caching:
 - بيانات المنتج تُخزن لـ 5 دقائق (`staleTime: 1000 * 60 * 5`)
@@ -432,6 +391,7 @@ if (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCu
 
 | التاريخ | التغيير |
 |---------|---------|
+| 2025-12 | 🧹 حذف الملفات القديمة (useCustomization, AddonsList, CustomizationSelector) |
 | 2025-12 | ✨ فصل `StepSection` و `materialColors` |
 | 2025-12 | إنشاء README الشامل |
 | 2025-11 | إضافة نظام Templates |

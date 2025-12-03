@@ -6,11 +6,14 @@ import { Edit, Trash2, Eye, EyeOff, Sparkles, Check } from 'lucide-react';
 import Image from 'next/image';
 import type { ProductCardProps } from './types';
 import { PRODUCT_TYPES } from './types';
+import TemplateBadge from './TemplateBadge';
+import OptionGroupsBadge from './OptionGroupsBadge';
 
 /**
  * ProductCard Component
- * Updated: Removed onOpenConfig as ConfigModal is deprecated
- * Use UnifiedProductForm (via onEdit) for all product configuration
+ * Updated: Added TemplateBadge and OptionGroupsBadge
+ * Requirements: 5.1 - Show template badge (Simple/Medium/Complex)
+ * Requirements: 5.2 - Show assigned option groups count with tooltip
  */
 const ProductCard: React.FC<ProductCardProps> = ({ 
   product, 
@@ -20,7 +23,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onOpenConfig: _onOpenConfig, // Deprecated - kept for backward compatibility
   isSelected = false,
   onSelectionChange,
-  selectionMode = false
+  selectionMode = false,
+  // Template badge props (Requirements: 5.1)
+  templateId,
+  templateComplexity,
+  templateNameAr,
+  templateNameEn,
+  // Option groups badge props (Requirements: 5.2)
+  assignedGroups = []
 }) => {
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -119,15 +129,31 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
 
-        {/* Product Type Badge */}
-        {(product as any).product_type && (product as any).product_type !== 'standard' && (
-          <div className="mt-2 flex items-center gap-1">
-            <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium flex items-center gap-1">
+        {/* Badges Section - Template, Option Groups, Product Type */}
+        {/* Requirements: 5.1 - Template Badge, 5.2 - Option Groups Badge */}
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {/* Template Badge (Requirements: 5.1) */}
+          <TemplateBadge
+            templateId={templateId || (product as any).template_id}
+            complexity={templateComplexity}
+            nameAr={templateNameAr}
+            nameEn={templateNameEn}
+          />
+          
+          {/* Option Groups Badge (Requirements: 5.2) */}
+          <OptionGroupsBadge
+            productId={product.id}
+            assignedGroups={assignedGroups}
+          />
+          
+          {/* Product Type Badge (legacy) */}
+          {(product as any).product_type && (product as any).product_type !== 'standard' && (
+            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full font-medium flex items-center gap-1">
               <Sparkles size={10} />
               {PRODUCT_TYPES.find(t => t.value === (product as any).product_type)?.label || 'قابل للتخصيص'}
             </span>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Action Buttons */}
         {/* Updated: Removed Settings button - use Edit for all configuration via UnifiedProductForm */}

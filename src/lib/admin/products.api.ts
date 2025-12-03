@@ -37,18 +37,37 @@ export interface Product {
   allergens?: string
   // UI Hint
   product_type?: string
+  
+  // ✅ Template System Fields
+  template_id?: string
+  template_variant?: string
+  is_template_dynamic?: number
+  layout_mode?: 'simple' | 'medium' | 'complex' | 'builder' | 'composer' | 'selector'
+  ui_config?: string
+  card_style?: string
+  
+  // ✅ Pricing with Discounts
+  old_price?: number
+  discount_percentage?: number
+  
+  // ✅ Card Configuration
+  card_badge?: string
+  card_badge_color?: string
+  
+  // ✅ Health System Fields
+  health_keywords?: string
+  health_benefit_ar?: string
 }
 
 /**
  * BYO Option interface
- * Uses option_group_id as per unified options system (Requirements 5.2)
+ * Note: Options table uses `group_id` to reference option_groups.id
+ * This is different from product_options which uses `option_group_id`
  */
 export interface BYOOption {
   id: string
-  /** @deprecated Use option_group_id instead */
-  group_id?: string
-  /** The option group this option belongs to (unified options system) */
-  option_group_id: string
+  /** The option group this option belongs to (references option_groups.id) */
+  group_id: string
   name_ar: string
   name_en: string
   description_ar?: string
@@ -237,13 +256,12 @@ export async function getProductFull(productId: string): Promise<ProductFullResp
 
 /**
  * Customization rule for product options
- * Uses option_group_id as per unified options system (Requirements 5.2)
+ * Uses option_group_id as per unified options system
+ * Note: product_options table uses option_group_id (not group_id)
  */
 export interface CustomizationRule {
-  /** The option group ID (unified options system) */
+  /** The option group ID (references option_groups.id via product_options.option_group_id) */
   option_group_id: string
-  /** @deprecated Use option_group_id instead */
-  group_id?: string
   is_required?: boolean
   min_selections?: number
   max_selections?: number
@@ -253,7 +271,7 @@ export interface CustomizationRule {
 
 /**
  * Update product customization data
- * Uses option_group_id in customization_rules as per unified options system (Requirements 5.2)
+ * Uses option_group_id in customization_rules as per unified options system
  */
 export interface UpdateProductCustomizationData {
   product_type?: string
@@ -264,7 +282,7 @@ export interface UpdateProductCustomizationData {
 
 /**
  * Update product customization settings
- * Requirements 5.2: Send data using option_group_id field
+ * Sends data using option_group_id field (unified options system)
  */
 export async function updateProductCustomization(
   productId: string, 
@@ -273,21 +291,9 @@ export async function updateProductCustomization(
   success: boolean
   message: string
 }> {
-  // Ensure all customization rules use option_group_id
-  const normalizedData = {
-    ...data,
-    customization_rules: data.customization_rules?.map(rule => ({
-      ...rule,
-      // Ensure option_group_id is set (prefer option_group_id over group_id)
-      option_group_id: rule.option_group_id || rule.group_id,
-      // Remove deprecated group_id from payload
-      group_id: undefined
-    }))
-  }
-  
   return apiRequest(`/admin/products/${productId}/customization`, {
     method: 'PUT',
-    body: normalizedData
+    body: data
   })
 }
 
@@ -393,13 +399,15 @@ export interface CreateProductUnifiedResponse {
  * Create a product with all its assignments (option groups, containers, sizes) in a single transaction
  * Requirements: 1.5 - Save both product data and product_options relationships atomically
  * 
+ * Uses POST /admin/products which supports unified format
+ * 
  * @param data - Unified product data including product details and all assignments
  * @returns Promise with success status and created product info
  */
 export async function createProductUnified(
   data: CreateProductUnifiedRequest
 ): Promise<CreateProductUnifiedResponse> {
-  return apiRequest('/admin/products/unified', {
+  return apiRequest('/admin/products', {
     method: 'POST',
     body: data
   })

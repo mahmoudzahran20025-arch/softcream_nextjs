@@ -1,7 +1,9 @@
 /**
  * Option Groups Management Types
- * Requirements: 1.1, 2.2, 5.2
+ * Requirements: 1.1, 2.2, 5.2, 3.1, 3.4
  */
+
+import type { UIConfig } from '@/lib/uiConfig';
 
 // ===========================
 // Core Data Models
@@ -33,7 +35,7 @@ export interface Option {
 
 /**
  * OptionGroup - مجموعة خيارات
- * Requirements: 1.1, 2.2
+ * Requirements: 1.1, 2.2, 3.1
  */
 export interface OptionGroup {
   id: string;
@@ -43,6 +45,7 @@ export interface OptionGroup {
   description_en?: string;
   display_order: number;
   icon: string;
+  ui_config?: string | UIConfig; // JSON string from DB or parsed object
   options: Option[];
 }
 
@@ -52,7 +55,7 @@ export interface OptionGroup {
 
 /**
  * Form data for creating/editing option groups
- * Requirements: 2.2, 3.1
+ * Requirements: 2.2, 3.1, 3.4
  */
 export interface OptionGroupFormData {
   id: string;
@@ -62,6 +65,7 @@ export interface OptionGroupFormData {
   description_en?: string;
   icon: string;
   display_order: number;
+  ui_config?: UIConfig; // UI configuration for metadata-driven rendering
 }
 
 /**
@@ -117,6 +121,12 @@ export interface OptionGroupCardProps {
   onEditOption: (option: Option) => void;
   onDeleteOption: (option: Option) => void;
   onToggleOptionAvailability: (optionId: string, available: boolean) => Promise<void>;
+  /** Handler for editing UI config directly - Requirement 4.2 */
+  onEditUIConfig?: () => void;
+  /** Whether drag handle should be shown for reordering - Requirement 4.4 */
+  showDragHandle?: boolean;
+  /** Drag handle props from dnd-kit */
+  dragHandleProps?: Record<string, unknown>;
 }
 
 export interface OptionItemProps {
@@ -178,6 +188,24 @@ export const INITIAL_GROUP_FORM_DATA: OptionGroupFormData = {
   description_en: '',
   icon: '📦',
   display_order: 0,
+  ui_config: {
+    displayMode: 'grid',
+    columns: 3,
+    cardSize: 'md',
+    showImages: true,
+    showPrices: true,
+    accentColor: 'pink',
+    icon: {
+      type: 'emoji',
+      value: '🍦',
+      style: 'solid',
+      animation: 'none',
+    },
+    layout: {
+      spacing: 'normal',
+      alignment: 'center',
+    },
+  },
 };
 
 export const INITIAL_OPTION_FORM_DATA: OptionFormData = {

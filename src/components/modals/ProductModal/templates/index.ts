@@ -1,15 +1,14 @@
 // Product Templates - Separated for easy maintenance
 export { default as ProductTemplateRenderer } from './ProductTemplateRenderer'
-export { default as BYOTemplate } from './BYOTemplate'
-export { default as DessertTemplate } from './DessertTemplate'
-export { default as MilkshakeTemplate } from './MilkshakeTemplate'
-export { default as PresetTemplate } from './PresetTemplate'
-export { default as StandardTemplate } from './StandardTemplate'
+
+// New Complexity-Based Templates
+export { default as ComplexTemplate } from './builders/ComplexTemplate'
+export { default as MediumTemplate } from './composers/MediumTemplate'
+export { default as SimpleTemplate } from './selectors/SimpleTemplate'
 
 // Template types
-export type ProductTemplateType = 
-  | 'byo_ice_cream' 
-  | 'milkshake' 
-  | 'preset_ice_cream' 
-  | 'dessert' 
-  | 'standard'
+export type LayoutMode =
+  | 'complex'
+  | 'medium'
+  | 'simple'
+

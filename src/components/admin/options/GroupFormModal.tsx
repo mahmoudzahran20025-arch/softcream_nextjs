@@ -4,15 +4,19 @@
  * 
  * Modal form for creating new option groups or editing existing ones.
  * Handles validation, form state, submission, and API error display.
+ * Includes UIConfigEditor for metadata-driven UI configuration.
  */
 
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Loader2, AlertCircle } from 'lucide-react';
+import { X, Loader2, AlertCircle, Settings2 } from 'lucide-react';
 import type { GroupFormModalProps, OptionGroupFormData } from './types';
 import { INITIAL_GROUP_FORM_DATA, ICON_OPTIONS } from './types';
 import { getOptionErrorMessage, translateApiError } from '@/lib/admin/errorMessages';
+import UIConfigEditor, { validateUIConfig } from './UIConfigEditor';
+import type { UIConfig } from '@/lib/uiConfig';
+import { parseUIConfig } from '@/lib/uiConfig';
 
 /**
  * Validation errors interface
@@ -22,6 +26,7 @@ interface ValidationErrors {
   name_ar?: string;
   name_en?: string;
   icon?: string;
+  ui_config?: string;
 }
 
 /**
@@ -52,6 +57,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'basic' | 'ui_config'>('basic');
 
   const isEditMode = editingGroup !== null;
 
@@ -65,6 +71,16 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
    */
   const initializeForm = useCallback(() => {
     if (editingGroup) {
+      // Parse ui_config from string if needed
+      let parsedUIConfig: UIConfig | undefined;
+      if (editingGroup.ui_config) {
+        if (typeof editingGroup.ui_config === 'string') {
+          parsedUIConfig = parseUIConfig(editingGroup.ui_config);
+        } else {
+          parsedUIConfig = editingGroup.ui_config as UIConfig;
+        }
+      }
+      
       setFormData({
         id: editingGroup.id,
         name_ar: editingGroup.name_ar,
@@ -73,6 +89,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
         description_en: editingGroup.description_en || '',
         icon: editingGroup.icon,
         display_order: editingGroup.display_order,
+        ui_config: parsedUIConfig || INITIAL_GROUP_FORM_DATA.ui_config,
       });
     } else {
       setFormData(INITIAL_GROUP_FORM_DATA);
@@ -80,6 +97,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
     setErrors({});
     setApiError(null);
     setShowIconPicker(false);
+    setActiveTab('basic');
   }, [editingGroup]);
 
   useEffect(() => {
@@ -95,6 +113,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
   /**
    * Validate form data
    * Requirement 2.2: Required fields validation
+   * Requirement 3.4: JSON validation for ui_config
    */
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -119,6 +138,14 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
     // Icon validation (required)
     if (!formData.icon.trim()) {
       newErrors.icon = 'هذا الحقل مطلوب';
+    }
+
+    // UI Config validation (Requirement 3.4)
+    if (formData.ui_config) {
+      const uiConfigValidation = validateUIConfig(formData.ui_config);
+      if (!uiConfigValidation.isValid) {
+        newErrors.ui_config = uiConfigValidation.errors.join(', ');
+      }
     }
 
     setErrors(newErrors);
@@ -151,6 +178,17 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
     setShowIconPicker(false);
     if (errors.icon) {
       setErrors(prev => ({ ...prev, icon: undefined }));
+    }
+  };
+
+  /**
+   * Handle UI Config changes
+   * Requirement 3.1: Allow configuring ui_config
+   */
+  const handleUIConfigChange = (config: UIConfig) => {
+    setFormData(prev => ({ ...prev, ui_config: config }));
+    if (errors.ui_config) {
+      setErrors(prev => ({ ...prev, ui_config: undefined }));
     }
   };
 
@@ -237,7 +275,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
           </div>
         )}
 
-        {/* Validation Summary - Requirements: 2.4 */}
+        {/* Validation Summary - Requirements: 2.4, 3.4 */}
         {Object.keys(errors).length > 0 && (
           <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -248,12 +286,43 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
                 {errors.name_ar && <li>الاسم بالعربية: {errors.name_ar}</li>}
                 {errors.name_en && <li>الاسم بالإنجليزية: {errors.name_en}</li>}
                 {errors.icon && <li>الأيقونة: {errors.icon}</li>}
+                {errors.ui_config && <li>إعدادات العرض: {errors.ui_config}</li>}
               </ul>
             </div>
           </div>
         )}
 
+        {/* Tabs - Requirements: 3.1 */}
+        <div className="flex gap-2 mb-4 border-b border-gray-200">
+          <button
+            type="button"
+            onClick={() => setActiveTab('basic')}
+            className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 -mb-px ${
+              activeTab === 'basic'
+                ? 'border-pink-500 text-pink-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            📝 البيانات الأساسية
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ui_config')}
+            className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 -mb-px flex items-center gap-1 ${
+              activeTab === 'ui_config'
+                ? 'border-pink-500 text-pink-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Settings2 size={16} />
+            إعدادات العرض
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Basic Tab Content */}
+          {activeTab === 'basic' && (
+            <>
           {/* ID Field - Requirement 2.2, 3.2 */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -413,6 +482,22 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
               </p>
             </div>
           </div>
+            </>
+          )}
+
+          {/* UI Config Tab Content - Requirements: 3.1, 3.2, 3.3, 3.4 */}
+          {activeTab === 'ui_config' && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 mb-4">
+                تخصيص طريقة عرض هذه المجموعة للعملاء. هذه الإعدادات تتحكم في شكل البطاقات والأيقونات والألوان.
+              </p>
+              <UIConfigEditor
+                value={formData.ui_config || INITIAL_GROUP_FORM_DATA.ui_config!}
+                onChange={handleUIConfigChange}
+                showPreview={false}
+              />
+            </div>
+          )}
 
           {/* Submit Buttons */}
           <div className="flex gap-2 pt-4 border-t">

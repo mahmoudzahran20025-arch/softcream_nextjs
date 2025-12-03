@@ -135,6 +135,13 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         badge: data.product.badge || undefined,
         available: data.product.available,
         product_type: data.product.product_type || 'standard',
+        // Template fields
+        template_id: data.product.template_id || undefined,
+        card_style: data.product.card_style || undefined,
+        // Discount fields
+        old_price: data.product.old_price ? parseFloat(data.product.old_price) : undefined,
+        discount_percentage: data.product.discount_percentage ? parseInt(data.product.discount_percentage) : undefined,
+        // Nutrition fields
         calories: parseInt(data.product.calories) || 0,
         protein: parseFloat(data.product.protein) || 0,
         carbs: parseFloat(data.product.carbs) || 0,

@@ -9,11 +9,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import ProductImage from './ProductImage'
 import ProductHeader from './ProductHeader'
 import NutritionInfo from './NutritionInfo'
-import AddonsList from './AddonsList'
 import ActionFooter from './ActionFooter'
 import StickyMiniHeader from './StickyMiniHeader'
 import { useProductLogic } from './useProductLogic'
-import { useCustomization } from './useCustomization'
 import { useProductConfiguration } from '@/hooks/useProductConfiguration'
 import { useAddToCart } from '@/hooks/useAddToCart'
 import { ProductTemplateRenderer } from './templates'
@@ -54,27 +52,16 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
   // Use optimized product logic hook
   const {
     displayProduct,
-    isFetchingAddons,
     quantity,
     setQuantity,
     selectedAddons,
-    toggleAddon,
-    addons,
-    addonsTotal,
     totalPrice,
-    tags,
     ingredients,
     allergens,
   } = useProductLogic({ product, isOpen })
 
-  // Use customization hook for BYO products
-  const customization = useCustomization({
-    productId: product?.id || displayProduct?.id || null,
-    isOpen,
-    basePrice: product?.price || displayProduct?.price || 0
-  })
-
-  // Use product configuration hook for sizes & containers
+  // Use product configuration hook for sizes, containers & customization
+  // ✅ Unified Options System - replaces legacy useCustomization
   const productConfig = useProductConfiguration({
     productId: product?.id || displayProduct?.id || null,
     isOpen
@@ -85,7 +72,7 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
     productId: product?.id,
     hasContainers: productConfig.hasContainers,
     hasSizes: productConfig.hasSizes,
-    isCustomizable: customization.isCustomizable
+    hasCustomization: productConfig.hasCustomization
   })
 
   // Generate recommendations
@@ -104,10 +91,11 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
   }
 
   // Use unified add to cart hook
+  // ✅ Simplified: All products now use productConfig (Unified Options System)
   const { handleAddToCart } = useAddToCart({
     product: displayProduct || null,
     quantity,
-    productConfig: (productConfig.hasContainers || productConfig.hasSizes) ? {
+    productConfig: {
       hasContainers: productConfig.hasContainers,
       hasSizes: productConfig.hasSizes,
       hasCustomization: productConfig.hasCustomization,
@@ -118,14 +106,8 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
       selections: productConfig.selections,
       totalPrice: productConfig.totalPrice,
       validationResult: productConfig.validationResult
-    } : null,
-    customization: customization.isCustomizable ? {
-      isCustomizable: true,
-      selections: customization.selections,
-      selectedOptions: customization.selectedOptions,
-      totalPrice: customization.totalPrice,
-      validationResult: customization.validationResult
-    } : null,
+    },
+    customization: null, // Legacy - no longer used
     legacy: {
       selectedAddons,
       totalPrice
@@ -229,11 +211,7 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
               {/* Sticky Mini Header (appears on scroll) */}
               <StickyMiniHeader
                 productName={displayProduct.name}
-                totalPrice={
-                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                    ? productConfig.totalPrice * quantity
-                    : (customization.isCustomizable ? customization.totalPrice * quantity : totalPrice)
-                }
+                totalPrice={productConfig.totalPrice * quantity}
                 isVisible={showMiniHeader}
               />
 
@@ -251,35 +229,19 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                 {/* Product Header (Title, Price, Description) */}
                 <ProductHeader product={displayProduct} />
 
-                {/* Nutrition Info - ✅ Now with dynamic customization nutrition! */}
+                {/* Nutrition Info - ✅ Using Unified Options System */}
                 <NutritionInfo
                   product={displayProduct}
                   ingredients={ingredients}
                   allergens={allergens}
-                  customizationNutrition={
-                    // Use productConfig nutrition if it has sizes OR containers OR customization
-                    (productConfig.hasSizes || productConfig.hasContainers || productConfig.hasCustomization)
-                      ? productConfig.totalNutrition
-                      : customization.customizationNutrition
-                  }
+                  customizationNutrition={productConfig.totalNutrition}
                 />
 
-                {/* Product Template System - Dynamic based on configuration */}
-                {(productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization) ? (
-                  <ProductTemplateRenderer
-                    product={displayProduct}
-                    productConfig={productConfig}
-                  />
-                ) : (
-                  /* Standard products without customization */
-                  <AddonsList
-                    addons={addons}
-                    tags={tags}
-                    selectedAddons={selectedAddons}
-                    onToggleAddon={toggleAddon}
-                    isLoading={isFetchingAddons}
-                  />
-                )}
+                {/* Product Template System - ✅ All products use Unified Options System */}
+                <ProductTemplateRenderer
+                  product={displayProduct}
+                  productConfig={productConfig}
+                />
 
                 {/* Recommendations */}
                 {recommendations.length > 0 && (
@@ -317,50 +279,20 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                   >
                     <ActionFooter
-                quantity={quantity}
-                onIncrease={() => setQuantity(quantity + 1)}
-                onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
-                onAddToCart={handleAddToCart}
-                totalPrice={
-                  // Use productConfig if it has containers OR sizes OR customization
-                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                    ? productConfig.totalPrice * quantity
-                    : (customization.isCustomizable ? customization.totalPrice * quantity : totalPrice)
-                }
-                basePrice={
-                  // For BYO products, base price is 0 and size contains the price
-                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                    ? (productConfig.config?.product.basePrice || displayProduct.price)
-                    : displayProduct.price
-                }
-                addonsPrice={
-                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                    ? (productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal
-                    : (customization.isCustomizable ? customization.customizationTotal : addonsTotal)
-                }
-                selectedAddonsCount={
-                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                    ? productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)
-                    : (customization.isCustomizable ? customization.selectedOptions.length : selectedAddons.length)
-                }
-                selectedOptions={
-                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                    ? productConfig.selectedOptions
-                    : customization.selectedOptions
-                }
-                containerName={productConfig.containerObj?.name}
-                sizeName={productConfig.sizeObj?.name}
-                isValid={
-                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                    ? productConfig.validationResult.isValid
-                    : (customization.isCustomizable ? customization.validationResult.isValid : true)
-                }
-                validationMessage={
-                  (productConfig.hasContainers || productConfig.hasSizes || productConfig.hasCustomization)
-                    ? productConfig.validationResult.errors[0]
-                    : (customization.isCustomizable ? customization.validationResult.errors[0] : undefined)
-                }
-              />
+                      quantity={quantity}
+                      onIncrease={() => setQuantity(quantity + 1)}
+                      onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
+                      onAddToCart={handleAddToCart}
+                      totalPrice={productConfig.totalPrice * quantity}
+                      basePrice={productConfig.config?.product.basePrice || displayProduct.price}
+                      addonsPrice={(productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal}
+                      selectedAddonsCount={productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)}
+                      selectedOptions={productConfig.selectedOptions}
+                      containerName={productConfig.containerObj?.name}
+                      sizeName={productConfig.sizeObj?.name}
+                      isValid={productConfig.validationResult.isValid}
+                      validationMessage={productConfig.validationResult.errors[0]}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>

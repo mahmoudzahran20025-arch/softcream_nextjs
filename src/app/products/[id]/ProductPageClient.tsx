@@ -7,10 +7,11 @@ import { X } from 'lucide-react'
 import ProductImage from '@/components/modals/ProductModal/ProductImage'
 import ProductHeader from '@/components/modals/ProductModal/ProductHeader'
 import NutritionInfo from '@/components/modals/ProductModal/NutritionInfo'
-import AddonsList from '@/components/modals/ProductModal/AddonsList'
 import ActionFooter from '@/components/modals/ProductModal/ActionFooter'
+import { ProductTemplateRenderer } from '@/components/modals/ProductModal/templates'
 import { useProductLogic } from '@/components/modals/ProductModal/useProductLogic'
-import { useCart } from '@/providers/CartProvider'
+import { useProductConfiguration } from '@/hooks/useProductConfiguration'
+import { useAddToCart } from '@/hooks/useAddToCart'
 
 interface Props {
   product: any
@@ -20,43 +21,69 @@ interface Props {
 }
 
 export default function ProductPageClient({ product, onClose }: Props) {
-  const { addToCart } = useCart()
-
   const {
     displayProduct,
-    isFetchingAddons,
     quantity,
     setQuantity,
     selectedAddons,
-    toggleAddon,
-    addons,
-    addonsTotal,
     totalPrice,
-    tags,
     ingredients,
     allergens,
   } = useProductLogic({ product, isOpen: true })
 
+  // ✅ Use unified product configuration (Unified Options System)
+  const productConfig = useProductConfiguration({
+    productId: product?.id || displayProduct?.id || null,
+    isOpen: true
+  })
+
+  // Handle close
+  const handleClose = () => {
+    if (onClose) {
+      onClose()
+    }
+  }
+
+  // ✅ Use unified add to cart hook
+  const { handleAddToCart } = useAddToCart({
+    product: displayProduct || null,
+    quantity,
+    productConfig: {
+      hasContainers: productConfig.hasContainers,
+      hasSizes: productConfig.hasSizes,
+      hasCustomization: productConfig.hasCustomization,
+      selectedContainer: productConfig.selectedContainer,
+      selectedSize: productConfig.selectedSize,
+      containerObj: productConfig.containerObj,
+      sizeObj: productConfig.sizeObj,
+      selections: productConfig.selections,
+      totalPrice: productConfig.totalPrice,
+      validationResult: productConfig.validationResult
+    },
+    customization: null,
+    legacy: {
+      selectedAddons,
+      totalPrice
+    },
+    onSuccess: handleClose
+  })
+
   // Prevent body scroll and save scroll position
   useEffect(() => {
-    // Save current scroll position
     const scrollY = window.scrollY
     sessionStorage.setItem('scrollPosition', scrollY.toString())
     
-    // Prevent body scroll
     document.body.style.overflow = 'hidden'
     document.body.style.position = 'fixed'
     document.body.style.top = `-${scrollY}px`
     document.body.style.width = '100%'
     
     return () => {
-      // Restore body scroll
       document.body.style.overflow = ''
       document.body.style.position = ''
       document.body.style.top = ''
       document.body.style.width = ''
       
-      // Restore scroll position instantly
       const savedScrollY = sessionStorage.getItem('scrollPosition')
       if (savedScrollY) {
         window.scrollTo(0, parseInt(savedScrollY))
@@ -64,24 +91,6 @@ export default function ProductPageClient({ product, onClose }: Props) {
       }
     }
   }, [])
-
-  const handleAddToCart = () => {
-    const addonsToSend = selectedAddons.length > 0 ? selectedAddons : undefined
-    addToCart(product, quantity, addonsToSend)
-    
-    // Show success feedback with brand colors
-    const successDiv = document.createElement('div')
-    successDiv.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-gradient-to-r from-[#ff6b9d] to-[#ff5a8e] text-white px-6 py-3 rounded-full shadow-2xl font-semibold animate-bounce'
-    successDiv.textContent = '✓ تم الإضافة للسلة'
-    document.body.appendChild(successDiv)
-    
-    setTimeout(() => {
-      successDiv.remove()
-      if (onClose) {
-        onClose()
-      }
-    }, 800)
-  }
 
   if (!displayProduct) return null
 
@@ -127,8 +136,17 @@ export default function ProductPageClient({ product, onClose }: Props) {
             
             <div className="flex-1 overflow-y-auto px-6 md:px-8 pt-2 md:pt-8 pb-24 space-y-4 scrollbar-thin scrollbar-thumb-pink-300 dark:scrollbar-thumb-pink-700 scrollbar-track-transparent">
               <ProductHeader product={displayProduct} />
-              <NutritionInfo product={displayProduct} ingredients={ingredients} allergens={allergens} />
-              <AddonsList addons={addons} tags={tags} selectedAddons={selectedAddons} onToggleAddon={toggleAddon} isLoading={isFetchingAddons} />
+              <NutritionInfo 
+                product={displayProduct} 
+                ingredients={ingredients} 
+                allergens={allergens}
+                customizationNutrition={productConfig.totalNutrition}
+              />
+              {/* ✅ Use unified template system */}
+              <ProductTemplateRenderer
+                product={displayProduct}
+                productConfig={productConfig}
+              />
             </div>
 
             <ActionFooter
@@ -136,10 +154,15 @@ export default function ProductPageClient({ product, onClose }: Props) {
               onIncrease={() => setQuantity(quantity + 1)}
               onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
               onAddToCart={handleAddToCart}
-              totalPrice={totalPrice}
-              basePrice={displayProduct.price}
-              addonsPrice={addonsTotal}
-              selectedAddonsCount={selectedAddons.length}
+              totalPrice={productConfig.totalPrice * quantity}
+              basePrice={productConfig.config?.product.basePrice || displayProduct.price}
+              addonsPrice={(productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal}
+              selectedAddonsCount={productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)}
+              selectedOptions={productConfig.selectedOptions}
+              containerName={productConfig.containerObj?.name}
+              sizeName={productConfig.sizeObj?.name}
+              isValid={productConfig.validationResult.isValid}
+              validationMessage={productConfig.validationResult.errors[0]}
             />
           </div>
         </motion.div>
