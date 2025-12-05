@@ -159,9 +159,10 @@ const OptionGroupCard: React.FC<OptionGroupCardProps> = ({
 }) => {
   // Sort options by display_order (Requirement 1.4)
   // Filter out options with null/undefined IDs to prevent React key warnings
-  const sortedOptions = [...group.options]
+  // Handle case where group.options might be undefined or null
+  const sortedOptions = [...(group.options || [])]
     .filter(opt => opt.id != null)
-    .sort((a, b) => a.display_order - b.display_order);
+    .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
 
   return (
     <motion.div 
@@ -220,7 +221,7 @@ const OptionGroupCard: React.FC<OptionGroupCardProps> = ({
               />
             </div>
             <p className="text-sm text-gray-500">
-              {group.options.length} خيار
+              {(group.options || []).length} خيار
             </p>
           </div>
         </div>

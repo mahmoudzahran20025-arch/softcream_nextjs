@@ -3,15 +3,18 @@
  * ===================================
  * Tests for getCardTypeFromProduct function
  * 
- * Requirements: 10.1, 11.1, 11.2, 11.3
+ * ✅ Unified System: Uses template_id as SINGLE source of truth
+ * ❌ NO fallback to layout_mode (removed)
+ * ❌ NO fallback to product_type (removed)
+ * 
+ * Requirements: 9.1, 9.2, 9.3
  * - template_1 → simple (SimpleCard)
  * - template_2 → medium (StandardProductCard)
- * - template_3 → complex (BYOProductCard)
- * - Fallback to layout_mode when template_id is not set
+ * - template_3 → complex (BYOProductCard/WizardCard)
  */
 
 import { describe, it, expect } from 'vitest'
-import { getCardTypeFromProduct, type Product } from './ProductCard'
+import { getCardTypeFromProduct, parseUIConfig, type Product } from './ProductCard'
 
 describe('getCardTypeFromProduct', () => {
   // Helper to create minimal product
@@ -22,115 +25,31 @@ describe('getCardTypeFromProduct', () => {
     ...overrides
   })
 
-  describe('Template ID Mapping (Primary)', () => {
-    it('should return "simple" for template_1', () => {
+  describe('Template ID Mapping (Requirements 9.1, 9.2, 9.3)', () => {
+    it('should return "simple" for template_1 (Requirement 9.1)', () => {
       const product = createProduct({ template_id: 'template_1' })
       expect(getCardTypeFromProduct(product)).toBe('simple')
     })
 
-    it('should return "medium" for template_2', () => {
+    it('should return "medium" for template_2 (Requirement 9.2)', () => {
       const product = createProduct({ template_id: 'template_2' })
       expect(getCardTypeFromProduct(product)).toBe('medium')
     })
 
-    it('should return "complex" for template_3', () => {
+    it('should return "complex" for template_3 (Requirement 9.3)', () => {
       const product = createProduct({ template_id: 'template_3' })
       expect(getCardTypeFromProduct(product)).toBe('complex')
     })
-
-    // Legacy aliases
-    it('should return "simple" for template_simple (legacy)', () => {
-      const product = createProduct({ template_id: 'template_simple' })
-      expect(getCardTypeFromProduct(product)).toBe('simple')
-    })
-
-    it('should return "medium" for template_medium (legacy)', () => {
-      const product = createProduct({ template_id: 'template_medium' })
-      expect(getCardTypeFromProduct(product)).toBe('medium')
-    })
-
-    it('should return "complex" for template_complex (legacy)', () => {
-      const product = createProduct({ template_id: 'template_complex' })
-      expect(getCardTypeFromProduct(product)).toBe('complex')
-    })
   })
 
-  describe('Layout Mode Fallback', () => {
-    it('should fallback to "simple" for layout_mode="simple"', () => {
-      const product = createProduct({ layout_mode: 'simple' })
-      expect(getCardTypeFromProduct(product)).toBe('simple')
-    })
-
-    it('should fallback to "medium" for layout_mode="medium"', () => {
-      const product = createProduct({ layout_mode: 'medium' })
-      expect(getCardTypeFromProduct(product)).toBe('medium')
-    })
-
-    it('should fallback to "complex" for layout_mode="complex"', () => {
-      const product = createProduct({ layout_mode: 'complex' })
-      expect(getCardTypeFromProduct(product)).toBe('complex')
-    })
-
-    // Legacy layout_mode aliases
-    it('should fallback to "simple" for layout_mode="selector" (legacy)', () => {
-      const product = createProduct({ layout_mode: 'selector' })
-      expect(getCardTypeFromProduct(product)).toBe('simple')
-    })
-
-    it('should fallback to "medium" for layout_mode="composer" (legacy)', () => {
-      const product = createProduct({ layout_mode: 'composer' })
-      expect(getCardTypeFromProduct(product)).toBe('medium')
-    })
-
-    it('should fallback to "medium" for layout_mode="standard" (legacy)', () => {
-      const product = createProduct({ layout_mode: 'standard' })
-      expect(getCardTypeFromProduct(product)).toBe('medium')
-    })
-
-    it('should fallback to "complex" for layout_mode="builder" (legacy)', () => {
-      const product = createProduct({ layout_mode: 'builder' })
-      expect(getCardTypeFromProduct(product)).toBe('complex')
-    })
-  })
-
-  describe('Priority: template_id over layout_mode', () => {
-    it('should use template_id when both template_id and layout_mode are set', () => {
-      const product = createProduct({
-        template_id: 'template_1',  // simple
-        layout_mode: 'complex'       // would be complex if used
-      })
-      expect(getCardTypeFromProduct(product)).toBe('simple')
-    })
-
-    it('should use template_id=template_3 over layout_mode=simple', () => {
-      const product = createProduct({
-        template_id: 'template_3',  // complex
-        layout_mode: 'simple'        // would be simple if used
-      })
-      expect(getCardTypeFromProduct(product)).toBe('complex')
-    })
-  })
-
-  describe('Product Type Fallback', () => {
-    it('should return "complex" for product_type="byo_ice_cream"', () => {
-      const product = createProduct({ product_type: 'byo_ice_cream' })
-      expect(getCardTypeFromProduct(product)).toBe('complex')
-    })
-
-    it('should return "complex" for products with id starting with "byo_"', () => {
-      const product = createProduct({ id: 'byo_custom_product' })
-      expect(getCardTypeFromProduct(product)).toBe('complex')
-    })
-
-    it('should return "featured" for product_type="dessert"', () => {
-      const product = createProduct({ product_type: 'dessert' })
-      expect(getCardTypeFromProduct(product)).toBe('featured')
-    })
-  })
-
-  describe('Default Fallback', () => {
-    it('should return "medium" when no template_id, layout_mode, or product_type', () => {
+  describe('Default Fallback (No template_id)', () => {
+    it('should return "medium" when template_id is missing', () => {
       const product = createProduct({})
+      expect(getCardTypeFromProduct(product)).toBe('medium')
+    })
+
+    it('should return "medium" when template_id is undefined', () => {
+      const product = createProduct({ template_id: undefined })
       expect(getCardTypeFromProduct(product)).toBe('medium')
     })
 
@@ -138,5 +57,56 @@ describe('getCardTypeFromProduct', () => {
       const product = createProduct({ template_id: 'unknown_template' })
       expect(getCardTypeFromProduct(product)).toBe('medium')
     })
+  })
+})
+
+describe('parseUIConfig', () => {
+  it('should parse valid JSON ui_config', () => {
+    const uiConfigStr = JSON.stringify({
+      display_style: 'cards',
+      columns: 3,
+      badge: 'جديد',
+      badge_color: '#FF0000'
+    })
+    
+    const result = parseUIConfig(uiConfigStr)
+    
+    expect(result.display_style).toBe('cards')
+    expect(result.columns).toBe(3)
+    expect(result.badge).toBe('جديد')
+    expect(result.badge_color).toBe('#FF0000')
+  })
+
+  it('should return empty object for undefined ui_config', () => {
+    const result = parseUIConfig(undefined)
+    expect(result).toEqual({})
+  })
+
+  it('should return empty object for empty string', () => {
+    const result = parseUIConfig('')
+    expect(result).toEqual({})
+  })
+
+  it('should return empty object for invalid JSON', () => {
+    const result = parseUIConfig('invalid json {')
+    expect(result).toEqual({})
+  })
+
+  it('should parse icon configuration', () => {
+    const uiConfigStr = JSON.stringify({
+      icon: {
+        type: 'emoji',
+        value: '🍦',
+        animation: 'bounce',
+        style: 'gradient'
+      }
+    })
+    
+    const result = parseUIConfig(uiConfigStr)
+    
+    expect(result.icon?.type).toBe('emoji')
+    expect(result.icon?.value).toBe('🍦')
+    expect(result.icon?.animation).toBe('bounce')
+    expect(result.icon?.style).toBe('gradient')
   })
 })

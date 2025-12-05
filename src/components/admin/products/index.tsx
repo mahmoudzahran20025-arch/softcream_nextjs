@@ -39,8 +39,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
-
 
   // Bulk selection state
   const [selectionMode, setSelectionMode] = useState(false);
@@ -116,6 +114,20 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   };
 
   /**
+   * Handle wizard form submission (simplified flow)
+   */
+  const handleWizardSubmit = async (data: ProductWizardData) => {
+    // Convert wizard data to unified format
+    const unifiedData: UnifiedProductData = {
+      product: data.product,
+      optionGroupAssignments: data.optionGroupAssignments,
+      containerAssignments: [],
+      sizeAssignments: [],
+    };
+    await handleUnifiedSubmit(unifiedData);
+  };
+
+  /**
    * Handle unified form submission
    * Requirements: 1.5 - Save product and all assignments in a single transaction
    * Requirements: 2.4 - Update product data and product_options atomically
@@ -134,10 +146,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         image: data.product.image || undefined,
         badge: data.product.badge || undefined,
         available: data.product.available,
-        product_type: data.product.product_type || 'standard',
-        // Template fields
-        template_id: data.product.template_id || undefined,
-        card_style: data.product.card_style || undefined,
+        // Template field - single source of truth (replaces product_type and card_style)
+        template_id: data.product.template_id || 'template_1',
         // Discount fields
         old_price: data.product.old_price ? parseFloat(data.product.old_price) : undefined,
         discount_percentage: data.product.discount_percentage ? parseInt(data.product.discount_percentage) : undefined,
@@ -404,17 +414,34 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
             <span className="hidden sm:inline">{selectionMode ? 'إلغاء التحديد' : 'تحديد متعدد'}</span>
           </button>
           
-          {/* Add Product Button */}
-          <button
-            onClick={() => {
-              setEditingProduct(null);
-              setShowCreateModal(true);
-            }}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-sm sm:text-base flex-1 sm:flex-none justify-center"
-          >
-            <Plus size={18} />
-            <span>إضافة منتج</span>
-          </button>
+          {/* Add Product Button with Mode Toggle */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                setEditingProduct(null);
+                setFormMode('wizard');
+                setShowCreateModal(true);
+              }}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-sm sm:text-base"
+            >
+              <Plus size={18} />
+              <span>إضافة منتج</span>
+            </button>
+            <button
+              onClick={() => {
+                setEditingProduct(null);
+                setFormMode('advanced');
+                setShowCreateModal(true);
+              }}
+              className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all"
+              title="الوضع المتقدم"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 

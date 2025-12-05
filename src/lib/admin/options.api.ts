@@ -92,11 +92,11 @@ export async function reorderOptionGroups(
 ): Promise<ApiResponse<void>> {
   // Fallback: Update each group's display_order individually
   const results = await Promise.all(
-    orderedIds.map((id, index) => 
+    orderedIds.map((id, index) =>
       updateOptionGroup(id, { display_order: index })
     )
   );
-  
+
   const allSucceeded = results.every(r => r.success);
   return { success: allSucceeded };
 }
@@ -185,10 +185,49 @@ export async function toggleOptionAvailability(
   optionId: string,
   available: boolean
 ): Promise<ApiResponse<void>> {
-  return apiRequest(`/admin/options/${optionId}`, {
-    method: 'PUT',
-    body: {
-      available: available ? 1 : 0,
-    },
+  try {
+    const result = await apiRequest(`/admin/options/${optionId}`, {
+      method: 'PUT',
+      body: {
+        available: available ? 1 : 0,
+      },
+    });
+    return result as ApiResponse<void>;
+  } catch (error) {
+    console.error('Error toggling option availability:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'فشل في تحديث حالة التوفر',
+    };
+  }
+}
+
+// ===========================
+// Option Pricing API Functions
+// ===========================
+
+/**
+ * Get all options with optional filtering by group_id
+ */
+export async function getAllOptions(groupId?: string): Promise<any[]> {
+  const url = groupId
+    ? `/admin/options?group_id=${groupId}`
+    : '/admin/options';
+
+  const result = await apiRequest<{ data?: any[] }>(url);
+  return result.data || [];
+}
+
+/**
+ * Update option base_price
+ */
+export async function updateOptionPrice(
+  optionId: string,
+  basePrice: number
+): Promise<any> {
+  return apiRequest(`/admin/options/${optionId}/price`, {
+    method: 'PATCH',
+    body: { base_price: basePrice },
   });
 }
+

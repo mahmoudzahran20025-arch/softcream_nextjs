@@ -54,7 +54,7 @@ describe('useProductConfiguration - Configuration Loading', () => {
       nameAr: 'آيس كريم',
       nameEn: 'Ice Cream',
       basePrice: 15,
-      productType: 'byo_ice_cream' as const,
+      templateId: 'template_3',  // ✅ Using templateId
       isCustomizable: true,
       baseNutrition: {
         calories: 200,
@@ -401,7 +401,7 @@ describe('useProductConfiguration - Configuration Loading', () => {
 
       const { result, rerender } = renderHook(
         ({ isOpen }) => useProductConfiguration({ productId: 'test-product-1', isOpen }),
-        { 
+        {
           wrapper: createWrapper(),
           initialProps: { isOpen: true }
         }

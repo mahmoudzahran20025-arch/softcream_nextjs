@@ -242,8 +242,8 @@ const UIConfigEditor: React.FC<UIConfigEditorProps> = ({
   onPreview,
   showPreview = true,
 }) => {
-  // Merge with defaults
-  const config: UIConfig = {
+  // Merge with defaults - memoized to prevent infinite loops
+  const config: UIConfig = React.useMemo(() => ({
     ...DEFAULT_UI_CONFIG,
     ...value,
     icon: {
@@ -254,7 +254,7 @@ const UIConfigEditor: React.FC<UIConfigEditorProps> = ({
       ...DEFAULT_UI_CONFIG.layout!,
       ...value?.layout,
     },
-  };
+  }), [value]);
 
   // State
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -270,11 +270,11 @@ const UIConfigEditor: React.FC<UIConfigEditorProps> = ({
     advanced: false,
   });
 
-  // Validate on change
+  // Validate on change - use stringified value to prevent infinite loops
   useEffect(() => {
     const result = validateUIConfig(config);
     setValidationErrors(result.errors);
-  }, [config]);
+  }, [JSON.stringify(value)]);
 
   // ===========================
   // Handlers

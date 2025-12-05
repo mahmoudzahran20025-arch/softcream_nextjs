@@ -1,5 +1,8 @@
 // src/components/admin/coupons/types.ts
-import type { Coupon } from '@/lib/admin';
+import type { Coupon, CouponStats as ApiCouponStats } from '@/lib/admin';
+
+// Re-export CouponStats from API
+export type CouponStats = ApiCouponStats;
 
 export interface CouponsPageProps {
   coupons: Coupon[];
@@ -81,32 +84,7 @@ export interface CouponFormData {
   freeItemNameEn?: string;
 }
 
-export interface CouponStats {
-  code: string;
-  name: string;
-  discountType: string;
-  discountValue: number;
-  status: string;
-  totalUses: number;
-  maxUsesTotal: number | null;
-  maxUsesPerUser: number;
-  remainingUses: number | string;
-  validFrom: string;
-  validTo: string;
-  restrictionType: string;
-  usageBreakdown?: Array<{
-    discount_type: string;
-    count: number;
-    total_discount?: number;
-  }>;
-  usageHistory?: Array<{
-    id: string | number;
-    used_at: number;
-    user_phone: string;
-    discount_applied: number;
-    order_id?: string;
-  }>;
-}
+
 
 // ==========================================
 // Initial Form Values

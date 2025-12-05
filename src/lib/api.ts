@@ -67,7 +67,7 @@ export interface Product {
   allergens?: string
   nutrition_facts?: string
   available?: number
-  
+
   // Nutrition
   calories?: number
   protein?: number
@@ -81,25 +81,21 @@ export interface Product {
 
   // ✨ Unified Configuration System
   optionGroups?: OptionGroup[]
-  product_type?: string
-  layout_mode?: 'complex' | 'medium' | 'simple' | 'builder' | 'composer' | 'selector' | 'standard'
   options_preview?: any
 
-  // ✅ Template System Fields
+  // ✅ Template System Fields (purified - no legacy fields)
   template_id?: string
   template_variant?: string
   is_template_dynamic?: number
   ui_config?: string
-  card_style?: string
-  
+
   // ✅ Pricing with Discounts
   old_price?: number
   discount_percentage?: number
-  
-  // ✅ Card Configuration
-  card_badge?: string
-  card_badge_color?: string
-  
+
+  // ✅ Card Configuration (moved to ui_config)
+  // Badge data is now in ui_config JSON field
+
   // ✅ Health System Fields
   health_keywords?: string
   health_benefit_ar?: string
@@ -356,7 +352,7 @@ export interface ProductConfiguration {
     nameAr: string
     nameEn: string
     basePrice: number
-    productType: 'byo_ice_cream' | 'preset_ice_cream' | 'milkshake' | 'dessert' | 'standard'
+    templateId: string  // ✅ Backend returns templateId (not productType)
     isCustomizable: boolean
     baseNutrition: {
       calories: number

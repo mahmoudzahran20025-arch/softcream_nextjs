@@ -10,6 +10,7 @@ interface QuantitySelectorProps {
   max?: number
   size?: 'sm' | 'lg'
   disabled?: boolean
+  className?: string
 }
 
 export default function QuantitySelector({
@@ -19,7 +20,8 @@ export default function QuantitySelector({
   min = 1,
   max,
   size = 'sm',
-  disabled = false
+  disabled = false,
+  className = ''
 }: QuantitySelectorProps) {
   const isMinReached = quantity <= min
   const isMaxReached = max !== undefined && quantity >= max
@@ -42,7 +44,7 @@ export default function QuantitySelector({
   const styles = sizeClasses[size]
 
   return (
-    <div className={`flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1.5 ${styles.container}`}>
+    <div className={`flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1.5 ${styles.container} ${className}`}>
       <button
         onClick={onDecrease}
         disabled={disabled || isMinReached}
@@ -51,11 +53,11 @@ export default function QuantitySelector({
       >
         <Minus size={styles.icon} className="text-slate-700 dark:text-slate-200" />
       </button>
-      
+
       <span className={`min-w-[32px] text-center font-bold ${styles.text} text-slate-900 dark:text-white`}>
         {quantity}
       </span>
-      
+
       <button
         onClick={onIncrease}
         disabled={disabled || isMaxReached}

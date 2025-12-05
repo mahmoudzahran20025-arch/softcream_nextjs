@@ -205,32 +205,14 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
 // ================================================================
 
 /**
- * Get category configuration by product_type or category name
- * Priority: product_type > category name matching > fallback
+ * Get category configuration by category name
+ * ✅ Simplified: Uses only category name for matching
  */
 export function getCategoryConfig(
-  categoryOrType: string | undefined,
-  productType?: string
+  categoryOrType: string | undefined
 ): CategoryConfig {
   // ─────────────────────────────────────────────────────────────
-  // Priority 1: Use product_type from backend (most reliable)
-  // ─────────────────────────────────────────────────────────────
-  if (productType) {
-    const typeMap: Record<string, CategoryConfig> = {
-      byo: CATEGORIES.soft_serve,
-      soft_serve: CATEGORIES.soft_serve,
-      preset: CATEGORIES.preset,
-      milkshake: CATEGORIES.milkshake,
-      dessert: CATEGORIES.dessert,
-      standard: CATEGORIES.milkshake
-    }
-    if (typeMap[productType]) {
-      return typeMap[productType]
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // Priority 2: Match by category name
+  // Match by category name
   // ─────────────────────────────────────────────────────────────
   if (!categoryOrType) return CATEGORIES.milkshake
 
@@ -301,11 +283,10 @@ export function getCategoryConfig(
 
 /**
  * Get category config from product object
- * Uses product_type if available, falls back to category
+ * ✅ Simplified: Uses category field only
  */
 export function getProductCategoryConfig(product: {
   category?: string
-  product_type?: string
   has_containers?: boolean | number
   has_customization?: boolean | number
 }): CategoryConfig {
@@ -314,7 +295,7 @@ export function getProductCategoryConfig(product: {
     return CATEGORIES.soft_serve
   }
 
-  return getCategoryConfig(product.category, product.product_type)
+  return getCategoryConfig(product.category)
 }
 
 /**

@@ -108,6 +108,7 @@ export interface SizeInfo {
  * Product details form data
  * Requirement 1.1: Product details section in unified form
  * Requirements 2.4: template_id and card_style fields
+ * Requirements 4.1-4.6, 5.1, 5.3-5.5: ui_config for display settings
  */
 export interface ProductFormData {
   id: string;
@@ -121,10 +122,10 @@ export interface ProductFormData {
   image: string;
   badge: string;
   available: number;
-  product_type: string;
-  // Template fields - Requirements 2.4
+  // ✅ Template System - single source of truth
   template_id: string;
-  card_style: 'compact' | 'standard' | 'wizard' | '';
+  // ✅ UI Config - display settings (Requirements 4.1-4.6, 5.1, 5.3-5.5)
+  ui_config: string;
   // Discount fields - Pricing with Discounts
   old_price: string;
   discount_percentage: string;
@@ -276,9 +277,10 @@ export interface ValidationSummaryProps {
  * Active tab in the unified form
  * Requirements: 5.3 - Organize form in tabs (Details, Template, Options, Nutrition)
  * Requirements: 2.1, 2.2 - Added template tab for template selection
+ * Requirements: 4.1-4.6, 5.1, 5.3-5.5 - Added uiConfig tab for display settings
  * Containers and sizes are now part of option_groups with group_id 'containers' and 'sizes'
  */
-export type FormTab = 'details' | 'template' | 'optionGroups' | 'nutrition';
+export type FormTab = 'details' | 'template' | 'uiConfig' | 'optionGroups' | 'nutrition';
 
 /**
  * Form state for tracking changes
@@ -395,6 +397,7 @@ export interface ChangePreviewModalProps {
 /**
  * Initial product form data for new products
  * Requirements 2.4: Added template_id and card_style
+ * Requirements 4.1-4.6, 5.1, 5.3-5.5: Added ui_config
  */
 export const INITIAL_PRODUCT_FORM_DATA: ProductFormData = {
   id: '',
@@ -408,9 +411,8 @@ export const INITIAL_PRODUCT_FORM_DATA: ProductFormData = {
   image: '',
   badge: '',
   available: 1,
-  product_type: 'standard',
-  template_id: '',
-  card_style: '',
+  template_id: 'template_1',  // ✅ Default to template_1
+  ui_config: '{}',  // ✅ Default empty ui_config
   old_price: '',
   discount_percentage: '',
   calories: '',
@@ -466,26 +468,8 @@ export const EMPTY_CHANGES_SUMMARY: ChangesSummary = {
 // Product Types Configuration
 // ============================================================================
 
-/**
- * Product type options for the selector
- */
-export const PRODUCT_TYPES = [
-  { value: 'standard', label: 'منتج عادي', icon: '🍽️', description: 'منتج بسيط بدون تخصيص' },
-  { value: 'byo_ice_cream', label: 'BYO آيس كريم', icon: '✨', description: 'آيس كريم قابل للتخصيص بالكامل' },
-  { value: 'milkshake', label: 'ميلك شيك', icon: '🥤', description: 'ميلك شيك مع خيارات النكهات' },
-  { value: 'preset_ice_cream', label: 'آيس كريم جاهز', icon: '🍨', description: 'آيس كريم بوصفة محددة' },
-  { value: 'dessert', label: 'حلويات', icon: '🍰', description: 'حلويات متنوعة' },
-] as const;
-
-/**
- * Card style options for product display
- * Requirements 2.4: card_style field options
- */
-export const CARD_STYLE_OPTIONS = [
-  { value: 'compact', label: 'مضغوط', labelEn: 'Compact', icon: '📦', description: 'عرض مختصر للمنتج' },
-  { value: 'standard', label: 'قياسي', labelEn: 'Standard', icon: '🎴', description: 'عرض متوسط مع التفاصيل' },
-  { value: 'wizard', label: 'معالج', labelEn: 'Wizard', icon: '✨', description: 'عرض تفاعلي خطوة بخطوة' },
-] as const;
+// ❌ REMOVED: PRODUCT_TYPES constant (deprecated - use template_id instead)
+// ❌ REMOVED: CARD_STYLE_OPTIONS constant (deprecated - not used)
 
 /**
  * Health keywords options for admin selection

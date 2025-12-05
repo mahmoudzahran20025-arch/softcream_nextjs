@@ -35,6 +35,9 @@ import GroupFormModal from './GroupFormModal';
 import OptionFormModal from './OptionFormModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import OptionGroupSkeleton from './OptionGroupSkeleton';
+import OptionsTable from './OptionsTable';
+
+type ViewMode = 'groups' | 'table';
 
 /**
  * SortableOptionGroupCard - Wrapper for OptionGroupCard with drag & drop
@@ -67,7 +70,7 @@ const SortableOptionGroupCard: React.FC<SortableOptionGroupCardProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ 
+  } = useSortable({
     id: group.id,
     disabled: isDragDisabled,
   });
@@ -117,6 +120,9 @@ const OptionsPage: React.FC = () => {
 
   // Track if reordering is in progress
   const [isReordering, setIsReordering] = useState(false);
+
+  // Track active view mode (groups or table)
+  const [viewMode, setViewMode] = useState<ViewMode>('groups');
 
   // ===========================
   // Drag & Drop Sensors (Requirement 4.4)
@@ -171,16 +177,17 @@ const OptionsPage: React.FC = () => {
     }
 
     const query = state.searchQuery.toLowerCase().trim();
-    
+
     return state.optionGroups
       .map(group => {
         // Check if group name matches
-        const groupMatches = 
+        const groupMatches =
           group.name_ar.toLowerCase().includes(query) ||
           group.name_en.toLowerCase().includes(query);
 
-        // Filter options that match
-        const matchingOptions = group.options.filter(
+        // Filter options that match (with null check)
+        const groupOptions = group.options || [];
+        const matchingOptions = groupOptions.filter(
           option =>
             option.name_ar.toLowerCase().includes(query) ||
             option.name_en.toLowerCase().includes(query)
@@ -191,7 +198,7 @@ const OptionsPage: React.FC = () => {
           return {
             ...group,
             // If group name matches, show all options; otherwise show only matching
-            options: groupMatches ? group.options : matchingOptions,
+            options: groupMatches ? groupOptions : matchingOptions,
           };
         }
         return null;
@@ -247,7 +254,7 @@ const OptionsPage: React.FC = () => {
         type: 'group',
         id: group.id,
         name: group.name_ar,
-        optionsCount: group.options.length,
+        optionsCount: (group.options || []).length,
       },
     }));
   };
@@ -291,7 +298,7 @@ const OptionsPage: React.FC = () => {
   // ===========================
   // Render Helpers
   // ===========================
-  
+
   /**
    * Loading State Component with Skeleton
    * Requirement 1.1: Show loading during API calls
@@ -448,7 +455,7 @@ const OptionsPage: React.FC = () => {
         if (response.success) {
           const deletedOptionId = state.deleteTarget.id;
           const parentGroupId = state.deleteTarget.groupId;
-          
+
           // Update local state: remove option and update parent group's options count
           // Requirement 7.3: THE system SHALL update the options count for the parent group
           setState(prev => ({
@@ -459,7 +466,7 @@ const OptionsPage: React.FC = () => {
                 // This automatically updates the options count (options.length)
                 return {
                   ...group,
-                  options: group.options.filter(opt => opt.id !== deletedOptionId),
+                  options: (group.options || []).filter(opt => opt.id !== deletedOptionId),
                 };
               }
               return group;
@@ -496,7 +503,7 @@ const OptionsPage: React.FC = () => {
 
     // Optimistic update - reorder locally first
     const newGroups = arrayMove(state.optionGroups, oldIndex, newIndex);
-    
+
     // Update display_order values
     const updatedGroups = newGroups.map((group, index) => ({
       ...group,
@@ -513,7 +520,7 @@ const OptionsPage: React.FC = () => {
     try {
       const orderedIds = updatedGroups.map(g => g.id);
       const response = await reorderOptionGroups(orderedIds);
-      
+
       if (!response.success) {
         // Rollback on failure
         console.error('Failed to reorder groups:', response.error);
@@ -543,7 +550,7 @@ const OptionsPage: React.FC = () => {
       ...prev,
       optionGroups: prev.optionGroups.map(group => ({
         ...group,
-        options: group.options.map(opt =>
+        options: (group.options || []).map(opt =>
           opt.id === optionId ? { ...opt, available: available ? 1 : 0 } : opt
         ),
       })),
@@ -557,7 +564,7 @@ const OptionsPage: React.FC = () => {
           ...prev,
           optionGroups: prev.optionGroups.map(group => ({
             ...group,
-            options: group.options.map(opt =>
+            options: (group.options || []).map(opt =>
               opt.id === optionId ? { ...opt, available: available ? 0 : 1 } : opt
             ),
           })),
@@ -571,7 +578,7 @@ const OptionsPage: React.FC = () => {
         ...prev,
         optionGroups: prev.optionGroups.map(group => ({
           ...group,
-          options: group.options.map(opt =>
+          options: (group.options || []).map(opt =>
             opt.id === optionId ? { ...opt, available: available ? 0 : 1 } : opt
           ),
         })),
@@ -609,7 +616,7 @@ const OptionsPage: React.FC = () => {
                 جاري حفظ الترتيب...
               </div>
             )}
-            
+
             {/* Drag hint when not searching */}
             {!isDragDisabled && validGroups.length > 1 && (
               <div className="text-center py-2 text-xs text-gray-400">
@@ -662,32 +669,75 @@ const OptionsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Search Bar (Requirement 9.1) */}
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <div className="relative">
-          <Search
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={20}
-          />
-          <input
-            type="text"
-            placeholder="بحث في المجموعات والخيارات..."
-            value={state.searchQuery}
-            onChange={handleSearchChange}
-            className="w-full pr-10 pl-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-          />
+      {/* Tabs Navigation */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setViewMode('groups')}
+            className={`flex-1 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2 ${viewMode === 'groups'
+              ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white'
+              : 'text-gray-600 hover:bg-gray-50'
+              }`}
+          >
+            <Package size={20} />
+            <span>عرض المجموعات</span>
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`flex-1 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2 ${viewMode === 'table'
+              ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white'
+              : 'text-gray-600 hover:bg-gray-50'
+              }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <span>جدول شامل</span>
+          </button>
         </div>
+
+        {/* Search Bar - Only show for groups view */}
+        {viewMode === 'groups' && (
+          <div className="p-4">
+            <div className="relative">
+              <Search
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={20}
+              />
+              <input
+                type="text"
+                placeholder="بحث في المجموعات والخيارات..."
+                value={state.searchQuery}
+                onChange={handleSearchChange}
+                className="w-full pr-10 pl-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Content */}
-      {state.isLoading ? (
-        renderLoading()
-      ) : state.optionGroups.length === 0 ? (
-        renderEmptyState()
-      ) : filteredGroups.length === 0 ? (
-        renderNoResults()
+      {viewMode === 'table' ? (
+        /* Table View */
+        state.isLoading ? (
+          renderLoading()
+        ) : (
+          <OptionsTable
+            optionGroups={state.optionGroups}
+            onRefresh={fetchOptionGroups}
+          />
+        )
       ) : (
-        renderOptionGroups()
+        /* Groups View */
+        state.isLoading ? (
+          renderLoading()
+        ) : state.optionGroups.length === 0 ? (
+          renderEmptyState()
+        ) : filteredGroups.length === 0 ? (
+          renderNoResults()
+        ) : (
+          renderOptionGroups()
+        )
       )}
 
       {/* Group Form Modal - Requirements 2.1, 3.1 */}

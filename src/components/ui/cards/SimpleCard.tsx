@@ -29,10 +29,30 @@ interface Product {
   template_id?: string
 }
 
+/**
+ * UIConfig Interface - إعدادات العرض المتقدمة
+ */
+interface UIConfig {
+  display_style?: 'cards' | 'buttons' | 'list' | 'grid'
+  columns?: number
+  card_size?: 'small' | 'medium' | 'large'
+  show_images?: boolean
+  show_prices?: boolean
+  icon?: {
+    type: 'emoji' | 'icon' | 'image'
+    value: string
+    animation?: 'none' | 'pulse' | 'bounce' | 'spin'
+    style?: 'normal' | 'gradient' | 'glow'
+  }
+  badge?: string
+  badge_color?: string
+}
+
 interface SimpleCardProps {
   product: Product
   config?: CategoryConfig
   onAddToCart?: (product: Product, quantity: number) => void
+  uiConfig?: UIConfig
 }
 
 /**
@@ -50,13 +70,27 @@ interface SimpleCardProps {
  * - 1.7: Include inline Quantity Selector (1-5 range)
  * - 1.8: Display badge with gradient background
  */
-export default function SimpleCard({ product, config, onAddToCart }: SimpleCardProps) {
+export default function SimpleCard({ product, config, onAddToCart, uiConfig }: SimpleCardProps) {
   const { addToCart } = useCart()
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
   const [justAdded, setJustAdded] = useState(false)
 
   const isUnavailable = product.available === 0
+  
+  // Get icon animation class from uiConfig
+  const getIconAnimationClass = () => {
+    if (!uiConfig?.icon?.animation) return ''
+    switch (uiConfig.icon.animation) {
+      case 'pulse': return 'animate-pulse'
+      case 'bounce': return 'animate-bounce'
+      case 'spin': return 'animate-spin'
+      default: return ''
+    }
+  }
+  
+  // Get badge color from uiConfig or use default
+  const badgeColor = uiConfig?.badge_color || 'from-[#FF6B9D] to-[#FF5A8E]'
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -107,7 +141,9 @@ export default function SimpleCard({ product, config, onAddToCart }: SimpleCardP
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-4xl">{config?.icon || '🍦'}</span>
+              <span className={`text-4xl ${getIconAnimationClass()}`}>
+                {uiConfig?.icon?.value || config?.icon || '🍦'}
+              </span>
             </div>
           )}
 
@@ -134,9 +170,16 @@ export default function SimpleCard({ product, config, onAddToCart }: SimpleCardP
             )}
           </div>
 
-          {/* Product Badge - Bottom Right */}
+          {/* Product Badge - Bottom Right (supports ui_config.badge_color) */}
           {product.badge && (
-            <div className="absolute bottom-2 right-2 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-lg">
+            <div 
+              className="absolute bottom-2 right-2 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-lg"
+              style={{ 
+                background: uiConfig?.badge_color 
+                  ? uiConfig.badge_color 
+                  : 'linear-gradient(to right, #FF6B9D, #FF5A8E)' 
+              }}
+            >
               {product.badge}
             </div>
           )}

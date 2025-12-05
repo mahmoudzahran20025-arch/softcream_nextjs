@@ -9,6 +9,48 @@ import {
   SimpleCard
 } from './cards'
 
+/**
+ * UIConfig Interface - إعدادات العرض المتقدمة
+ * ============================================
+ * يتم تخزينها كـ JSON في عمود ui_config
+ * 
+ * Requirements: 4.2, 4.3, 4.4, 4.5, 4.6, 5.1, 5.3, 5.4, 5.5
+ */
+export interface UIConfig {
+  // إعدادات العرض
+  display_style?: 'cards' | 'buttons' | 'list' | 'grid'
+  columns?: number // 1-6
+  card_size?: 'small' | 'medium' | 'large'
+  show_images?: boolean
+  show_prices?: boolean
+  
+  // إعدادات الأيقونة
+  icon?: {
+    type: 'emoji' | 'icon' | 'image'
+    value: string
+    animation?: 'none' | 'pulse' | 'bounce' | 'spin'
+    style?: 'normal' | 'gradient' | 'glow'
+  }
+  
+  // الشارة (مدمجة من card_badge)
+  badge?: string
+  badge_color?: string
+}
+
+/**
+ * Parse ui_config from JSON string to UIConfig object
+ * Returns empty object if parsing fails
+ */
+export function parseUIConfig(uiConfigStr?: string): UIConfig {
+  if (!uiConfigStr) return {}
+  try {
+    return JSON.parse(uiConfigStr) as UIConfig
+  } catch {
+    console.warn('Failed to parse ui_config, using defaults')
+    return {}
+  }
+}
+
 export interface Product {
   id: string
   name: string
@@ -18,7 +60,6 @@ export interface Product {
   discount_percentage?: number
   image?: string
   category?: string
-  product_type?: string
   description?: string
   tags?: string
   ingredients?: string
@@ -35,18 +76,22 @@ export interface Product {
   allowed_addons?: string
   is_customizable?: number
 
-  // ✅ Template System Fields
+  // ✅ Template System Fields (النظام الموحد)
   template_id?: string
   template_variant?: string
   is_template_dynamic?: number
-  ui_config?: string
-  card_style?: string
-  card_badge?: string
-  card_badge_color?: string
+  ui_config?: string // JSON string - UIConfig
 
-  // ✅ Layout Mode (fallback)
-  layout_mode?: 'complex' | 'medium' | 'simple' | 'builder' | 'composer' | 'selector' | 'standard'
-  options_preview?: any
+  // ✅ Options Preview
+  options_preview?: {
+    total_groups: number
+    total_options: number
+    featured_options: Array<{
+      id: string
+      name: string
+      image?: string
+    }>
+  }
 }
 
 interface ProductCardProps {
@@ -58,45 +103,61 @@ interface ProductCardProps {
 /**
  * Smart ProductCard Component
  * ===========================
- * Automatically selects the appropriate card style based on template_id or layout_mode
+ * Automatically selects the appropriate card style based on template_id ONLY
  * 
- * Template/Layout Mode → Card Type Mapping:
- * - template_complex/complex/builder → ComplexCard (BYOProductCard - Premium BYO style)
- * - template_medium/medium/composer → MediumCard (StandardProductCard - Options preview)
- * - template_simple/simple/selector → SimpleCard (Quick add, minimal UI)
+ * Template ID → Card Type Mapping:
+ * - template_1 → SimpleCard (Quick add, minimal UI)
+ * - template_2 → StandardProductCard (Options preview)
+ * - template_3 → BYOProductCard (Premium BYO style)
  * - forceCardType override → Custom card type
  * 
- * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5
+ * ui_config Support:
+ * - Reads display settings from product.ui_config
+ * - Applies badge and badge_color from ui_config
+ * 
+ * Requirements: 9.1, 9.2, 9.3, 9.4
  */
 export default function ProductCard({ product, forceCardType, onAddToCart }: ProductCardProps) {
-  // Determine card type from forceCardType (priority) or product properties
+  // Determine card type from forceCardType (priority) or template_id
   const cardType = forceCardType ? normalizeCardType(forceCardType) : getCardTypeFromProduct(product)
 
   // Get category configuration for styling
-  const categoryConfig = getCategoryConfig(product.category, product.product_type)
+  const categoryConfig = getCategoryConfig(product.category)
+  
+  // Parse ui_config for display settings (Requirement 9.4)
+  const uiConfig = parseUIConfig(product.ui_config)
+  
+  // Apply ui_config badge if product.badge is not set
+  const productWithUIConfig = {
+    ...product,
+    badge: product.badge || uiConfig.badge,
+  }
 
   // Render appropriate card based on cardType
-  // Requirements 7.1: Automatically select correct card type based on template_id or layout_mode
+  // Requirements 9.1, 9.2, 9.3: Automatically select correct card type based on template_id
   switch (cardType) {
-    // SimpleCard - للمنتجات البسيطة (Requirements 1.1)
+    // SimpleCard - للمنتجات البسيطة (template_1)
+    // Requirements 9.1: template_id='template_1' → SimpleCard
     case 'simple':
-      return <SimpleCard product={product} config={categoryConfig} onAddToCart={onAddToCart} />
+      return <SimpleCard product={productWithUIConfig} config={categoryConfig} onAddToCart={onAddToCart} uiConfig={uiConfig} />
 
-    // ComplexCard - للمنتجات المعقدة BYO (Requirements 3.1)
+    // ComplexCard - للمنتجات المعقدة BYO (template_3)
+    // Requirements 9.3: template_id='template_3' → WizardCard (BYOProductCard)
     case 'complex':
-      return <BYOProductCard product={product} config={categoryConfig} />
+      return <BYOProductCard product={productWithUIConfig} config={categoryConfig} uiConfig={uiConfig} />
 
     // Legacy cards (for backward compatibility)
     case 'featured':
-      return <FeaturedProductCard product={product} config={categoryConfig} />
+      return <FeaturedProductCard product={productWithUIConfig} config={categoryConfig} />
 
     case 'compact':
-      return <CompactProductCard product={product} config={categoryConfig} />
+      return <CompactProductCard product={productWithUIConfig} config={categoryConfig} />
 
-    // MediumCard - للمنتجات المتوسطة (Requirements 2.1, 7.3 - default fallback)
+    // MediumCard - للمنتجات المتوسطة (template_2 - default fallback)
+    // Requirements 9.2: template_id='template_2' → StandardCard
     case 'medium':
     default:
-      return <StandardProductCard product={product} config={categoryConfig} onAddToCart={onAddToCart} />
+      return <StandardProductCard product={productWithUIConfig} config={categoryConfig} onAddToCart={onAddToCart} uiConfig={uiConfig} />
   }
 }
 
@@ -128,70 +189,50 @@ function normalizeCardType(forceCardType: string): CardType {
 export type CardType = 'simple' | 'medium' | 'complex' | 'featured' | 'compact'
 
 /**
- * Determine card type from product properties
- * Priority: template_id → layout_mode → product_type → default (medium)
+ * Determine card type from product template_id
+ * ============================================
+ * ✅ Unified System: Uses template_id as SINGLE source of truth
+ * ❌ NO fallback to layout_mode (removed)
+ * ❌ NO fallback to product_type (removed)
  * 
- * Template ID Mapping (Primary - from Backend):
+ * Template ID → Card Type Mapping:
  * - template_1 → simple (SimpleCard)
- * - template_2 → medium (StandardProductCard)
- * - template_3 → complex (BYOProductCard)
- * 
- * Legacy aliases kept for backward compatibility:
- * - template_simple, template_medium, template_complex
- * - selector, composer, builder (layout_mode values)
+ * - template_2 → medium (StandardProductCard) 
+ * - template_3 → complex (BYOProductCard/WizardCard)
  * 
  * Requirements:
- * - 7.1: Automatically select correct card type based on template_id or layout_mode
- * - 7.3: Fallback to MediumCard when product lacks template_id and layout_mode
+ * - 9.1: template_id='template_1' → SimpleCard
+ * - 9.2: template_id='template_2' → StandardCard
+ * - 9.3: template_id='template_3' → WizardCard
  */
 export function getCardTypeFromProduct(product: Product): CardType {
-  // ✅ Priority 1: template_id (Template System - highest priority)
-  if (product.template_id) {
-    switch (product.template_id) {
-      // Primary IDs (from Backend)
-      case 'template_1':
-      case 'template_simple':  // Legacy alias
-        return 'simple'
-
-      case 'template_2':
-      case 'template_medium':  // Legacy alias
-        return 'medium'
-
-      case 'template_3':
-      case 'template_complex':  // Legacy alias
-        return 'complex'
-    }
+  // ✅ Use template_id as SINGLE source of truth
+  // ❌ NO fallback to layout_mode or product_type
+  
+  if (!product.template_id) {
+    // Default to medium (StandardCard) when template_id is missing
+    // This is a safe fallback per design document error handling
+    console.warn(`Product ${product.id} lacks template_id, using default medium card`)
+    return 'medium'
   }
 
-  // ✅ Priority 2: layout_mode (fallback for products without template_id)
-  if (product.layout_mode) {
-    switch (product.layout_mode) {
-      case 'simple':
-      case 'selector':  // Legacy alias
-        return 'simple'
+  switch (product.template_id) {
+    // template_1 → SimpleCard (منتجات بسيطة)
+    case 'template_1':
+      return 'simple'
 
-      case 'medium':
-      case 'composer':  // Legacy alias
-      case 'standard':  // Legacy alias
-        return 'medium'
+    // template_2 → StandardCard (منتجات متوسطة)
+    case 'template_2':
+      return 'medium'
 
-      case 'complex':
-      case 'builder':  // Legacy alias
-        return 'complex'
-    }
+    // template_3 → BYOProductCard/WizardCard (منتجات BYO معقدة)
+    case 'template_3':
+      return 'complex'
+
+    default:
+      // Unknown template_id - use medium as safe fallback
+      console.warn(`Unknown template_id: ${product.template_id}, using default medium card`)
+      return 'medium'
   }
-
-  // ✅ Priority 3: product_type (legacy fallback)
-  const productType = product.product_type?.toLowerCase()
-
-  if (productType === 'byo_ice_cream' || product.id.startsWith('byo_')) {
-    return 'complex'
-  }
-
-  if (productType === 'dessert') {
-    return 'featured'
-  }
-
-  // ✅ Requirements 7.3: Default fallback to MediumCard
-  return 'medium'
 }
+

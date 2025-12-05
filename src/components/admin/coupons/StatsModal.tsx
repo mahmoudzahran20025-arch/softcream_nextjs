@@ -67,7 +67,7 @@ const StatsModal: React.FC<StatsModalProps> = ({ code, onClose }) => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
                 <p className="text-sm text-blue-600 mb-1">إجمالي الاستخدامات</p>
-                <p className="text-2xl font-bold text-blue-900">{stats.totalUses} / {stats.maxUses}</p>
+                <p className="text-2xl font-bold text-blue-900">{stats.totalUses} / {stats.maxUsesTotal ?? '∞'}</p>
               </div>
               <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
                 <p className="text-sm text-green-600 mb-1">الاستخدامات المتبقية</p>
@@ -91,8 +91,8 @@ const StatsModal: React.FC<StatsModalProps> = ({ code, onClose }) => {
                 <h4 className="font-bold text-gray-800 mb-3">توزيع الاستخدامات</h4>
                 <div className="space-y-2">
                   {stats.usageBreakdown.map((item) => (
-                    <div key={item.usage_type} className="flex items-center justify-between bg-white rounded-lg p-3">
-                      <span className="font-medium">{getUsageTypeLabel(item.usage_type)}</span>
+                    <div key={item.discount_type} className="flex items-center justify-between bg-white rounded-lg p-3">
+                      <span className="font-medium">{getUsageTypeLabel(item.discount_type)}</span>
                       <div className="flex items-center gap-4">
                         <span className="text-sm text-gray-600">{item.count} مرة</span>
                         <span className="font-bold text-pink-600">{item.total_discount?.toFixed(2) || 0} ج</span>

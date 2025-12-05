@@ -2,10 +2,9 @@
 'use client';
 
 import React from 'react';
-import { Edit, Trash2, Eye, EyeOff, Sparkles, Check } from 'lucide-react';
+import { Edit, Trash2, Eye, EyeOff, Check } from 'lucide-react';
 import Image from 'next/image';
 import type { ProductCardProps } from './types';
-import { PRODUCT_TYPES } from './types';
 import TemplateBadge from './TemplateBadge';
 import OptionGroupsBadge from './OptionGroupsBadge';
 
@@ -15,11 +14,11 @@ import OptionGroupsBadge from './OptionGroupsBadge';
  * Requirements: 5.1 - Show template badge (Simple/Medium/Complex)
  * Requirements: 5.2 - Show assigned option groups count with tooltip
  */
-const ProductCard: React.FC<ProductCardProps> = ({ 
-  product, 
-  onEdit, 
-  onDelete, 
-  onToggleAvailability, 
+const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  onEdit,
+  onDelete,
+  onToggleAvailability,
   onOpenConfig: _onOpenConfig, // Deprecated - kept for backward compatibility
   isSelected = false,
   onSelectionChange,
@@ -46,27 +45,23 @@ const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div
       onClick={handleCardClick}
-      className={`relative bg-white rounded-xl shadow-sm border flex flex-col h-full ${
-        product.available === 1 
-          ? 'border-gray-200 hover:border-pink-300' 
+      className={`relative bg-white rounded-xl shadow-sm border flex flex-col h-full ${product.available === 1
+          ? 'border-gray-200 hover:border-pink-300'
           : 'border-gray-100 opacity-60'
-      } ${
-        isSelected 
-          ? 'ring-2 ring-pink-500 border-pink-500' 
+        } ${isSelected
+          ? 'ring-2 ring-pink-500 border-pink-500'
           : ''
-      } ${
-        selectionMode ? 'cursor-pointer' : ''
-      } hover:shadow-lg transition-all duration-200`}
+        } ${selectionMode ? 'cursor-pointer' : ''
+        } hover:shadow-lg transition-all duration-200`}
     >
       {/* Selection Checkbox */}
       {selectionMode && (
         <div className="absolute top-2 left-2 z-10">
-          <label 
-            className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${
-              isSelected 
-                ? 'bg-pink-500 border-pink-500' 
+          <label
+            className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${isSelected
+                ? 'bg-pink-500 border-pink-500'
                 : 'bg-white border-gray-300 hover:border-pink-400'
-            }`}
+              }`}
             onClick={(e) => e.stopPropagation()}
           >
             <input
@@ -112,7 +107,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {product.nameEn && (
             <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{product.nameEn}</p>
           )}
-          
+
           <div className="mt-3 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 font-medium">الفئة</span>
@@ -129,7 +124,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
 
-        {/* Badges Section - Template, Option Groups, Product Type */}
+        {/* Badges Section - Template and Option Groups */}
         {/* Requirements: 5.1 - Template Badge, 5.2 - Option Groups Badge */}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {/* Template Badge (Requirements: 5.1) */}
@@ -139,20 +134,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
             nameAr={templateNameAr}
             nameEn={templateNameEn}
           />
-          
+
           {/* Option Groups Badge (Requirements: 5.2) */}
           <OptionGroupsBadge
             productId={product.id}
             assignedGroups={assignedGroups}
           />
-          
-          {/* Product Type Badge (legacy) */}
-          {(product as any).product_type && (product as any).product_type !== 'standard' && (
-            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full font-medium flex items-center gap-1">
-              <Sparkles size={10} />
-              {PRODUCT_TYPES.find(t => t.value === (product as any).product_type)?.label || 'قابل للتخصيص'}
-            </span>
-          )}
         </div>
 
         {/* Action Buttons */}
@@ -160,11 +147,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-100">
           <button
             onClick={(e) => { e.stopPropagation(); onToggleAvailability(product); }}
-            className={`flex-1 p-2 rounded-lg transition-all text-xs font-medium ${
-              product.available === 1
+            className={`flex-1 p-2 rounded-lg transition-all text-xs font-medium ${product.available === 1
                 ? 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
                 : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
-            }`}
+              }`}
             title={product.available === 1 ? 'تعطيل' : 'تفعيل'}
           >
             {product.available === 1 ? <Eye size={14} className="mx-auto" /> : <EyeOff size={14} className="mx-auto" />}

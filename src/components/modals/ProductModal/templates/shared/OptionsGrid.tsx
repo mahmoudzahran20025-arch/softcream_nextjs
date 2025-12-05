@@ -108,7 +108,7 @@ export default function OptionsGrid({
 
       {/* Options Grid */}
       <div className={`grid gap-3 ${gridClasses[columns]}`}>
-        {group.options.map((option, index) => {
+        {(group.options || []).map((option, index) => {
           const isSelected = selections.includes(option.id)
           const canSelect = !isSelected && selections.length < group.maxSelections
           const selectionOrder = showSelectionOrder ? selections.indexOf(option.id) + 1 : undefined

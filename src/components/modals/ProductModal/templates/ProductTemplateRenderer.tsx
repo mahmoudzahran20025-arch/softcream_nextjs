@@ -10,69 +10,56 @@ import CustomizationSummary from '../CustomizationSummary'
 
 /**
  * Layout mode type for template rendering
+ * Maps to internal template rendering modes
  */
 export type LayoutMode = 'simple' | 'medium' | 'complex'
 
 /**
  * Product type for getEffectiveLayoutMode function
  * Minimal interface for template mapping
+ * 
+ * ✅ Purified: Only template_id is used (no layout_mode fallback)
+ * Requirements: 9.5
  */
 export interface TemplateProduct {
   template_id?: string
-  layout_mode?: string
 }
 
 /**
  * Determine which template to render
- * Priority: template_id → layout_mode → default (simple)
+ * ✅ Purified System: Uses template_id ONLY
  * 
- * Template ID Mapping (Primary - from Backend):
+ * Template ID Mapping:
  * - template_1 → simple (SimpleTemplate)
  * - template_2 → medium (MediumTemplate)
  * - template_3 → complex (ComplexTemplate)
  * 
  * This ensures consistency with ProductCard.tsx card selection logic
  * 
- * Requirements: 10.2, 11.1, 11.2, 11.3
+ * Requirements: 9.5
  */
 export function getEffectiveLayoutMode(product: TemplateProduct): LayoutMode {
-  // Priority 1: template_id (from Template System)
-  if (product.template_id) {
-    switch (product.template_id) {
-      // Primary IDs (from Backend)
-      case 'template_1':
-      case 'template_simple':  // Legacy alias
-        return 'simple'
-      case 'template_2':
-      case 'template_medium':  // Legacy alias
-        return 'medium'
-      case 'template_3':
-      case 'template_complex':  // Legacy alias
-        return 'complex'
-    }
+  // ✅ template_id is the ONLY source of truth (no layout_mode fallback)
+  if (!product.template_id) {
+    console.warn(`Product lacks template_id, using default simple template`)
+    return 'simple' // Safe fallback per design doc
   }
-  
-  // Priority 2: layout_mode (fallback)
-  if (product.layout_mode) {
-    // Normalize layout_mode to LayoutMode
-    switch (product.layout_mode) {
-      case 'simple':
-      case 'selector':  // Legacy alias
-        return 'simple'
-      case 'medium':
-      case 'composer':  // Legacy alias
-      case 'standard':  // Legacy alias
-        return 'medium'
-      case 'complex':
-      case 'builder':  // Legacy alias
-        return 'complex'
-      default:
-        return product.layout_mode as LayoutMode
-    }
+
+  switch (product.template_id) {
+    // Standard template IDs
+    case 'template_1':
+      return 'simple'
+
+    case 'template_2':
+      return 'medium'
+
+    case 'template_3':
+      return 'complex'
+
+    default:
+      console.warn(`Unknown template_id: ${product.template_id}, using default simple template`)
+      return 'simple'
   }
-  
-  // Default
-  return 'simple'
 }
 
 interface ProductTemplateRendererProps {
@@ -122,9 +109,7 @@ export default function ProductTemplateRenderer({
   // Use the exported getEffectiveLayoutMode function
   const layoutMode = getEffectiveLayoutMode(product)
 
-  // Render appropriate template
-  // Note: Legacy aliases (builder, composer, selector) are already normalized
-  // by getEffectiveLayoutMode to (complex, medium, simple)
+  // Render appropriate template based on template_id
   const renderTemplate = () => {
     switch (layoutMode) {
       case 'complex':
@@ -195,7 +180,7 @@ export default function ProductTemplateRenderer({
           customizationTotal={customizationTotal}
           onRemove={(optionId) => {
             const group = customizationRules.find((g: any) =>
-              g.options.some((opt: any) => opt.id === optionId)
+              (g.options || []).some((opt: any) => opt.id === optionId)
             )
             if (group) {
               const currentSelections = selections[group.groupId] || []

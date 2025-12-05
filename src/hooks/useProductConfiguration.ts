@@ -221,7 +221,8 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
     config,
     isLoading,
     error,
-    productType: config?.product.productType || 'standard',
+    // ✅ Use templateId from backend (productType was removed)
+    templateId: config?.product.templateId || 'standard',
 
     // Container
     hasContainers: config?.hasContainers || false,

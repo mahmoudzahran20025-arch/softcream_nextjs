@@ -39,7 +39,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
         image: editingProduct.image || '',
         badge: editingProduct.badge || '',
         available: editingProduct.available,
-        product_type: (editingProduct as any).product_type || 'standard',
+        // ✅ Template System (Requirements 3.1)
+        template_id: editingProduct.template_id || 'template_1',
         calories: editingProduct.calories?.toString() || '',
         protein: editingProduct.protein?.toString() || '',
         carbs: editingProduct.carbs?.toString() || '',

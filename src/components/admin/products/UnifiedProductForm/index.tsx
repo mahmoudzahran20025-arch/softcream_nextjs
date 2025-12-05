@@ -14,7 +14,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Save, FileText, Layers, LayoutTemplate, Apple } from 'lucide-react';
+import { X, Save, FileText, Layers, LayoutTemplate, Apple, Palette } from 'lucide-react';
 import type {
   UnifiedProductFormProps,
   UnifiedProductData,
@@ -36,7 +36,9 @@ import NutritionSection from './NutritionSection';
 import ValidationSummary from './ValidationSummary';
 import ChangePreviewModal from './ChangePreviewModal';
 import TemplateSelector from '../TemplateSelector';
+import UIConfigEditor from '../../options/UIConfigEditor';
 import { getTemplates, getSuggestedGroupsForTemplate, checkTemplateCompatibility, type ProductTemplate } from '@/lib/admin/templates.api';
+import type { UIConfig } from '@/lib/uiConfig';
 import {
   validateUnifiedProductData,
   autoCorrectUnifiedProductData,
@@ -48,7 +50,8 @@ import {
 } from '@/lib/admin';
 
 // Convert form data to validation format
-// Requirements 2.4: Added template_id, card_style, old_price, discount_percentage
+// Requirements 2.4: Added template_id
+// Requirements 4.1-4.6, 5.1, 5.3-5.5: Added ui_config
 function toValidationFormat(data: UnifiedProductData): ValidationUnifiedProductData {
   return {
     product: {
@@ -63,9 +66,8 @@ function toValidationFormat(data: UnifiedProductData): ValidationUnifiedProductD
       image: data.product.image || undefined,
       badge: data.product.badge || undefined,
       available: data.product.available,
-      product_type: data.product.product_type || undefined,
       template_id: data.product.template_id || undefined,
-      card_style: data.product.card_style || undefined,
+      ui_config: data.product.ui_config || undefined,
       // Discount fields
       old_price: data.product.old_price || undefined,
       discount_percentage: data.product.discount_percentage || undefined,
@@ -95,11 +97,13 @@ function toValidationFormat(data: UnifiedProductData): ValidationUnifiedProductD
  * Tab configuration
  * Requirements: 5.3 - Organize form in tabs (Details, Template, Options, Nutrition)
  * Requirements: 2.1, 2.2, 2.5 - Added Template tab for template selection
+ * Requirements: 4.1-4.6, 5.1, 5.3-5.5 - Added UI Config tab for display settings
  * Containers and sizes are now part of option_groups with group_id 'containers' and 'sizes'
  */
 const TABS: Array<{ id: FormTab; label: string; icon: React.ReactNode }> = [
   { id: 'details', label: 'تفاصيل المنتج', icon: <FileText size={18} /> },
   { id: 'template', label: 'القالب', icon: <LayoutTemplate size={18} /> },
+  { id: 'uiConfig', label: 'إعدادات العرض', icon: <Palette size={18} /> },
   { id: 'optionGroups', label: 'مجموعات الخيارات', icon: <Layers size={18} /> },
   { id: 'nutrition', label: 'القيم الغذائية', icon: <Apple size={18} /> },
 ];
@@ -177,6 +181,7 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
   useEffect(() => {
     if (editingProduct) {
       // Load existing product data - Requirements 2.4: Added template_id and card_style
+      // Requirements 4.1-4.6, 5.1, 5.3-5.5: Added ui_config
       const productData: ProductFormData = {
         id: editingProduct.id,
         name: editingProduct.name,
@@ -189,9 +194,8 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
         image: editingProduct.image || '',
         badge: editingProduct.badge || '',
         available: editingProduct.available,
-        product_type: (editingProduct as any).product_type || 'standard',
         template_id: (editingProduct as any).template_id || '',
-        card_style: (editingProduct as any).card_style || '',
+        ui_config: (editingProduct as any).ui_config || '{}',
         // Discount fields
         old_price: (editingProduct as any).old_price?.toString() || '',
         discount_percentage: (editingProduct as any).discount_percentage?.toString() || '',
@@ -570,6 +574,14 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
                       <span className="w-2 h-2 bg-yellow-500 rounded-full" />
                     ) : null
                   )}
+                  {/* UI Config tab indicator - Requirements 4.1-4.6, 5.1, 5.3-5.5 */}
+                  {tab.id === 'uiConfig' && (
+                    unifiedData.product.ui_config && unifiedData.product.ui_config !== '{}' ? (
+                      <span className="w-2 h-2 bg-green-500 rounded-full" title="إعدادات العرض مُخصصة" />
+                    ) : (
+                      <span className="w-2 h-2 bg-gray-300 rounded-full" title="إعدادات افتراضية" />
+                    )
+                  )}
                 </button>
               ))}
             </div>
@@ -674,6 +686,36 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+            
+            {/* UI Config Tab - Requirements 4.1-4.6, 5.1, 5.3-5.5 */}
+            {formState.activeTab === 'uiConfig' && (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl p-5 border-2 border-indigo-200">
+                  <h3 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
+                    <span>🎨</span> إعدادات العرض
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    تخصيص طريقة عرض المنتج للعملاء، بما في ذلك نمط العرض والأيقونات والألوان.
+                  </p>
+                  <UIConfigEditor
+                    value={(() => {
+                      try {
+                        return JSON.parse(unifiedData.product.ui_config || '{}') as UIConfig;
+                      } catch {
+                        return {} as UIConfig;
+                      }
+                    })()}
+                    onChange={(config: UIConfig) => {
+                      handleProductChange({
+                        ...unifiedData.product,
+                        ui_config: JSON.stringify(config),
+                      });
+                    }}
+                    showPreview={false}
+                  />
+                </div>
               </div>
             )}
             

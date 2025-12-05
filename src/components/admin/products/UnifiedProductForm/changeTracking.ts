@@ -40,7 +40,7 @@ const PRODUCT_FIELD_LABELS: Record<string, string> = {
   image: 'الصورة',
   badge: 'الشارة',
   available: 'متاح',
-  product_type: 'نوع المنتج',
+  template_id: 'قالب العرض',  // ✅ Changed from product_type
   calories: 'السعرات الحرارية',
   protein: 'البروتين',
   carbs: 'الكربوهيدرات',
@@ -71,7 +71,7 @@ const TRACKED_PRODUCT_FIELDS: (keyof ProductFormData)[] = [
   'image',
   'badge',
   'available',
-  'product_type',
+  'template_id',  // ✅ Changed from product_type
   'calories',
   'protein',
   'carbs',

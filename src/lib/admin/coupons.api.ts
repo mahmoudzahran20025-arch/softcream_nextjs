@@ -93,6 +93,7 @@ export interface CouponStats {
   discountValue: number
   status: string
   totalUses: number
+  totalDiscount: number
   maxUsesTotal: number | null
   maxUsesPerUser: number
   remainingUses: number | string
@@ -103,6 +104,7 @@ export interface CouponStats {
   requiresRegistration: boolean
   usageBreakdown?: Array<{
     discount_type: string
+    usage_type: string
     count: number
     total_discount?: number
   }>
@@ -113,6 +115,7 @@ export interface CouponStats {
     order_id?: string
     discount_applied: number
     used_at: number
+    usage_type: string
     customer_name?: string
     order_total?: number
   }>

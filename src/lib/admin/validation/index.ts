@@ -49,7 +49,8 @@ import {
 
 /**
  * Product form data structure for validation
- * Requirements 2.4: Added template_id and card_style
+ * Requirements 3.1: Purified template system - removed product_type, card_style
+ * Requirements 4.1-4.6, 5.1, 5.3-5.5: Added ui_config for display settings
  */
 export interface ProductFormData {
   id: string;
@@ -63,10 +64,12 @@ export interface ProductFormData {
   image?: string;
   badge?: string;
   available?: number;
-  product_type?: string;
-  // Template fields - Requirements 2.4
+  // ❌ REMOVED: product_type (deprecated - use template_id instead)
+  // ❌ REMOVED: card_style (deprecated - use template_id instead)
+  // ✅ Template System (Requirements 3.1)
   template_id?: string;
-  card_style?: string;
+  // ✅ UI Config (Requirements 4.1-4.6, 5.1, 5.3-5.5)
+  ui_config?: string;
   // Discount fields
   old_price?: string | number;
   discount_percentage?: string | number;
@@ -135,10 +138,11 @@ export interface UnifiedProductData {
 }
 
 // ============================================================================
-// Product Types that are customizable
+// Template System Configuration (Requirements 3.1)
 // ============================================================================
 
-const CUSTOMIZABLE_PRODUCT_TYPES = ['byo_ice_cream', 'milkshake', 'preset_ice_cream'];
+// ❌ REMOVED: CUSTOMIZABLE_PRODUCT_TYPES (deprecated - customizability is now determined by option_groups)
+// Customizability is now determined by whether a product has option_groups assigned
 
 // ============================================================================
 // Validation Functions
@@ -314,31 +318,22 @@ export function validateSizeAssignments(
 }
 
 /**
- * Validates customizable product has option groups
+ * Validates product option groups configuration
  * 
- * Requirement 7.1: WHEN a customizable product has no option groups 
- * THEN display warning
+ * Requirements 3.1: Customizability is now determined by option_groups, not product_type
+ * This function is kept for backward compatibility but no longer validates based on product_type
  * 
- * @param productType - The product type
- * @param optionGroupAssignments - Array of option group assignments
- * @returns ValidationResult with warnings
+ * @param _templateId - The template ID (unused, kept for API compatibility)
+ * @param _optionGroupAssignments - Array of option group assignments (unused)
+ * @returns Empty ValidationResult (no warnings since customizability is determined by option_groups)
  */
 export function validateCustomizableProductHasGroups(
-  productType: string | undefined,
-  optionGroupAssignments: OptionGroupAssignment[]
+  _templateId: string | undefined,
+  _optionGroupAssignments: OptionGroupAssignment[]
 ): ValidationResult {
-  const result = createEmptyValidationResult();
-
-  if (productType && CUSTOMIZABLE_PRODUCT_TYPES.includes(productType)) {
-    if (optionGroupAssignments.length === 0) {
-      result.warnings.push(
-        createValidationWarning('optionGroups', WARNING_CODES.NO_OPTION_GROUPS)
-      );
-    }
-  }
-
-  result.isValid = result.errors.length === 0;
-  return result;
+  // Requirements 3.1: Customizability is now determined by option_groups presence
+  // No need to warn about missing option groups - it's a valid configuration for simple products
+  return createEmptyValidationResult();
 }
 
 /**
@@ -384,9 +379,9 @@ export function validateUnifiedProductData(
   // Validate size assignments
   const sizeResult = validateSizeAssignments(data.sizeAssignments);
 
-  // Validate customizable product has groups
+  // Validate customizable product has groups (Requirements 3.1: now uses template_id)
   const customizableResult = validateCustomizableProductHasGroups(
-    data.product.product_type,
+    data.product.template_id,
     data.optionGroupAssignments
   );
 

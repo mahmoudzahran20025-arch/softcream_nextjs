@@ -1,4 +1,4 @@
-'use client'
+ 'use client'
 
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
 import { X, ShoppingCart } from 'lucide-react'

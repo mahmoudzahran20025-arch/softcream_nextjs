@@ -25,3 +25,12 @@ export {
   type NutritionValues,
   type EnergyData
 } from './nutritionCalculator'
+
+// Health Score calculations
+export {
+  calculateHealthScore,
+  calculateHealthScoreFromNutrition,
+  type NutritionData,
+  type CartItemForScore,
+  type HealthScoreResult
+} from './healthScore'

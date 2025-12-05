@@ -37,9 +37,29 @@ interface Product {
   }
 }
 
+/**
+ * UIConfig Interface - إعدادات العرض المتقدمة
+ */
+interface UIConfig {
+  display_style?: 'cards' | 'buttons' | 'list' | 'grid'
+  columns?: number
+  card_size?: 'small' | 'medium' | 'large'
+  show_images?: boolean
+  show_prices?: boolean
+  icon?: {
+    type: 'emoji' | 'icon' | 'image'
+    value: string
+    animation?: 'none' | 'pulse' | 'bounce' | 'spin'
+    style?: 'normal' | 'gradient' | 'glow'
+  }
+  badge?: string
+  badge_color?: string
+}
+
 interface BYOProductCardProps {
   product: Product
   config?: CategoryConfig
+  uiConfig?: UIConfig
   // NO onAddToCart - ComplexCard always navigates to product page
 }
 
@@ -62,8 +82,19 @@ interface BYOProductCardProps {
  * - 3.11: Display floating animated icons (Sparkles, IceCream)
  * - 3.12: Display description as tagline below product name
  */
-export default function BYOProductCard({ product, config: _config }: BYOProductCardProps) {
+export default function BYOProductCard({ product, config: _config, uiConfig }: BYOProductCardProps) {
   void _config // Reserved for future use
+  
+  // Get icon animation class from uiConfig
+  const getIconAnimationClass = () => {
+    if (!uiConfig?.icon?.animation) return ''
+    switch (uiConfig.icon.animation) {
+      case 'pulse': return 'animate-pulse'
+      case 'bounce': return 'animate-bounce'
+      case 'spin': return 'animate-spin'
+      default: return ''
+    }
+  }
   const [isHovered, setIsHovered] = useState(false)
 
   const isUnavailable = product.available === 0
@@ -142,9 +173,9 @@ export default function BYOProductCard({ product, config: _config }: BYOProductC
             <div className="w-full h-full flex items-center justify-center">
               <motion.span
                 animate={isHovered && !isUnavailable ? { scale: 1.2, rotate: 10 } : {}}
-                className="text-8xl drop-shadow-lg"
+                className={`text-8xl drop-shadow-lg ${getIconAnimationClass()}`}
               >
-                🍦
+                {uiConfig?.icon?.value || '🍦'}
               </motion.span>
             </div>
           )}

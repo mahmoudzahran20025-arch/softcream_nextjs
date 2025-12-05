@@ -35,25 +35,24 @@ export interface Product {
   ingredients?: string
   nutrition_facts?: string
   allergens?: string
-  // UI Hint
-  product_type?: string
-  
-  // ✅ Template System Fields
+
+  // ✅ Template System Fields (Purified - Requirements 3.1)
+  // ❌ REMOVED: product_type (deprecated - use option_groups instead)
+  // ❌ REMOVED: layout_mode (deprecated - use template_id instead)
+  // ❌ REMOVED: card_style (deprecated - use template_id instead)
   template_id?: string
   template_variant?: string
   is_template_dynamic?: number
-  layout_mode?: 'simple' | 'medium' | 'complex' | 'builder' | 'composer' | 'selector'
   ui_config?: string
-  card_style?: string
-  
+
   // ✅ Pricing with Discounts
   old_price?: number
   discount_percentage?: number
-  
+
   // ✅ Card Configuration
   card_badge?: string
   card_badge_color?: string
-  
+
   // ✅ Health System Fields
   health_keywords?: string
   health_benefit_ar?: string
@@ -100,7 +99,7 @@ export interface ProductConfiguration {
     id: string
     name: string
     basePrice: number
-    productType: string
+    templateId: string  // ✅ Using templateId (purified)
     isCustomizable: boolean
   }
   hasContainers: boolean
@@ -285,7 +284,7 @@ export interface UpdateProductCustomizationData {
  * Sends data using option_group_id field (unified options system)
  */
 export async function updateProductCustomization(
-  productId: string, 
+  productId: string,
   data: UpdateProductCustomizationData
 ): Promise<{
   success: boolean

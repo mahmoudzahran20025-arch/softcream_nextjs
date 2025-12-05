@@ -1,3 +1,4 @@
+
 // src/components/admin/products/types.ts
 import type { Product } from '@/lib/admin';
 
@@ -71,8 +72,10 @@ export interface ProductFormData {
   image: string;
   badge: string;
   available: number;
-  product_type: string;
+  // ❌ REMOVED: product_type (deprecated - use template_id instead, Requirements 3.1)
   // ❌ REMOVED: is_customizable (now derived from option groups)
+  // ✅ Template System
+  template_id: string;
   calories: string;
   protein: string;
   carbs: string;
@@ -102,14 +105,8 @@ export interface ProductConfig {
   customizationRules?: any[];
 }
 
-// Product types for BYO system
-export const PRODUCT_TYPES = [
-  { value: 'standard', label: 'منتج عادي', icon: '🍽️', description: 'منتج بسيط بدون تخصيص' },
-  { value: 'byo_ice_cream', label: 'BYO آيس كريم', icon: '✨', description: 'آيس كريم قابل للتخصيص بالكامل' },
-  { value: 'milkshake', label: 'ميلك شيك', icon: '🥤', description: 'ميلك شيك مع خيارات النكهات' },
-  { value: 'preset_ice_cream', label: 'آيس كريم جاهز', icon: '🍨', description: 'آيس كريم بوصفة محددة' },
-  { value: 'dessert', label: 'حلويات', icon: '🍰', description: 'حلويات متنوعة' },
-];
+// ❌ REMOVED: PRODUCT_TYPES constant (deprecated - use template_id instead, Requirements 3.1)
+// Product display is now controlled by template_id: 'template_1', 'template_2', 'template_3'
 
 export const INITIAL_FORM_DATA: ProductFormData = {
   id: '',
@@ -123,7 +120,8 @@ export const INITIAL_FORM_DATA: ProductFormData = {
   image: '',
   badge: '',
   available: 1,
-  product_type: 'standard',
+  // ✅ Template System (Requirements 3.1)
+  template_id: 'template_1',
   calories: '',
   protein: '',
   carbs: '',

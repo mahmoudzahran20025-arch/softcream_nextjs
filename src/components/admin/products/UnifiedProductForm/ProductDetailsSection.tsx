@@ -13,13 +13,11 @@
 
 import React from 'react';
 import type { ProductDetailsSectionProps } from './types';
-import { PRODUCT_TYPES, CARD_STYLE_OPTIONS } from './types';
 
 const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
   formData,
   onChange,
   isEditing,
-  onProductTypeChange,
 }) => {
   // Debug: Log formData on every render
   console.log('🎯 ProductDetailsSection render, formData:', formData);
@@ -27,11 +25,6 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
   const handleChange = (field: string, value: string | number | string[]) => {
     console.log('🔄 ProductDetailsSection handleChange:', { field, value });
     onChange({ ...formData, [field]: value });
-  };
-
-  const handleProductTypeChange = (newType: string) => {
-    handleChange('product_type', newType);
-    onProductTypeChange?.(newType);
   };
 
   return (
@@ -98,23 +91,7 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
               placeholder="Ice Cream"
             />
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">السعر الحالي * (جنيه)</label>
-            <div className="relative">
-              <input
-                type="number"
-                required
-                min="0"
-                step="0.01"
-                value={formData.price}
-                onChange={(e) => handleChange('price', e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-pink-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all bg-white"
-                placeholder="25.00"
-              />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">ج</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">هذا هو السعر النهائي بعد الخصم</p>
-          </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">شارة مميزة</label>
             <input
@@ -138,18 +115,35 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
         </div>
       </div>
 
-      {/* Pricing & Discounts Section */}
+      {/* Pricing & Discounts Section - Requirement 8 */}
       <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 border-2 border-amber-200">
         <h3 className="text-lg font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
           <span>💰</span> التسعير والخصومات
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
-          اضبط السعر القديم لعرض خصم على المنتج. سيتم حساب نسبة الخصم تلقائياً.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          {/* Current Price */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">السعر الحالي * (جنيه)</label>
+            <div className="relative">
+              <input
+                type="number"
+                required
+                min="0"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => handleChange('price', e.target.value)}
+                className="w-full px-4 py-2.5 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
+                placeholder="25.00"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">ج</span>
+            </div>
+          </div>
+
+          {/* Old Price */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              السعر القديم (قبل الخصم) - اختياري
+              السعر القديم (اختياري)
             </label>
             <div className="relative">
               <input
@@ -173,18 +167,16 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
                   }
                 }}
                 className="w-full px-4 py-2.5 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
-                placeholder="مثال: 50.00"
+                placeholder="50.00"
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">ج</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {formData.old_price ? '✅ سيظهر السعر القديم مشطوب' : '💡 اتركه فارغاً إذا لم يكن هناك خصم'}
-            </p>
           </div>
 
+          {/* Discount Percentage */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              نسبة الخصم (%) - تلقائي
+              نسبة الخصم (%)
             </label>
             <div className="relative">
               <input
@@ -193,15 +185,12 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
                 max="100"
                 value={formData.discount_percentage || ''}
                 onChange={(e) => handleChange('discount_percentage', e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
-                placeholder="يتم حسابها تلقائياً"
+                className="w-full px-4 py-2.5 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white disabled:bg-gray-100"
+                placeholder="تلقائي"
                 disabled
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">%</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {formData.discount_percentage ? `🎉 خصم ${formData.discount_percentage}%` : '📊 سيتم الحساب عند إدخال السعر القديم'}
-            </p>
           </div>
         </div>
 
@@ -212,128 +201,19 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
           const discountPct = formData.discount_percentage ? parseInt(formData.discount_percentage) : 0;
 
           return oldPrice && currentPrice && oldPrice > currentPrice && (
-            <div className="mt-4 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-green-800">🎯 معاينة الخصم:</p>
-                  <p className="text-xs text-green-600 mt-1">
-                    السعر القديم: <span className="line-through">{oldPrice.toFixed(2)} ج.م</span>
-                  </p>
-                  <p className="text-xs text-green-600">
-                    السعر الجديد: <span className="font-bold text-lg">{currentPrice.toFixed(2)} ج.م</span>
-                  </p>
-                </div>
-                <div className="text-left">
-                  <div className="bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
-                    <p className="text-xs font-medium">وفر</p>
-                    <p className="text-2xl font-bold">{(oldPrice - currentPrice).toFixed(2)} ج</p>
-                    <p className="text-xs">خصم {discountPct}%</p>
-                  </div>
-                </div>
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-green-600">🎯</span>
+                <span className="text-sm text-green-800">
+                  سيظهر السعر: <span className="line-through opacity-75">{oldPrice}</span> <span className="font-bold">{currentPrice} ج.م</span>
+                </span>
               </div>
-            </div>
-          )
-        })()}
-
-        {/* Warning for invalid discount */}
-        {(() => {
-          const oldPrice = formData.old_price ? parseFloat(formData.old_price) : 0;
-          const currentPrice = formData.price ? parseFloat(formData.price) : 0;
-
-          return oldPrice && currentPrice && oldPrice <= currentPrice && (
-            <div className="mt-4 p-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg flex items-start gap-2">
-              <span className="text-lg">⚠️</span>
-              <p className="text-sm text-yellow-800">
-                <strong>تنبيه:</strong> السعر القديم يجب أن يكون <strong>أكبر</strong> من السعر الحالي لعرض الخصم.
-              </p>
-            </div>
-          )
-        })()}
-      </div>
-
-      {/* Template ID Display - Requirement 2.4 (read-only reference) */}
-      {formData.template_id && (
-        <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-4 border-2 border-violet-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🎨</span>
-              <span className="text-sm font-semibold text-violet-700">القالب المختار:</span>
-              <span className="px-3 py-1 bg-violet-100 text-violet-800 rounded-full text-sm font-medium">
-                {formData.template_id}
+              <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
+                خصم {discountPct}%
               </span>
             </div>
-            <span className="text-xs text-gray-500">
-              يمكنك تغييره من تبويب &quot;القالب&quot;
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Product Type - Requirement 1.2 */}
-      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border-2 border-purple-200">
-        <h3 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-          <span>✨</span> نوع المنتج
-        </h3>
-        <p className="text-sm text-gray-600 mb-4">
-          اختر نوع المنتج لتحديد خيارات التخصيص المقترحة تلقائياً
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {PRODUCT_TYPES.map((type) => (
-            <button
-              key={type.value}
-              type="button"
-              onClick={() => handleProductTypeChange(type.value)}
-              className={`p-4 rounded-xl border-2 text-right transition-all ${formData.product_type === type.value
-                ? 'border-purple-500 bg-purple-50 shadow-md'
-                : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
-                }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{type.icon}</span>
-                <div>
-                  <div className="font-semibold text-gray-800">{type.label}</div>
-                  <div className="text-xs text-gray-500">{type.description}</div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Card Style - Requirement 2.4 */}
-      <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl p-5 border-2 border-indigo-200">
-        <h3 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-          <span>🎴</span> نمط عرض البطاقة
-        </h3>
-        <p className="text-sm text-gray-600 mb-4">
-          اختر كيف سيظهر المنتج في واجهة العملاء
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {CARD_STYLE_OPTIONS.map((style) => (
-            <button
-              key={style.value}
-              type="button"
-              onClick={() => handleChange('card_style', style.value)}
-              className={`p-4 rounded-xl border-2 text-right transition-all ${formData.card_style === style.value
-                ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50'
-                }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{style.icon}</span>
-                <div>
-                  <div className="font-semibold text-gray-800">{style.label}</div>
-                  <div className="text-xs text-gray-500">{style.description}</div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-        {!formData.card_style && (
-          <p className="text-xs text-amber-600 mt-2">
-            💡 سيتم استخدام النمط الافتراضي بناءً على القالب المختار
-          </p>
-        )}
+          )
+        })()}
       </div>
 
       {/* Description */}
