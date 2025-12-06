@@ -161,12 +161,14 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
             };
 
             // Map option groups to assignments format
+            // ✅ Include conditionalMaxSelections for conditional rules (Requirements 6.1)
             const optionGroupAssignments = optionGroups.map((og: any) => ({
               groupId: og.groupId,
               isRequired: og.isRequired,
               minSelections: og.minSelections,
               maxSelections: og.maxSelections,
               displayOrder: og.displayOrder || 0,
+              conditionalMaxSelections: og.conditionalMaxSelections || null,
             }));
 
             console.log('✅ Loaded full product data:', {
@@ -408,6 +410,7 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
               availableGroups={optionGroups}
               errors={getOptionGroupErrors()}
               warnings={getOptionGroupWarnings()}
+              productId={editingProduct?.id}
             />
 
             {/* Section 3: Nutrition (Collapsible) */}

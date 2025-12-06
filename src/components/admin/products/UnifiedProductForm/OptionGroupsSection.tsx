@@ -4,9 +4,10 @@
  * Displays available option groups for assignment and allows configuration
  * of is_required, min_selections, max_selections per group.
  * Shows inline validation errors and warnings.
+ * Includes ConditionalRulesEditor for each assigned group.
  * 
  * @module admin/products/UnifiedProductForm/OptionGroupsSection
- * Requirements: 1.3, 3.1, 3.2, 3.3, 3.4
+ * Requirements: 1.3, 3.1, 3.2, 3.3, 3.4, 6.1, 6.2, 6.3, 6.4, 6.5
  */
 
 'use client';
@@ -14,6 +15,7 @@
 import React from 'react';
 import { Plus, Trash2, AlertCircle, AlertTriangle, GripVertical } from 'lucide-react';
 import type { OptionGroupsSectionProps, OptionGroupAssignment, OptionGroupInfo } from './types';
+import ConditionalRulesEditor from '../ConditionalRulesEditor';
 
 const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
   assignments,
@@ -21,6 +23,7 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
   availableGroups,
   errors = [],
   warnings = [],
+  productId,
 }) => {
   // Filter out groups with invalid IDs to prevent React key warnings
   const validGroups = availableGroups.filter(group => group.id != null && group.id !== '');
@@ -251,6 +254,48 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
                         <span>{getWarningMessage(assignment.groupId)}</span>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Conditional Rules Editor - Requirements: 6.1, 6.2, 6.3, 6.4, 6.5 */}
+                {productId && (
+                  <div className="mt-4">
+                    <ConditionalRulesEditor
+                      productId={productId}
+                      targetGroupId={assignment.groupId}
+                      targetGroupName={groupInfo.name || groupInfo.nameAr}
+                      currentRules={assignment.conditionalMaxSelections || null}
+                      availableGroups={validGroups.map(g => ({
+                        id: g.id,
+                        name_ar: g.nameAr,
+                        name_en: g.nameEn,
+                        options: g.options?.map(o => ({
+                          id: o.id,
+                          name_ar: o.name_ar || o.name,
+                          name_en: o.name_en,
+                          group_id: o.group_id || g.id
+                        }))
+                      }))}
+                      onSave={async (rules) => {
+                        // Call API to persist conditional rules
+                        // Requirements: 6.4 - Save conditional rules as JSON in product_options.conditional_max_selections
+                        const { updateConditionalRules } = await import('@/lib/admin/options.api');
+                        const result = await updateConditionalRules(productId, assignment.groupId, rules);
+                        
+                        if (!result.success) {
+                          throw new Error(result.error || 'فشل في حفظ القواعد المشروطة');
+                        }
+                        
+                        // Update the local assignment state
+                        onChange(
+                          assignments.map(a => 
+                            a.groupId === assignment.groupId 
+                              ? { ...a, conditionalMaxSelections: rules }
+                              : a
+                          )
+                        );
+                      }}
+                    />
                   </div>
                 )}
               </div>

@@ -35,6 +35,7 @@ import GroupFormModal from './GroupFormModal';
 import OptionFormModal from './OptionFormModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import OptionGroupSkeleton from './OptionGroupSkeleton';
+import UIConfigModal from './UIConfigModal';
 
 // Simplified: Only groups view mode (Requirements: 6.2 - archive OptionsTable and OptionCards)
 
@@ -116,6 +117,12 @@ const OptionsPage: React.FC = () => {
     selectedGroupId: null,
     deleteTarget: null,
   });
+
+  // Separate state for UI Config modal
+  const [uiConfigModal, setUIConfigModal] = useState<{
+    isOpen: boolean;
+    group: OptionGroup | null;
+  }>({ isOpen: false, group: null });
 
   // Track if reordering is in progress
   const [isReordering, setIsReordering] = useState(false);
@@ -259,6 +266,15 @@ const OptionsPage: React.FC = () => {
       showGroupModal: true,
       editingGroup: group,
     }));
+  };
+
+  // Handler for opening UI Config modal (separate from edit group)
+  const handleEditUIConfig = (group: OptionGroup) => {
+    setUIConfigModal({ isOpen: true, group });
+  };
+
+  const handleCloseUIConfigModal = () => {
+    setUIConfigModal({ isOpen: false, group: null });
   };
 
   const handleDeleteGroup = (group: OptionGroup) => {
@@ -662,7 +678,7 @@ const OptionsPage: React.FC = () => {
                   onEditOption={handleEditOption}
                   onDeleteOption={handleDeleteOption}
                   onToggleOptionAvailability={handleToggleOptionAvailability}
-                  onEditUIConfig={() => handleEditGroup(group)}
+                  onEditUIConfig={() => handleEditUIConfig(group)}
                 />
               </div>
             ))}
@@ -783,6 +799,29 @@ const OptionsPage: React.FC = () => {
         onClose={handleCloseDeleteModal}
         target={state.deleteTarget}
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* UI Config Modal - Separate from Group Edit */}
+      <UIConfigModal
+        isOpen={uiConfigModal.isOpen}
+        onClose={handleCloseUIConfigModal}
+        group={uiConfigModal.group}
+        onSave={async (groupId, uiConfig) => {
+          // Update the group with new ui_config
+          const group = state.optionGroups.find(g => g.id === groupId);
+          if (group) {
+            await handleGroupSubmit({
+              id: group.id,
+              name_ar: group.name_ar,
+              name_en: group.name_en,
+              description_ar: group.description_ar || '',
+              description_en: group.description_en || '',
+              icon: group.icon || '📦',
+              display_order: group.display_order,
+              ui_config: uiConfig,
+            });
+          }
+        }}
       />
     </div>
   );

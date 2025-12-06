@@ -2,10 +2,40 @@
 'use client';
 
 import React from 'react';
-import { Edit, Trash2, Eye, EyeOff, Check } from 'lucide-react';
+import { Edit, Trash2, Eye, EyeOff, Check, Layout, Layers, Wand2, Leaf } from 'lucide-react';
 import Image from 'next/image';
 import type { ProductCardProps } from './types';
 import OptionGroupsBadge from './OptionGroupsBadge';
+
+/**
+ * Template Badge Component - Shows template type with icon and color
+ */
+const TemplateBadge: React.FC<{ templateId?: string }> = ({ templateId }) => {
+  const getTemplateInfo = (id?: string) => {
+    switch (id) {
+      case 'template_1':
+        return { icon: Layout, label: 'بسيط', color: 'bg-green-100 text-green-700 border-green-200' };
+      case 'template_2':
+        return { icon: Layers, label: 'متوسط', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+      case 'template_3':
+        return { icon: Wand2, label: 'ويزارد', color: 'bg-purple-100 text-purple-700 border-purple-200' };
+      case 'template_lifestyle':
+        return { icon: Leaf, label: 'صحي', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+      default:
+        return { icon: Layout, label: 'بسيط', color: 'bg-gray-100 text-gray-700 border-gray-200' };
+    }
+  };
+
+  const info = getTemplateInfo(templateId);
+  const Icon = info.icon;
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-md border ${info.color}`}>
+      <Icon size={12} />
+      {info.label}
+    </span>
+  );
+};
 
 /**
  * ProductCard Component
@@ -22,11 +52,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   isSelected = false,
   onSelectionChange,
   selectionMode = false,
-  // Template badge props removed (archived per Requirements 6.1)
-  templateId: _templateId,
-  templateComplexity: _templateComplexity,
-  templateNameAr: _templateNameAr,
-  templateNameEn: _templateNameEn,
   // Option groups badge props (Requirements: 5.2)
   assignedGroups = []
 }) => {
@@ -123,9 +148,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
 
-        {/* Badges Section - Option Groups */}
-        {/* Requirements: 5.2 - Option Groups Badge */}
+        {/* Badges Section - Template & Option Groups */}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {/* Template Badge - Shows template type */}
+          <TemplateBadge templateId={product.template_id} />
+          
           {/* Option Groups Badge (Requirements: 5.2) */}
           <OptionGroupsBadge
             productId={product.id}

@@ -93,6 +93,7 @@ export interface ProductDetailsSectionProps {
 
 /**
  * Props for OptionGroupsSection component
+ * Requirements: 6.1 - Display conditional rules section when editing product options
  */
 export interface OptionGroupsSectionProps {
   /** Current option group assignments */
@@ -105,6 +106,8 @@ export interface OptionGroupsSectionProps {
   errors?: Array<{ field: string; message: string }>;
   /** Validation warnings for this section */
   warnings?: Array<{ field: string; message: string }>;
+  /** Product ID for conditional rules API calls (optional - only for existing products) */
+  productId?: string;
 }
 
 /**

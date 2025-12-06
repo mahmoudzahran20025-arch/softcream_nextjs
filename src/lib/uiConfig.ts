@@ -22,6 +22,11 @@ export interface UIConfig {
     accentColor?: string
     icon?: IconConfig
     layout?: LayoutConfig
+    // Badge settings (Requirements 4.1, 4.2)
+    badge?: string
+    badge_color?: string
+    // Display style for option groups (Requirement 4.3)
+    display_style?: 'cards' | 'pills' | 'list' | 'checkbox'
 }
 
 const DEFAULT_UI_CONFIG: UIConfig = {
@@ -56,7 +61,7 @@ export function parseUIConfig(uiConfigJSON?: string): UIConfig {
     try {
         const config = JSON.parse(uiConfigJSON)
         return {
-            displayMode: config.displayMode || DEFAULT_UI_CONFIG.displayMode,
+            displayMode: config.displayMode || config.display_style || DEFAULT_UI_CONFIG.displayMode,
             columns: config.columns || DEFAULT_UI_CONFIG.columns,
             cardSize: config.cardSize || DEFAULT_UI_CONFIG.cardSize,
             showImages: config.showImages ?? DEFAULT_UI_CONFIG.showImages,
@@ -71,7 +76,12 @@ export function parseUIConfig(uiConfigJSON?: string): UIConfig {
             layout: {
                 spacing: config.layout?.spacing || DEFAULT_UI_CONFIG.layout!.spacing,
                 alignment: config.layout?.alignment || DEFAULT_UI_CONFIG.layout!.alignment
-            }
+            },
+            // Badge settings (Requirements 4.1, 4.2)
+            badge: config.badge,
+            badge_color: config.badge_color,
+            // Display style for option groups (Requirement 4.3)
+            display_style: config.display_style
         }
     } catch (error) {
         console.error('Failed to parse UI config:', error)

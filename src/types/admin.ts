@@ -185,6 +185,8 @@ export interface ProductFormData {
 /**
  * Option group assignment for product customization
  * Used in UnifiedProductForm
+ * 
+ * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5 - Conditional Rules
  */
 export interface OptionGroupAssignment {
   groupId: string
@@ -193,6 +195,8 @@ export interface OptionGroupAssignment {
   maxSelections: number
   priceOverride?: number
   displayOrder: number
+  /** Conditional max selections rules - JSON string or null */
+  conditionalMaxSelections?: string | null
 }
 
 /**
@@ -211,7 +215,10 @@ export interface OptionGroupInfo {
   options?: Array<{
     id: string
     name: string
+    name_ar: string
+    name_en?: string
     price: number
+    group_id: string
   }>
 }
 

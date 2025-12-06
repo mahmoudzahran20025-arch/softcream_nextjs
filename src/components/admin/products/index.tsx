@@ -37,6 +37,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [templateFilter, setTemplateFilter] = useState<string>('all');
+  const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -98,6 +100,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
       const response = await getBYOOptions();
       if (response.success && response.data) {
         // Transform BYOOptionGroup to OptionGroupInfo
+        // ✅ Include all option fields needed for ConditionalRulesEditor (Requirements 6.1)
         const groups: OptionGroupInfo[] = response.data.map((group: BYOOptionGroup) => ({
           id: group.id,
           name: group.name_ar,
@@ -108,7 +111,10 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
           options: group.options?.map(opt => ({
             id: opt.id,
             name: opt.name_ar,
-            price: opt.base_price
+            name_ar: opt.name_ar,
+            name_en: opt.name_en,
+            price: opt.base_price,
+            group_id: group.id
           }))
         }));
         setOptionGroups(groups);
@@ -401,7 +407,18 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   const selectedProducts = products.filter(p => selectedProductIds.has(p.id));
 
   /**
-   * Filter products by search query and category
+   * Template options for filter dropdown
+   */
+  const templateOptions = [
+    { id: 'all', label: 'كل القوالب', icon: '📋' },
+    { id: 'template_1', label: 'بسيط', icon: '🎯' },
+    { id: 'template_2', label: 'متوسط', icon: '📦' },
+    { id: 'template_3', label: 'ويزارد', icon: '🎨' },
+    { id: 'template_lifestyle', label: 'صحي', icon: '🥗' },
+  ];
+
+  /**
+   * Filter products by search query, category, template, and availability
    * Requirements: 1.2 - Search bar and category filter
    */
   const filteredProducts = useMemo(() => {
@@ -415,9 +432,17 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
       // Category filter
       const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
 
-      return matchesSearch && matchesCategory;
+      // Template filter
+      const matchesTemplate = templateFilter === 'all' || product.template_id === templateFilter;
+
+      // Availability filter
+      const matchesAvailability = availabilityFilter === 'all' || 
+        (availabilityFilter === 'available' && product.available === 1) ||
+        (availabilityFilter === 'unavailable' && product.available === 0);
+
+      return matchesSearch && matchesCategory && matchesTemplate && matchesAvailability;
     });
-  }, [products, searchQuery, categoryFilter]);
+  }, [products, searchQuery, categoryFilter, templateFilter, availabilityFilter]);
 
   if (isLoading) {
     return (
@@ -500,9 +525,9 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
 
       {/* Search and Filters - Requirements: 1.2 */}
       <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
-          {/* Search */}
-          <div className="flex-1 relative">
+        <div className="flex flex-col gap-3">
+          {/* Search Row */}
+          <div className="relative">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
@@ -513,19 +538,50 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
             />
           </div>
 
-          {/* Category Filter - Requirements: 1.2 */}
-          <div className="relative">
-            <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full sm:w-auto pr-10 pl-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base appearance-none bg-white cursor-pointer"
-            >
-              <option value="all">كل الفئات</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
+          {/* Filters Row */}
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            {/* Category Filter */}
+            <div className="relative flex-1 min-w-[140px]">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full pr-3 pl-8 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm appearance-none bg-white cursor-pointer"
+              >
+                <option value="all">كل الفئات</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+              <Filter className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+            </div>
+
+            {/* Template Filter */}
+            <div className="relative flex-1 min-w-[140px]">
+              <select
+                value={templateFilter}
+                onChange={(e) => setTemplateFilter(e.target.value)}
+                className="w-full pr-3 pl-8 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm appearance-none bg-white cursor-pointer"
+              >
+                {templateOptions.map(opt => (
+                  <option key={opt.id} value={opt.id}>{opt.icon} {opt.label}</option>
+                ))}
+              </select>
+              <Package className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+            </div>
+
+            {/* Availability Filter */}
+            <div className="relative flex-1 min-w-[120px]">
+              <select
+                value={availabilityFilter}
+                onChange={(e) => setAvailabilityFilter(e.target.value)}
+                className="w-full pr-3 pl-8 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm appearance-none bg-white cursor-pointer"
+              >
+                <option value="all">الكل</option>
+                <option value="available">✅ متاح</option>
+                <option value="unavailable">❌ غير متاح</option>
+              </select>
+              <CheckCircle className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+            </div>
           </div>
         </div>
       </div>

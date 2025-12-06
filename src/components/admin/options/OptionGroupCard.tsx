@@ -228,34 +228,42 @@ const OptionGroupCard: React.FC<OptionGroupCardProps> = ({
 
         {/* Actions */}
         <div className="flex items-center gap-1 flex-shrink-0">
-          {/* Edit UI Config Button (Requirement 4.2) */}
+          {/* Edit UI Config Button (Requirement 4.2) - Display Settings */}
           {onEditUIConfig && (
             <motion.button
               onClick={(e) => {
                 e.stopPropagation();
                 onEditUIConfig();
               }}
-              className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-              title="إعدادات العرض"
+              className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors relative group/uiconfig"
+              title="إعدادات العرض (النمط، الأعمدة، الألوان)"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
             >
               <Settings2 size={18} />
+              {/* Tooltip */}
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover/uiconfig:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                إعدادات العرض ⚙️
+              </span>
             </motion.button>
           )}
 
-          {/* Edit Button */}
+          {/* Edit Button - Basic Info */}
           <motion.button
             onClick={(e) => {
               e.stopPropagation();
               onEdit();
             }}
-            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="تعديل المجموعة"
+            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors relative group/edit"
+            title="تعديل البيانات الأساسية (الاسم، الأيقونة، الترتيب)"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
             <Edit2 size={18} />
+            {/* Tooltip */}
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover/edit:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+              البيانات الأساسية ✏️
+            </span>
           </motion.button>
 
           {/* Delete Button */}

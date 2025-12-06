@@ -13,6 +13,7 @@ import { X, Loader2, ImageIcon, AlertCircle } from 'lucide-react';
 import type { OptionFormModalProps, OptionFormData } from './types';
 import { INITIAL_OPTION_FORM_DATA } from './types';
 import { getOptionErrorMessage, translateApiError } from '@/lib/admin/errorMessages';
+import { toast } from '@/components/ui/Toast';
 
 /**
  * Validation errors interface
@@ -208,6 +209,7 @@ const OptionFormModal: React.FC<OptionFormModalProps> = ({
     
     try {
       await onSubmit(formData);
+      toast.success(isEditMode ? 'تم تحديث الخيار بنجاح ✅' : 'تم إضافة الخيار بنجاح ✅');
       onClose();
     } catch (error: unknown) {
       console.error('Failed to submit form:', error);
@@ -217,12 +219,18 @@ const OptionFormModal: React.FC<OptionFormModalProps> = ({
         const statusMatch = error.message.match(/HTTP (\d{3})/);
         if (statusMatch) {
           const statusCode = parseInt(statusMatch[1], 10);
-          setApiError(getOptionErrorMessage(statusCode));
+          const errorMsg = getOptionErrorMessage(statusCode);
+          setApiError(errorMsg);
+          toast.error(errorMsg);
         } else {
-          setApiError(translateApiError(error));
+          const errorMsg = translateApiError(error);
+          setApiError(errorMsg);
+          toast.error(errorMsg);
         }
       } else {
-        setApiError('حدث خطأ غير متوقع. حاول مرة أخرى.');
+        const errorMsg = 'حدث خطأ غير متوقع. حاول مرة أخرى.';
+        setApiError(errorMsg);
+        toast.error(errorMsg);
       }
     } finally {
       setIsSubmitting(false);
@@ -243,26 +251,31 @@ const OptionFormModal: React.FC<OptionFormModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 animate-fadeIn"
       onClick={handleBackdropClick}
     >
       <div
-        className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-modalIn"
+        className="bg-white rounded-2xl w-full max-w-[95vw] sm:max-w-xl md:max-w-2xl lg:max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col animate-modalIn"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-gray-800">
-            {isEditMode ? '✏️ تعديل الخيار' : '➕ إضافة خيار جديد'}
-          </h3>
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-          >
-            <X size={20} />
-          </button>
+        {/* Header - Fixed height */}
+        <div className="flex-shrink-0 p-4 sm:p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+              {isEditMode ? '✏️ تعديل الخيار' : '➕ إضافة خيار جديد'}
+            </h3>
+            <button
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
 
         {/* API Error Display - Requirements: 5.6, 6.4 */}
         {apiError && (
@@ -292,7 +305,7 @@ const OptionFormModal: React.FC<OptionFormModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form id="option-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
           {/* Required Fields Section */}
           <div className="space-y-4">
             <h4 className="font-semibold text-gray-700 text-sm border-b pb-2">
@@ -612,32 +625,37 @@ const OptionFormModal: React.FC<OptionFormModalProps> = ({
             </div>
           </div>
 
-          {/* Submit Buttons */}
-          <div className="flex gap-2 pt-4 border-t">
+          </form>
+        </div>
+
+        {/* Footer - Fixed height */}
+        <div className="flex-shrink-0 bg-white border-t border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto px-6 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold transition-colors disabled:opacity-50 text-sm sm:text-base"
+            >
+              إلغاء
+            </button>
             <button
               type="submit"
+              form="option-form"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full sm:flex-1 px-4 py-2.5 sm:py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                   <span>جاري الحفظ...</span>
                 </>
               ) : (
                 <span>{isEditMode ? '💾 حفظ التغييرات' : '✨ إضافة الخيار'}</span>
               )}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold transition-colors disabled:opacity-50"
-            >
-              إلغاء
-            </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

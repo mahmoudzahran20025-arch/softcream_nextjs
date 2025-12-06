@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Cairo } from 'next/font/google'
 import './globals.css'
 import Providers from '@/providers/Providers'
+import ToastContainer from '@/components/ui/Toast'
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -58,6 +59,7 @@ export default function RootLayout({
       <body className="font-cairo bg-white dark:bg-slate-950 text-slate-900 dark:text-white transition-colors">
         <Providers>
           {children}
+          <ToastContainer />
         </Providers>
       </body>
     </html>

@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import type { ProductFormProps, ProductFormData } from './types';
 import { INITIAL_FORM_DATA, HEALTH_KEYWORDS_OPTIONS } from './types';
+import TemplateSelector from './TemplateSelector';
 
 // Helper to parse health_keywords from JSON string
 const parseHealthKeywords = (value: string | null | undefined): string[] => {
@@ -39,12 +40,13 @@ const ProductForm: React.FC<ProductFormProps> = ({
         image: editingProduct.image || '',
         badge: editingProduct.badge || '',
         available: editingProduct.available,
-        // ✅ Template System (Requirements 3.1)
-        template_id: editingProduct.template_id || 'template_1',
+        // ✅ Template System (Requirements 3.1, 5.1, 5.2, 5.3)
+        template_id: editingProduct.template_id || 'template_2',
+        template_variant: (editingProduct as any).template_variant || '',
+        is_template_dynamic: (editingProduct as any).is_template_dynamic || 0,
         ui_config: editingProduct.ui_config || '{}',
         // Discount fields
         old_price: editingProduct.old_price?.toString() || '',
-        discount_percentage: editingProduct.discount_percentage?.toString() || '',
         // Nutrition
         calories: editingProduct.calories?.toString() || '',
         protein: editingProduct.protein?.toString() || '',
@@ -200,6 +202,20 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 />
               </div>
             </div>
+          </div>
+
+          {/* Template Selection - Requirements: 5.1, 5.2, 5.3 */}
+          <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl p-5 border-2 border-indigo-200">
+            <h3 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
+              <span>🎨</span> قالب العرض
+            </h3>
+            <TemplateSelector
+              value={formData.template_id}
+              onChange={(templateId) => setFormData({ ...formData, template_id: templateId })}
+            />
+            <p className="text-xs text-gray-500 mt-3">
+              💡 القالب يحدد كيفية عرض المنتج للعملاء (بطاقة بسيطة، قياسية، أو معالج تخصيص كامل)
+            </p>
           </div>
 
           {/* Description */}

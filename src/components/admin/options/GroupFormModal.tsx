@@ -1,25 +1,23 @@
 /**
- * GroupFormModal - Create/Edit Option Group Modal
+ * GroupFormModal - Create/Edit Option Group Basic Info Modal
  * Requirements: 4.1, 4.2
  * 
- * Modal form for creating new option groups or editing existing ones.
- * Includes two tabs:
- * - Tab 1: Basic Info (id, name_ar, name_en, icon, display_order)
- * - Tab 2: UI Config (display style, columns, colors)
+ * Modal form for creating new option groups or editing BASIC INFO only:
+ * - id, name_ar, name_en, icon, display_order
+ * 
+ * NOTE: UI Config (display style, columns, colors) is handled by UIConfigModal
+ * which is opened via the ⚙️ button in OptionGroupCard.
  */
 
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Loader2, AlertCircle, Settings2, FileText } from 'lucide-react';
+import { X, Loader2, AlertCircle, Info } from 'lucide-react';
 import type { GroupFormModalProps, OptionGroupFormData } from './types';
 import { INITIAL_GROUP_FORM_DATA, ICON_OPTIONS } from './types';
 import { getOptionErrorMessage, translateApiError } from '@/lib/admin/errorMessages';
-import UIConfigEditor from './UIConfigEditor';
-import type { UIConfig } from '@/lib/uiConfig';
 import { parseUIConfig } from '@/lib/uiConfig';
-
-type TabType = 'basic' | 'uiConfig';
+import { toast } from '@/components/ui/Toast';
 
 /**
  * Validation errors interface
@@ -59,7 +57,6 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('basic');
 
   const isEditMode = editingGroup !== null;
 
@@ -90,7 +87,6 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
     setErrors({});
     setApiError(null);
     setShowIconPicker(false);
-    setActiveTab('basic');
   }, [editingGroup]);
 
   useEffect(() => {
@@ -168,6 +164,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
     
     try {
       await onSubmit(formData);
+      toast.success(isEditMode ? 'تم تحديث المجموعة بنجاح ✅' : 'تم إنشاء المجموعة بنجاح ✅');
       onClose();
     } catch (error: unknown) {
       console.error('Failed to submit form:', error);
@@ -175,12 +172,18 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
         const statusMatch = error.message.match(/HTTP (\d{3})/);
         if (statusMatch) {
           const statusCode = parseInt(statusMatch[1], 10);
-          setApiError(getOptionErrorMessage(statusCode));
+          const errorMsg = getOptionErrorMessage(statusCode);
+          setApiError(errorMsg);
+          toast.error(errorMsg);
         } else {
-          setApiError(translateApiError(error));
+          const errorMsg = translateApiError(error);
+          setApiError(errorMsg);
+          toast.error(errorMsg);
         }
       } else {
-        setApiError('حدث خطأ غير متوقع. حاول مرة أخرى.');
+        const errorMsg = 'حدث خطأ غير متوقع. حاول مرة أخرى.';
+        setApiError(errorMsg);
+        toast.error(errorMsg);
       }
     } finally {
       setIsSubmitting(false);
@@ -193,10 +196,6 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
     }
   };
 
-  const handleUIConfigChange = (config: UIConfig) => {
-    setFormData(prev => ({ ...prev, ui_config: config }));
-  };
-
   // ===========================
   // Render
   // ===========================
@@ -205,54 +204,47 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 animate-fadeIn"
       onClick={handleBackdropClick}
     >
       <div
-        className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-modalIn"
+        className="bg-white rounded-2xl w-full max-w-[95vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col animate-modalIn"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-800">
-            {isEditMode ? '✏️ تعديل مجموعة الخيارات' : '➕ إضافة مجموعة جديدة'}
-          </h3>
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-          >
-            <X size={20} />
-          </button>
+        {/* Header - Fixed height, not sticky */}
+        <div className="flex-shrink-0 p-4 sm:p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+              {isEditMode ? '✏️ تعديل البيانات الأساسية' : '➕ إضافة مجموعة جديدة'}
+            </h3>
+            <button
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200">
-          <button
-            type="button"
-            onClick={() => setActiveTab('basic')}
-            className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === 'basic'
-                ? 'text-pink-600 border-pink-500'
-                : 'text-gray-500 border-transparent hover:text-gray-700'
-            }`}
-          >
-            <FileText size={18} />
-            <span>البيانات الأساسية</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('uiConfig')}
-            className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === 'uiConfig'
-                ? 'text-pink-600 border-pink-500'
-                : 'text-gray-500 border-transparent hover:text-gray-700'
-            }`}
-          >
-            <Settings2 size={18} />
-            <span>إعدادات العرض</span>
-          </button>
-        </div>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          {/* Info Box - What this form does */}
+          {isEditMode && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <Info size={18} className="text-blue-600 mt-0.5 flex-shrink-0 hidden sm:block" />
+                <div>
+                  <p className="text-sm text-blue-700">
+                    هذا النموذج لتعديل <strong>البيانات الأساسية</strong> فقط.
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    💡 لتعديل <strong>إعدادات العرض</strong> استخدم زر ⚙️
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
         {/* API Error Display */}
         {apiError && (
@@ -281,11 +273,8 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Basic Info Tab */}
-          {activeTab === 'basic' && (
-            <>
-              {/* ID Field */}
+        <form id="group-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+          {/* ID Field */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   المعرف (ID) *
@@ -409,28 +398,26 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
                   الأرقام الأصغر تظهر أولاً
                 </p>
               </div>
-            </>
-          )}
 
-          {/* UI Config Tab */}
-          {activeTab === 'uiConfig' && (
-            <div className="min-h-[300px]">
-              <p className="text-sm text-gray-600 mb-4">
-                تحكم في كيفية عرض هذه المجموعة للعملاء في واجهة المنتج
-              </p>
-              <UIConfigEditor
-                value={formData.ui_config || INITIAL_GROUP_FORM_DATA.ui_config!}
-                onChange={handleUIConfigChange}
-              />
-            </div>
-          )}
+          </form>
+        </div>
 
-          {/* Submit Buttons */}
-          <div className="flex gap-2 pt-4 border-t">
+        {/* Footer - Fixed height */}
+        <div className="flex-shrink-0 bg-white border-t border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold transition-colors disabled:opacity-50"
+            >
+              إلغاء
+            </button>
             <button
               type="submit"
+              form="group-form"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full sm:flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -441,16 +428,8 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
                 <span>{isEditMode ? '💾 حفظ التغييرات' : '✨ إنشاء المجموعة'}</span>
               )}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold transition-colors disabled:opacity-50"
-            >
-              إلغاء
-            </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -11,6 +11,11 @@ import {
   calculateEnergyData,
   type NutritionValues
 } from '@/lib/utils/nutritionCalculator'
+import {
+  useConditionalOptions,
+  parseConditionalRules,
+  type OptionGroupWithRules
+} from './useConditionalOptions'
 
 interface UseProductConfigurationProps {
   productId: string | null
@@ -100,6 +105,74 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
     return availableSizes.find(s => s.id === selectedSize) || null
   }, [availableSizes, selectedSize])
 
+  // ================================================================
+  // Conditional Options Support (Requirements 1.1, 1.2, 1.3, 1.4)
+  // ================================================================
+
+  // Transform customization rules to include conditional rules
+  const optionGroupsWithRules: OptionGroupWithRules[] = useMemo(() => {
+    if (!config?.customizationRules) return []
+
+    return config.customizationRules.map((group: any) => ({
+      groupId: group.groupId,
+      groupName: group.groupName,
+      maxSelections: group.maxSelections,
+      // Parse conditional rules if present (from backend API)
+      conditionalRules: group.conditionalRules
+        ? parseConditionalRules(
+            typeof group.conditionalRules === 'string'
+              ? group.conditionalRules
+              : JSON.stringify(group.conditionalRules)
+          )
+        : null
+    }))
+  }, [config?.customizationRules])
+
+  // Use conditional options hook
+  const {
+    getMaxSelections,
+    applyConditionalRule,
+    effectiveMaxSelections
+  } = useConditionalOptions(optionGroupsWithRules)
+
+  // Apply conditional rules when size changes
+  // Note: We only trigger on selectedSize change, not on selections change
+  // to avoid infinite loops when enforcing limits
+  useEffect(() => {
+    if (selectedSize && config?.hasSizes) {
+      // Apply conditional rule for sizes group
+      applyConditionalRule('sizes', selectedSize)
+    }
+  }, [selectedSize, config?.hasSizes, applyConditionalRule])
+
+  // Enforce selection limits separately when effectiveMaxSelections changes
+  // This runs after applyConditionalRule updates the max selections
+  useEffect(() => {
+    if (!config?.hasSizes) return
+
+    // Use functional update to avoid depending on selections in the effect
+    setSelections(prevSelections => {
+      let hasChanges = false
+      const newSelections = { ...prevSelections }
+
+      Object.keys(prevSelections).forEach(groupId => {
+        const currentSelections = prevSelections[groupId] || []
+        const maxAllowed = effectiveMaxSelections[groupId]
+
+        // Only enforce if we have a max limit defined
+        if (maxAllowed !== undefined && currentSelections.length > maxAllowed) {
+          hasChanges = true
+          newSelections[groupId] = currentSelections.slice(0, maxAllowed)
+          const removedCount = currentSelections.length - maxAllowed
+          console.log(`[ConditionalOptions] تم إزالة ${removedCount} اختيار(ات) بسبب تغيير الحجم`)
+        }
+      })
+
+      // Only return new object if there were actual changes
+      return hasChanges ? newSelections : prevSelections
+    })
+  }, [effectiveMaxSelections, config?.hasSizes])
+
   // Update group selections
   const updateGroupSelections = useCallback((groupId: string, selectedIds: string[]) => {
     setSelections(prev => ({
@@ -183,7 +256,7 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
     return basePrice + containerPrice + sizePrice + customizationPrice
   }, [config, containerObj, sizeObj, customizationData.total])
 
-  // Validation
+  // Validation - Uses effective max selections from conditional rules
   const validationResult = useMemo(() => {
     if (!config?.hasCustomization || !config.customizationRules) {
       return { isValid: true, errors: [] }
@@ -193,6 +266,8 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
 
     config.customizationRules.forEach((group: any) => {
       const groupSelections = selections[group.groupId] || []
+      // Use effective max selections (considers conditional rules)
+      const effectiveMax = getMaxSelections(group.groupId)
 
       if (group.isRequired && groupSelections.length === 0) {
         errors.push(`يجب اختيار ${group.groupName}`)
@@ -202,13 +277,13 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
         errors.push(`يجب اختيار ${group.minSelections} على الأقل من ${group.groupName}`)
       }
 
-      if (groupSelections.length > group.maxSelections) {
-        errors.push(`يمكنك اختيار ${group.maxSelections} كحد أقصى من ${group.groupName}`)
+      if (groupSelections.length > effectiveMax) {
+        errors.push(`يمكنك اختيار ${effectiveMax} كحد أقصى من ${group.groupName}`)
       }
     })
 
     return { isValid: errors.length === 0, errors }
-  }, [config, selections])
+  }, [config, selections, getMaxSelections])
 
   // Calculate energy data based on total nutrition
   // ✅ Using calculateEnergyData from nutritionCalculator
@@ -245,6 +320,10 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
     updateGroupSelections,
     selectedOptions: customizationData.selectedOptions,
     customizationTotal: customizationData.total,
+
+    // Conditional Options (Requirements 1.1, 1.2, 1.3, 1.4)
+    getMaxSelections,
+    effectiveMaxSelections,
 
     // Totals
     totalPrice,

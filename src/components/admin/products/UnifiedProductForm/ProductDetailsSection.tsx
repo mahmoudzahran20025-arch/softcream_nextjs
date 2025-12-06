@@ -23,8 +23,7 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
   // Debug: Log formData on every render
   console.log('🎯 ProductDetailsSection render, formData:', formData);
 
-  // Local UI State
-  const [showProMode, setShowProMode] = React.useState(false);
+  // Pro mode removed - advanced features are now always available in collapsed sections
 
   // Helper for Smart Tags (Comma separated -> JSON)
   const handleTagsChange = (value: string) => {
@@ -79,14 +78,7 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Pro Mode Toggle */}
-      <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200">
-        <span className="text-sm font-semibold text-gray-700">🛠️ وضع المحترفين (Advanced Controls)</span>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" className="sr-only peer" checked={showProMode} onChange={(e) => setShowProMode(e.target.checked)} />
-          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-        </label>
-      </div>
+      
 
       {/* Basic Information */}
       <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-5 border-2 border-pink-200">
@@ -387,173 +379,7 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
         </div>
       </div>
 
-      {/* NEW: Energy System Section - Priority 2 */}
-      {showProMode && (
-        <details className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border-2 border-yellow-200 overflow-hidden">
-          <summary className="p-4 cursor-pointer hover:bg-yellow-100 transition-colors flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">⚡</span>
-              <h3 className="text-lg font-bold text-yellow-800">نظام الطاقة</h3>
-              <span className="text-xs bg-yellow-200 text-yellow-700 px-2 py-0.5 rounded-full">🔮 مستقبلي</span>
-            </div>
-          </summary>
-          <div className="p-4 bg-white space-y-4">
-            <p className="text-sm text-gray-600 mb-3">
-              💡 لتصنيف المنتجات حسب نوع الطاقة التي تمنحها
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">نوع الطاقة</label>
-                <select
-                  value={formData.energy_type}
-                  onChange={(e) => handleChange('energy_type', e.target.value)}
-                  className="w-full px-4 py-2.5 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                >
-                  <option value="none">لا يوجد</option>
-                  <option value="mental">طاقة ذهنية 🧠</option>
-                  <option value="physical">طاقة جسدية 💪</option>
-                  <option value="balanced">متوازن ⚖️</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">درجة الطاقة (0-100)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.energy_score}
-                  onChange={(e) => handleChange('energy_score', e.target.value)}
-                  className="w-full px-4 py-2.5 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          </div>
-        </details>
-      )}
 
-      {/* NEW: Metadata Section - Priority 3 */}
-      {showProMode && (
-        <details className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border-2 border-slate-200 overflow-hidden">
-          <summary className="p-4 cursor-pointer hover:bg-slate-100 transition-colors flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📊</span>
-              <h3 className="text-lg font-bold text-slate-800">بيانات إضافية (JSON)</h3>
-              <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">🔮 مستقبلي</span>
-            </div>
-          </summary>
-          <div className="p-4 bg-white space-y-4">
-            <p className="text-sm text-gray-600 mb-3">
-              💡 بيانات متقدمة للبحث والتصنيف (صيغة JSON)
-            </p>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Tags (Raw JSON)</label>
-              <textarea
-                readOnly
-                value={formData.tags}
-                rows={2}
-                className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg bg-gray-100 font-mono text-xs text-gray-500"
-              />
-              <p className="text-[10px] text-gray-400">للتعديل استخدم حقل "الوسوم" بالأعلى</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">المكونات (JSON Array)</label>
-              <textarea
-                value={formData.ingredients}
-                onChange={(e) => handleChange('ingredients', e.target.value)}
-                rows={2}
-                className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm"
-                placeholder='["حليب", "سكر", "فانيليا"]'
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">مسببات الحساسية (JSON Array)</label>
-              <textarea
-                value={formData.allergens}
-                onChange={(e) => handleChange('allergens', e.target.value)}
-                rows={2}
-                className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm"
-                placeholder='["حليب", "مكسرات"]'
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">حقائق غذائية (JSON Object)</label>
-              <textarea
-                value={formData.nutrition_facts}
-                onChange={(e) => handleChange('nutrition_facts', e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm"
-                placeholder='{"serving_size": "100g", "servings_per_container": 4}'
-              />
-            </div>
-          </div>
-        </details>
-      )}
-
-      {/* NEW: Template Advanced Section - Priority 3 */}
-      {showProMode && (
-        <details className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200 overflow-hidden">
-          <summary className="p-4 cursor-pointer hover:bg-purple-100 transition-colors flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🔧</span>
-              <h3 className="text-lg font-bold text-purple-800">إعدادات قالب متقدمة</h3>
-              <span className="text-xs bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full">🔮 مستقبلي</span>
-            </div>
-          </summary>
-          <div className="p-4 bg-white space-y-4">
-            <p className="text-sm text-gray-600 mb-3">
-              💡 لتخصيصات متقدمة للعرض
-            </p>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">نسخة القالب (Template Variant)</label>
-              <input
-                type="text"
-                value={formData.template_variant || ''}
-                onChange={(e) => handleChange('template_variant', e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                placeholder="مثال: premium, compact"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                💡 لتنويع نفس القالب بأشكال مختلفة
-              </p>
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.is_template_dynamic === 1}
-                  onChange={(e) => handleChange('is_template_dynamic', e.target.checked ? 1 : 0)}
-                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                />
-                <span className="text-sm font-semibold text-gray-700">قالب ديناميكي</span>
-              </label>
-              <p className="text-xs text-gray-500 mt-1 mr-6">
-                💡 للقوالب التي تتغير بناءً على البيانات أو الوقت
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">تكوين واجهة المستخدم (JSON)</label>
-              <textarea
-                value={formData.ui_config}
-                onChange={(e) => handleChange('ui_config', e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2.5 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
-                placeholder='{"badge": "جديد", "badge_color": "blue"}'
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                💡 إعدادات العرض المتقدمة (badge, colors, layout)
-              </p>
-            </div>
-          </div>
-        </details>
-      )}
 
       {/* Availability */}
       <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200">

@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import ProductImage from './ProductImage'
 import ProductHeader from './ProductHeader'
 import NutritionInfo from './NutritionInfo'
-import ActionFooter from './ActionFooter'
+import SmartFooter from './SmartFooter'
 import StickyMiniHeader from './StickyMiniHeader'
 import { useProductLogic } from './useProductLogic'
 import { useProductConfiguration } from '@/hooks/useProductConfiguration'
@@ -269,7 +269,7 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                 )}
               </div>
 
-              {/* Sticky Action Footer - Appears after scrolling */}
+              {/* Smart Footer - Compact summary with selections */}
               <AnimatePresence>
                 {showFooter && (
                   <motion.div
@@ -278,18 +278,24 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
                     exit={{ opacity: 0, y: 50 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                   >
-                    <ActionFooter
+                    <SmartFooter
                       quantity={quantity}
                       onIncrease={() => setQuantity(quantity + 1)}
                       onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
                       onAddToCart={handleAddToCart}
                       totalPrice={productConfig.totalPrice * quantity}
-                      basePrice={productConfig.config?.product.basePrice || displayProduct.price}
-                      addonsPrice={(productConfig.containerObj?.priceModifier || 0) + (productConfig.sizeObj?.priceModifier || 0) + productConfig.customizationTotal}
-                      selectedAddonsCount={productConfig.selectedOptions.length + (productConfig.selectedContainer ? 1 : 0) + (productConfig.selectedSize ? 1 : 0)}
-                      selectedOptions={productConfig.selectedOptions}
-                      containerName={productConfig.containerObj?.name}
-                      sizeName={productConfig.sizeObj?.name}
+                      selectedSize={productConfig.sizeObj ? {
+                        id: productConfig.sizeObj.id,
+                        name: productConfig.sizeObj.name,
+                        priceModifier: productConfig.sizeObj.priceModifier || 0
+                      } : null}
+                      selectedOptions={productConfig.selectedOptions.map(opt => ({
+                        id: opt.id,
+                        name: opt.name,
+                        price: opt.price,
+                        groupId: opt.groupId,
+                        groupIcon: opt.groupIcon
+                      }))}
                       isValid={productConfig.validationResult.isValid}
                       validationMessage={productConfig.validationResult.errors[0]}
                     />

@@ -232,3 +232,43 @@ export async function updateOptionPrice(
   });
 }
 
+
+
+// ===========================
+// Conditional Rules API Functions
+// Requirements: 6.1, 6.2, 6.3, 6.4, 6.5
+// ===========================
+
+/**
+ * Update conditional rules for a product-option group assignment
+ * Requirements: 6.4 - Save conditional rules as JSON in product_options.conditional_max_selections
+ * 
+ * @param productId - The product ID
+ * @param optionGroupId - The option group ID
+ * @param conditionalRules - JSON string of conditional rules or null to clear
+ */
+export async function updateConditionalRules(
+  productId: string,
+  optionGroupId: string,
+  conditionalRules: string | null
+): Promise<ApiResponse<void>> {
+  return apiRequest(`/admin/products/${productId}/option-groups/${optionGroupId}/conditional-rules`, {
+    method: 'PUT',
+    body: {
+      conditional_max_selections: conditionalRules,
+    },
+  });
+}
+
+/**
+ * Get conditional rules for a product-option group assignment
+ * 
+ * @param productId - The product ID
+ * @param optionGroupId - The option group ID
+ */
+export async function getConditionalRules(
+  productId: string,
+  optionGroupId: string
+): Promise<ApiResponse<{ conditional_max_selections: string | null }>> {
+  return apiRequest(`/admin/products/${productId}/option-groups/${optionGroupId}/conditional-rules`);
+}

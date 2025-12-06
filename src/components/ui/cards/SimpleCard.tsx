@@ -34,6 +34,24 @@ interface UIConfig {
   badge_color?: string
 }
 
+/**
+ * Badge Component - Displays ui_config badge with custom color
+ * Requirements: 4.1, 4.2
+ */
+function ProductBadge({ badge, badgeColor }: { badge: string; badgeColor?: string }) {
+  const defaultColor = '#FF6B9D'
+  const bgColor = badgeColor || defaultColor
+  
+  return (
+    <div 
+      className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-full text-white text-[10px] font-bold shadow-sm"
+      style={{ backgroundColor: bgColor }}
+    >
+      {badge}
+    </div>
+  )
+}
+
 interface SimpleCardProps {
   product: Product
   config?: CategoryConfig
@@ -98,12 +116,15 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
             </div>
           )}
 
-          {/* Discount Badge - Top Left */}
-          {discountPct > 0 && (
+          {/* Discount Badge - Top Left (priority over ui_config badge) */}
+          {discountPct > 0 ? (
             <div className="absolute top-2 left-2 z-20">
               <DiscountBadge discountPercentage={discountPct} size="sm" />
             </div>
-          )}
+          ) : uiConfig?.badge ? (
+            /* UI Config Badge - Requirements 4.1, 4.2 */
+            <ProductBadge badge={uiConfig.badge} badgeColor={uiConfig.badge_color} />
+          ) : null}
 
           {/* Nutrition Badges - Top Right */}
           <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
