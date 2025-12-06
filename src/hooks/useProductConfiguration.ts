@@ -130,12 +130,12 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
       const groupSelections = selections[group.groupId] || []
 
       groupSelections.forEach(optionId => {
-        const option = group.options.find((opt: any) => opt.id === optionId)
+        const option = group.options.find((opt) => opt.id === optionId)
         if (option) {
           total += option.price || 0
           selectedOptions.push({
             id: option.id,
-            name: option.name_ar || option.name,
+            name: option.name_ar,
             price: option.price || 0,
             groupId: group.groupId,
             groupIcon: group.groupIcon,

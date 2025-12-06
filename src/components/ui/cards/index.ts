@@ -1,16 +1,13 @@
 /**
- * Product Card Components
- * =======================
- * Different card styles for different product templates/complexity levels
+ * Product Card Components - Unified Template System
+ * =================================================
+ * ✅ 3 card types mapped to 3 templates:
+ * - template_1 → SimpleCard (Quick add, minimal UI)
+ * - template_2 → StandardProductCard (Options preview)
+ * - template_3 → BYOProductCard (Premium BYO style)
  */
 
-// Template-based cards
-export { default as WizardCard } from './WizardCard'  // Template 3 - Complex
-export { default as StandardProductCard } from './StandardProductCard'  // Template 2 - Medium
-export { default as CompactCard } from './CompactCard'  // Template 1 - Simple
-export { default as SimpleCard } from './SimpleCard'  // Template 1 - Simple (New Design)
-
-// Legacy cards (for backward compatibility)
-export { default as BYOProductCard } from './BYOProductCard'
-export { default as FeaturedProductCard } from './FeaturedProductCard'
-export { default as CompactProductCard } from './CompactProductCard'
+// ✅ Active Template Cards
+export { default as SimpleCard } from './SimpleCard'              // template_1 - Simple
+export { default as StandardProductCard } from './StandardProductCard'  // template_2 - Medium
+export { default as BYOProductCard } from './BYOProductCard'      // template_3 - Complex/BYO

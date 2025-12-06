@@ -47,11 +47,18 @@ export default function PriceDisplay({
         </span>
       </div>
 
-      {/* Old Price (Strikethrough) */}
+      {/* Old Price (Enhanced Strikethrough) */}
       {oldPrice && oldPrice > price && (
-        <span className="text-sm text-slate-400 dark:text-slate-500 line-through">
-          {oldPrice} {currency}
-        </span>
+        <div className="relative inline-flex items-center">
+          {/* Background badge for better visibility */}
+          <div className="bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded-md">
+            <span className="text-sm text-slate-500 dark:text-slate-400 font-medium relative">
+              {oldPrice} {currency}
+              {/* Enhanced strikethrough */}
+              <span className="absolute inset-x-0 top-1/2 h-[2px] bg-red-500 dark:bg-red-400 transform -translate-y-1/2" />
+            </span>
+          </div>
+        </div>
       )}
     </div>
   )

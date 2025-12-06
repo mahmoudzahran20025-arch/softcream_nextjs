@@ -1,57 +1,53 @@
 /**
- * UnifiedProductForm Component
+ * ProductFormModal (Simplified UnifiedProductForm)
  * 
- * Main component that integrates all sections for unified product creation/editing.
- * Includes tabs layout, validation on change and submit, and template application.
+ * Simple modal for product creation/editing following CouponsPage pattern.
+ * Single scrollable form with 3 sections: Basic Info, Option Groups, Nutrition.
  * 
- * Updated to use unified option groups interface for containers and sizes.
- * Requirements: 5.1, 5.3 - Remove separate containers/sizes sections, use unified option groups
+ * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6
+ * - No tabs or wizard steps - all in one scrollable form
+ * - template_id='template_1' as hidden default
  * 
  * @module admin/products/UnifiedProductForm
- * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 5.1, 5.3
  */
 
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Save, FileText, Layers, LayoutTemplate, Apple, Palette } from 'lucide-react';
+import { X, Save, ChevronDown, ChevronUp } from 'lucide-react';
 import type {
   UnifiedProductFormProps,
   UnifiedProductData,
   ProductFormData,
   OptionGroupAssignment,
-  FormTab,
-  FormState,
-  ChangesSummary,
 } from './types';
 import {
   INITIAL_UNIFIED_DATA,
-  INITIAL_FORM_STATE,
-  EMPTY_CHANGES_SUMMARY,
+  INITIAL_PRODUCT_FORM_DATA,
 } from './types';
-import { getChanges, cloneUnifiedProductData } from './changeTracking';
 import ProductDetailsSection from './ProductDetailsSection';
 import OptionGroupsSection from './OptionGroupsSection';
 import NutritionSection from './NutritionSection';
-import ValidationSummary from './ValidationSummary';
-import ChangePreviewModal from './ChangePreviewModal';
-import TemplateSelector from '../TemplateSelector';
-import UIConfigEditor from '../../options/UIConfigEditor';
-import { getTemplates, getSuggestedGroupsForTemplate, checkTemplateCompatibility, type ProductTemplate } from '@/lib/admin/templates.api';
-import type { UIConfig } from '@/lib/uiConfig';
 import {
   validateUnifiedProductData,
   autoCorrectUnifiedProductData,
-  getTemplateForProductType,
-  applySuggestedGroups,
   translateApiError,
   type ValidationResult,
   type UnifiedProductData as ValidationUnifiedProductData,
 } from '@/lib/admin';
 
+// Helper to parse health_keywords from JSON string
+const parseHealthKeywords = (value: string | null | undefined): string[] => {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 // Convert form data to validation format
-// Requirements 2.4: Added template_id
-// Requirements 4.1-4.6, 5.1, 5.3-5.5: Added ui_config
 function toValidationFormat(data: UnifiedProductData): ValidationUnifiedProductData {
   return {
     product: {
@@ -66,11 +62,7 @@ function toValidationFormat(data: UnifiedProductData): ValidationUnifiedProductD
       image: data.product.image || undefined,
       badge: data.product.badge || undefined,
       available: data.product.available,
-      template_id: data.product.template_id || undefined,
-      ui_config: data.product.ui_config || undefined,
-      // Discount fields
-      old_price: data.product.old_price || undefined,
-      discount_percentage: data.product.discount_percentage || undefined,
+      template_id: data.product.template_id || 'template_1', // Use selected template
       // Nutrition fields
       calories: data.product.calories || undefined,
       protein: data.product.protein || undefined,
@@ -78,51 +70,18 @@ function toValidationFormat(data: UnifiedProductData): ValidationUnifiedProductD
       fat: data.product.fat || undefined,
       sugar: data.product.sugar || undefined,
       fiber: data.product.fiber || undefined,
-      energy_type: data.product.energy_type || undefined,
-      energy_score: data.product.energy_score || undefined,
-      tags: data.product.tags || undefined,
-      ingredients: data.product.ingredients || undefined,
-      nutrition_facts: data.product.nutrition_facts || undefined,
-      allergens: data.product.allergens || undefined,
       health_keywords: data.product.health_keywords,
-      health_benefit_ar: data.product.health_benefit_ar || undefined,
     },
     optionGroupAssignments: data.optionGroupAssignments,
-    containerAssignments: data.containerAssignments,
-    sizeAssignments: data.sizeAssignments,
+    containerAssignments: [],
+    sizeAssignments: [],
   };
 }
 
 /**
- * Tab configuration
- * Requirements: 5.3 - Organize form in tabs (Details, Template, Options, Nutrition)
- * Requirements: 2.1, 2.2, 2.5 - Added Template tab for template selection
- * Requirements: 4.1-4.6, 5.1, 5.3-5.5 - Added UI Config tab for display settings
- * Containers and sizes are now part of option_groups with group_id 'containers' and 'sizes'
- */
-const TABS: Array<{ id: FormTab; label: string; icon: React.ReactNode }> = [
-  { id: 'details', label: 'تفاصيل المنتج', icon: <FileText size={18} /> },
-  { id: 'template', label: 'القالب', icon: <LayoutTemplate size={18} /> },
-  { id: 'uiConfig', label: 'إعدادات العرض', icon: <Palette size={18} /> },
-  { id: 'optionGroups', label: 'مجموعات الخيارات', icon: <Layers size={18} /> },
-  { id: 'nutrition', label: 'القيم الغذائية', icon: <Apple size={18} /> },
-];
-
-// Helper to parse health_keywords from JSON string
-const parseHealthKeywords = (value: string | null | undefined): string[] => {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-/**
- * UnifiedProductForm Component
- * Requirements: 5.1, 5.3 - Unified option groups interface
- * Containers and sizes are now part of optionGroups with group_id 'containers' and 'sizes'
+ * ProductFormModal - Simplified product form
+ * Requirements: 2.1, 2.5 - Single scrollable form, no tabs
+ * Requirements: 2.6 - template_id='template_1' as hidden default
  */
 const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
   isOpen,
@@ -130,58 +89,129 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
   editingProduct,
   onSubmit,
   optionGroups,
-  // Deprecated props - kept for backward compatibility
-  containers: _containers,
-  sizes: _sizes,
 }) => {
   // Form data state
   const [unifiedData, setUnifiedData] = useState<UnifiedProductData>(INITIAL_UNIFIED_DATA);
-  
-  // Original data for change tracking (Requirement 2.2)
-  const [originalData, setOriginalData] = useState<UnifiedProductData>(INITIAL_UNIFIED_DATA);
-  
-  // Form UI state
-  const [formState, setFormState] = useState<FormState>(INITIAL_FORM_STATE);
-  
+
+  // UI state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nutritionExpanded, setNutritionExpanded] = useState(false);
+  const [isLoadingFull, setIsLoadingFull] = useState(false); // ✅ NEW: loading state for full product data
+
   // Validation state
   const [validationResult, setValidationResult] = useState<ValidationResult>({
     isValid: true,
     errors: [],
     warnings: [],
   });
-  
-  // Changes summary for preview modal (Requirement 2.2)
-  const [changesSummary, setChangesSummary] = useState<ChangesSummary>(EMPTY_CHANGES_SUMMARY);
-  
-  // API error state for displaying meaningful error messages (Requirement 5.5)
+
+  // API error state
   const [apiError, setApiError] = useState<string | null>(null);
-  
-  // Templates state - Requirements 2.1, 2.2, 2.5
-  const [templates, setTemplates] = useState<ProductTemplate[]>([]);
-  
-  // Template compatibility warning - Requirements 5.5
-  const [templateCompatibilityWarning, setTemplateCompatibilityWarning] = useState<string | null>(null);
 
-  // Fetch templates on mount - Requirements 2.1, 2.2
+  // ✅ NEW: Initialize form data when editing product changes - fetch full data from API
   useEffect(() => {
-    async function fetchTemplates() {
-      try {
-        const response = await getTemplates();
-        if (response.success) {
-          setTemplates(response.data);
+    async function loadProductData() {
+      if (editingProduct && isOpen) {
+        try {
+          setIsLoadingFull(true);
+
+          // Fetch full product data including option groups using the API client
+          const { getProductFull } = await import('@/lib/admin/products.api');
+          const result = await getProductFull(editingProduct.id);
+
+          if (result.success && result.data) {
+            const { product, optionGroups } = result.data;
+
+            // Map product data to form format
+            const productData: ProductFormData = {
+              id: product.id,
+              name: product.name,
+              nameEn: product.nameEn || '',
+              category: product.category,
+              categoryEn: product.categoryEn || '',
+              price: product.price?.toString() || '',
+              description: product.description || '',
+              descriptionEn: product.descriptionEn || '',
+              image: product.image || '',
+              badge: product.badge || '',
+              available: product.available,
+              template_id: product.template_id || 'template_1',
+              template_variant: product.template_variant || '',
+              is_template_dynamic: product.is_template_dynamic || 0,
+              ui_config: product.ui_config || '{}',
+              old_price: product.old_price?.toString() || '',
+              // Nutrition
+              calories: product.calories?.toString() || '',
+              protein: product.protein?.toString() || '',
+              carbs: product.carbs?.toString() || '',
+              fat: product.fat?.toString() || '',
+              sugar: product.sugar?.toString() || '',
+              fiber: product.fiber?.toString() || '',
+              // Energy
+              energy_type: product.energy_type || 'none',
+              energy_score: product.energy_score?.toString() || '',
+              // Metadata
+              tags: product.tags || '',
+              ingredients: product.ingredients || '',
+              nutrition_facts: product.nutrition_facts || '',
+              allergens: product.allergens || '',
+              // Health
+              health_keywords: parseHealthKeywords(product.health_keywords),
+              health_benefit_ar: product.health_benefit_ar || '',
+            };
+
+            // Map option groups to assignments format
+            const optionGroupAssignments = optionGroups.map((og: any) => ({
+              groupId: og.groupId,
+              isRequired: og.isRequired,
+              minSelections: og.minSelections,
+              maxSelections: og.maxSelections,
+              displayOrder: og.displayOrder || 0,
+            }));
+
+            console.log('✅ Loaded full product data:', {
+              productId: product.id,
+              optionGroupsCount: optionGroupAssignments.length
+            });
+
+            setUnifiedData({
+              product: productData,
+              optionGroupAssignments,
+              containerAssignments: [],
+              sizeAssignments: [],
+            });
+          } else {
+            console.error('Failed to load full product data');
+            // Fallback to basic data
+            loadBasicProductData();
+          }
+        } catch (error) {
+          console.error('Error loading full product:', error);
+          // Fallback to basic data
+          loadBasicProductData();
+        } finally {
+          setIsLoadingFull(false);
         }
-      } catch (err) {
-        console.error('Error fetching templates:', err);
+      } else if (!editingProduct && isOpen) {
+        // New product - use defaults
+        setUnifiedData({
+          ...INITIAL_UNIFIED_DATA,
+          product: {
+            ...INITIAL_PRODUCT_FORM_DATA,
+            template_id: 'template_1',
+          },
+        });
       }
-    }
-    fetchTemplates();
-  }, []);
 
-  // Initialize form data when editing product changes
-  useEffect(() => {
-    if (editingProduct) {
-      // Load existing product data - Requirements 2.4: Added template_id and card_style
-      // Requirements 4.1-4.6, 5.1, 5.3-5.5: Added ui_config
+      setValidationResult({ isValid: true, errors: [], warnings: [] });
+      setApiError(null);
+      setNutritionExpanded(false);
+    }
+
+    // Fallback function for basic data (if API fails)
+    function loadBasicProductData() {
+      if (!editingProduct) return;
+
       const productData: ProductFormData = {
         id: editingProduct.id,
         name: editingProduct.name,
@@ -194,54 +224,43 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
         image: editingProduct.image || '',
         badge: editingProduct.badge || '',
         available: editingProduct.available,
-        template_id: (editingProduct as any).template_id || '',
-        ui_config: (editingProduct as any).ui_config || '{}',
-        // Discount fields
-        old_price: (editingProduct as any).old_price?.toString() || '',
-        discount_percentage: (editingProduct as any).discount_percentage?.toString() || '',
-        // Nutrition fields
+        template_id: editingProduct.template_id || 'template_1',
+        template_variant: '',
+        is_template_dynamic: 0,
+        ui_config: '{}',
+        old_price: '',
         calories: editingProduct.calories?.toString() || '',
         protein: editingProduct.protein?.toString() || '',
         carbs: editingProduct.carbs?.toString() || '',
         fat: editingProduct.fat?.toString() || '',
         sugar: editingProduct.sugar?.toString() || '',
         fiber: editingProduct.fiber?.toString() || '',
-        energy_type: editingProduct.energy_type || 'none',
-        energy_score: editingProduct.energy_score?.toString() || '',
-        tags: editingProduct.tags || '',
-        ingredients: editingProduct.ingredients || '',
-        nutrition_facts: editingProduct.nutrition_facts || '',
-        allergens: editingProduct.allergens || '',
+        energy_type: 'none',
+        energy_score: '',
+        tags: '',
+        ingredients: '',
+        nutrition_facts: '',
+        allergens: '',
         health_keywords: parseHealthKeywords((editingProduct as any).health_keywords),
-        health_benefit_ar: (editingProduct as any).health_benefit_ar || '',
+        health_benefit_ar: '',
       };
 
-      const initialData: UnifiedProductData = {
+      setUnifiedData({
         product: productData,
-        optionGroupAssignments: [], // Will be loaded from API in full implementation
+        optionGroupAssignments: [], // Empty - API failed
         containerAssignments: [],
         sizeAssignments: [],
-      };
-
-      setUnifiedData(initialData);
-      // Store original data for change tracking (Requirement 2.2)
-      setOriginalData(cloneUnifiedProductData(initialData));
-    } else {
-      setUnifiedData(INITIAL_UNIFIED_DATA);
-      setOriginalData(cloneUnifiedProductData(INITIAL_UNIFIED_DATA));
+      });
     }
-    
-    setFormState(INITIAL_FORM_STATE);
-    setValidationResult({ isValid: true, errors: [], warnings: [] });
-    setChangesSummary(EMPTY_CHANGES_SUMMARY);
-    setApiError(null); // Clear API error when form is initialized
-  }, [editingProduct]);
+
+    loadProductData();
+  }, [editingProduct, isOpen]);
 
   // Convert OptionGroupInfo to validation format
   const getValidationOptionGroups = useCallback(() => {
     return optionGroups.map(g => ({
       id: g.id,
-      name: g.name,
+      name: g.name || g.nameAr || g.id,
       optionsCount: g.optionsCount,
     }));
   }, [optionGroups]);
@@ -253,600 +272,240 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
     setValidationResult(result);
   }, [unifiedData, getValidationOptionGroups]);
 
-  // Check template compatibility - Requirements 5.5
-  useEffect(() => {
-    if (unifiedData.product.template_id && templates.length > 0) {
-      const selectedTemplate = templates.find(t => t.id === unifiedData.product.template_id);
-      if (selectedTemplate) {
-        const compatibility = checkTemplateCompatibility(
-          selectedTemplate,
-          unifiedData.optionGroupAssignments.length
-        );
-        setTemplateCompatibilityWarning(compatibility.compatible ? null : compatibility.message || null);
-      } else {
-        setTemplateCompatibilityWarning(null);
-      }
-    } else {
-      setTemplateCompatibilityWarning(null);
-    }
-  }, [unifiedData.product.template_id, unifiedData.optionGroupAssignments.length, templates]);
-
   // Handle product details change
   const handleProductChange = useCallback((productData: ProductFormData) => {
-    console.log('📥 UnifiedProductForm handleProductChange received:', productData);
-    setUnifiedData(prev => {
-      const newData = {
-        ...prev,
-        product: productData,
-      };
-      console.log('📤 UnifiedProductForm new unifiedData:', newData);
-      return newData;
-    });
-    setFormState(prev => ({ ...prev, isDirty: true }));
-  }, []);
-
-  /**
-   * Handle template selection change
-   * Requirements: 2.1, 2.2, 2.5 - Select template and apply suggested groups
-   */
-  const handleTemplateChange = useCallback((templateId: string) => {
-    // Update template_id in product data
     setUnifiedData(prev => ({
       ...prev,
-      product: {
-        ...prev.product,
-        template_id: templateId,
-      },
+      product: productData, // Use template_id from productData (user selection)
     }));
-    setFormState(prev => ({ ...prev, isDirty: true }));
+  }, []);
 
-    // Find the selected template and apply suggested groups
-    const selectedTemplate = templates.find(t => t.id === templateId);
-    if (selectedTemplate) {
-      const suggestedGroupIds = getSuggestedGroupsForTemplate(selectedTemplate);
-      
-      // Only apply suggestions if there are no current assignments
-      if (suggestedGroupIds.length > 0) {
-        // Find matching option groups from available groups
-        const suggestedAssignments = suggestedGroupIds
-          .map((groupId, index) => {
-            const group = optionGroups.find(g => g.id === groupId);
-            if (group) {
-              return {
-                groupId: group.id,
-                isRequired: false,
-                minSelections: 0,
-                maxSelections: group.optionsCount || 5,
-                displayOrder: index + 1,
-              };
-            }
-            return null;
-          })
-          .filter((a): a is NonNullable<typeof a> => a !== null);
-
-        // Apply suggested groups if we found any matches
-        if (suggestedAssignments.length > 0) {
-          setUnifiedData(prev => ({
-            ...prev,
-            optionGroupAssignments: suggestedAssignments,
-          }));
-        }
-      }
-    }
-  }, [templates, optionGroups]);
-
-  /**
-   * Handle product type change with template application
-   * Requirements: 5.3 - Containers and sizes are now unified option groups
-   * When product type changes, suggest appropriate option groups including containers/sizes
-   */
-  const handleProductTypeChange = useCallback((productType: string) => {
-    const template = getTemplateForProductType(productType);
-    
-    // Convert optionGroups to the format expected by applySuggestedGroups
-    const validationGroups = optionGroups.map(g => ({
-      id: g.id,
-      name: g.name,
-      optionsCount: g.optionsCount,
-    }));
-    
-    const suggestedAssignments = applySuggestedGroups(template, validationGroups);
-    
-    // Apply suggested groups if any (now includes containers and sizes as option groups)
-    if (suggestedAssignments.length > 0) {
-      setUnifiedData(prev => ({
-        ...prev,
-        optionGroupAssignments: suggestedAssignments,
-      }));
-    }
-    
-    // Note: Containers and sizes are now handled as unified option groups
-    // with group_id 'containers' and 'sizes' respectively
-    // The template.suggestedContainers and template.suggestedSizes flags
-    // are handled by applySuggestedGroups which adds these option groups
-  }, [optionGroups]);
-
-  /**
-   * Handle option groups change
-   * Requirements: 5.1, 5.3 - Unified option groups interface
-   * Now handles all option groups including containers and sizes
-   */
+  // Handle option groups change
   const handleOptionGroupsChange = useCallback((assignments: OptionGroupAssignment[]) => {
     setUnifiedData(prev => ({
       ...prev,
       optionGroupAssignments: assignments,
     }));
-    setFormState(prev => ({ ...prev, isDirty: true }));
-  }, []);
-
-  // Handle tab change
-  const handleTabChange = useCallback((tab: FormTab) => {
-    setFormState(prev => ({ ...prev, activeTab: tab }));
   }, []);
 
   // Handle form submission
   const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
-    
-    // Validate before showing summary
+
+    // Validate before submission
     const validationData = toValidationFormat(unifiedData);
     const result = validateUnifiedProductData(validationData, getValidationOptionGroups());
-    
-    // Add template compatibility warning to validation result - Requirements 5.5
-    if (templateCompatibilityWarning) {
-      result.warnings.push({
-        field: 'template_compatibility',
-        message: templateCompatibilityWarning,
-        code: 'TEMPLATE_INCOMPATIBLE'
-      });
-    }
-    
     setValidationResult(result);
-    
-    // Show validation summary if there are errors or warnings
-    if (!result.isValid || result.warnings.length > 0) {
-      setFormState(prev => ({ ...prev, showValidationSummary: true }));
+
+    if (!result.isValid) {
       return;
     }
-    
-    // For editing mode, show change preview (Requirement 2.2)
-    // Requirements: 5.3 - Containers and sizes are now part of option groups
-    if (editingProduct) {
-      const changes = getChanges(originalData, unifiedData, optionGroups, [], []);
-      setChangesSummary(changes);
-      
-      // If there are changes, show preview modal
-      if (changes.hasChanges) {
-        setFormState(prev => ({ ...prev, showChangePreview: true }));
-        return;
-      }
-    }
-    
-    // Submit directly if no issues and no changes to preview
-    await submitForm();
-  }, [unifiedData, getValidationOptionGroups, editingProduct, originalData, optionGroups]);
 
-  // Submit form after validation
-  // Requirement 5.5: Display meaningful error messages to the admin
-  const submitForm = useCallback(async () => {
-    setFormState(prev => ({ ...prev, isSubmitting: true, showValidationSummary: false }));
-    setApiError(null); // Clear previous errors
-    
+    setIsSubmitting(true);
+    setApiError(null);
+
     try {
-      // Auto-correct data before submission
-      const validationData = toValidationFormat(unifiedData);
+      // Auto-correct and ensure template_id is set
       const correctedValidationData = autoCorrectUnifiedProductData(validationData);
-      
-      // Convert back to form format for submission
-      const correctedData: UnifiedProductData = {
+
+      const submissionData: UnifiedProductData = {
         product: {
           ...unifiedData.product,
+          template_id: unifiedData.product.template_id || 'template_1', // Use selected template
         },
         optionGroupAssignments: correctedValidationData.optionGroupAssignments,
-        containerAssignments: correctedValidationData.containerAssignments,
-        sizeAssignments: correctedValidationData.sizeAssignments,
+        containerAssignments: [],
+        sizeAssignments: [],
       };
-      
-      await onSubmit(correctedData);
+
+      await onSubmit(submissionData);
       handleClose();
     } catch (error) {
       console.error('Failed to submit product:', error);
-      // Requirement 5.5: Extract meaningful error message for display using translation utility
       const errorMessage = translateApiError(error);
       setApiError(errorMessage);
     } finally {
-      setFormState(prev => ({ ...prev, isSubmitting: false }));
+      setIsSubmitting(false);
     }
-  }, [unifiedData, onSubmit]);
+  }, [unifiedData, onSubmit, getValidationOptionGroups]);
 
   // Handle close
   const handleClose = useCallback(() => {
     setUnifiedData(INITIAL_UNIFIED_DATA);
-    setOriginalData(cloneUnifiedProductData(INITIAL_UNIFIED_DATA));
-    setFormState(INITIAL_FORM_STATE);
     setValidationResult({ isValid: true, errors: [], warnings: [] });
-    setChangesSummary(EMPTY_CHANGES_SUMMARY);
-    setApiError(null); // Clear API error on close
+    setApiError(null);
+    setNutritionExpanded(false);
     onClose();
   }, [onClose]);
 
-  // Handle confirm from change preview modal (Requirement 2.2)
-  const handleConfirmChanges = useCallback(() => {
-    setFormState(prev => ({ ...prev, showChangePreview: false }));
-    submitForm();
-  }, [submitForm]);
-
-  // Handle cancel change preview
-  const handleCancelChangePreview = useCallback(() => {
-    setFormState(prev => ({ ...prev, showChangePreview: false }));
-  }, []);
-
-  // Handle confirm with warnings
-  const handleConfirmWithWarnings = useCallback(() => {
-    submitForm();
-  }, [submitForm]);
-
-  // Handle cancel validation summary
-  const handleCancelValidation = useCallback(() => {
-    setFormState(prev => ({ ...prev, showValidationSummary: false }));
-  }, []);
-
-  /**
-   * Get errors/warnings for current section
-   * Requirements: 5.3 - Containers and sizes are now part of option groups
-   */
-  const getOptionGroupErrors = () => 
+  // Get errors for option groups section
+  const getOptionGroupErrors = () =>
     validationResult.errors.filter(e => e.field.startsWith('optionGroup_'));
-  
-  const getOptionGroupWarnings = () => 
-    validationResult.warnings.filter(w => 
-      w.field.startsWith('optionGroup_') || 
-      w.field === 'optionGroups' ||
-      w.field === 'containers' ||  // Include container warnings in option groups
-      w.field === 'sizes'          // Include size warnings in option groups
+
+  const getOptionGroupWarnings = () =>
+    validationResult.warnings.filter(w =>
+      w.field.startsWith('optionGroup_') || w.field === 'optionGroups'
     );
 
   if (!isOpen) return null;
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-pink-500 to-purple-600 p-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold text-white">
-                  {editingProduct ? '✏️ تعديل منتج' : '✨ إضافة منتج جديد'}
-                </h2>
-                <p className="text-pink-100 text-sm mt-1">
-                  {editingProduct 
-                    ? 'قم بتحديث معلومات المنتج وخياراته' 
-                    : 'أضف منتج جديد مع جميع الخيارات في مكان واحد'
-                  }
-                </p>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-pink-500 to-purple-600 p-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-white">
+                {editingProduct ? '✏️ تعديل منتج' : '✨ إضافة منتج جديد'}
+              </h2>
+              <p className="text-pink-100 text-sm mt-1">
+                {editingProduct
+                  ? 'قم بتحديث معلومات المنتج'
+                  : 'أضف منتج جديد للقائمة'
+                }
+              </p>
+            </div>
+            <button
+              onClick={handleClose}
+              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all text-white"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </div>
+
+        {/* ✅ NEW: Loading State when fetching full product data */}
+        {isLoadingFull && (
+          <div className="flex-1 flex items-center justify-center p-12">
+            <div className="text-center">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                {/* Spinning loader */}
+                <div className="absolute inset-0 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div>
+                {/* Inner pulsing circle */}
+                <div className="absolute inset-2 bg-pink-100 rounded-full animate-pulse"></div>
+              </div>
+              <p className="text-gray-700 font-medium mb-1">جاري تحميل بيانات المنتج...</p>
+              <p className="text-sm text-gray-500">يتم الآن تحميل مجموعات الخيارات والإعدادات</p>
+            </div>
+          </div>
+        )}
+
+        {/* Form Content - Only show when not loading */}
+        {!isLoadingFull && (
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Section 1: Basic Info */}
+            <ProductDetailsSection
+              formData={unifiedData.product}
+              onChange={handleProductChange}
+              isEditing={!!editingProduct}
+            />
+
+            {/* Section 2: Option Groups */}
+            <OptionGroupsSection
+              assignments={unifiedData.optionGroupAssignments}
+              onChange={handleOptionGroupsChange}
+              availableGroups={optionGroups}
+              errors={getOptionGroupErrors()}
+              warnings={getOptionGroupWarnings()}
+            />
+
+            {/* Section 3: Nutrition (Collapsible) */}
+            <div className="rounded-xl border-2 border-green-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setNutritionExpanded(!nutritionExpanded)}
+                className="w-full p-4 flex items-center justify-between text-left bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 transition-colors"
+              >
+                <h3 className="text-lg font-bold text-green-800 flex items-center gap-2">
+                  <span>🍎</span> القيم الغذائية
+                  <span className="text-sm font-normal text-gray-500">(اختياري)</span>
+                </h3>
+                {nutritionExpanded ? (
+                  <ChevronUp className="text-green-600" size={24} />
+                ) : (
+                  <ChevronDown className="text-green-600" size={24} />
+                )}
+              </button>
+              {nutritionExpanded && (
+                <div className="p-4 bg-white">
+                  <NutritionSection
+                    formData={unifiedData.product}
+                    onChange={handleProductChange}
+                  />
+                </div>
+              )}
+            </div>
+          </form>
+        )}
+
+        {/* API Error Display */}
+        {apiError && (
+          <div className="mx-6 mb-0 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+            <div className="flex items-start gap-3">
+              <span className="text-red-600 text-lg">❌</span>
+              <div className="flex-1">
+                <h4 className="font-semibold text-red-800 mb-1">فشل حفظ المنتج</h4>
+                <p className="text-sm text-red-600">{apiError}</p>
               </div>
               <button
-                onClick={handleClose}
-                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all text-white"
+                type="button"
+                onClick={() => setApiError(null)}
+                className="text-red-400 hover:text-red-600 transition-colors"
               >
-                <X size={24} />
+                <X size={18} />
               </button>
             </div>
           </div>
+        )}
 
-          {/* Tabs */}
-          <div className="border-b border-gray-200 bg-gray-50">
-            <div className="flex overflow-x-auto">
-              {TABS.map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
-                    formState.activeTab === tab.id
-                      ? 'border-purple-500 text-purple-600 bg-white'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                  {/* Show error/warning indicators */}
-                  {tab.id === 'details' && validationResult.errors.some(e => 
-                    ['id', 'name', 'category', 'price'].includes(e.field)
-                  ) && (
-                    <span className="w-2 h-2 bg-red-500 rounded-full" />
-                  )}
-                  {/* Template tab indicator - Requirements 2.1, 2.2, 5.5 */}
-                  {tab.id === 'template' && (
-                    templateCompatibilityWarning ? (
-                      <span className="w-2 h-2 bg-amber-500 rounded-full" title={templateCompatibilityWarning} />
-                    ) : unifiedData.product.template_id ? (
-                      <span className="w-2 h-2 bg-green-500 rounded-full" />
-                    ) : (
-                      <span className="w-2 h-2 bg-gray-300 rounded-full" />
-                    )
-                  )}
-                  {tab.id === 'optionGroups' && (
-                    getOptionGroupErrors().length > 0 ? (
-                      <span className="w-2 h-2 bg-red-500 rounded-full" />
-                    ) : getOptionGroupWarnings().length > 0 ? (
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full" />
-                    ) : null
-                  )}
-                  {/* UI Config tab indicator - Requirements 4.1-4.6, 5.1, 5.3-5.5 */}
-                  {tab.id === 'uiConfig' && (
-                    unifiedData.product.ui_config && unifiedData.product.ui_config !== '{}' ? (
-                      <span className="w-2 h-2 bg-green-500 rounded-full" title="إعدادات العرض مُخصصة" />
-                    ) : (
-                      <span className="w-2 h-2 bg-gray-300 rounded-full" title="إعدادات افتراضية" />
-                    )
-                  )}
-                </button>
-              ))}
+        {/* Validation Errors Display */}
+        {validationResult.errors.length > 0 && (
+          <div className="mx-6 mb-0 p-4 bg-amber-50 border-2 border-amber-200 rounded-xl">
+            <div className="flex items-start gap-3">
+              <span className="text-amber-600 text-lg">⚠️</span>
+              <div className="flex-1">
+                <h4 className="font-semibold text-amber-800 mb-1">يرجى تصحيح الأخطاء التالية</h4>
+                <ul className="text-sm text-amber-700 list-disc list-inside">
+                  {validationResult.errors.map((err, idx) => (
+                    <li key={idx}>{err.message}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Form Content */}
-          {/* Requirements: 5.3 - Unified option groups interface */}
-          {/* Requirements: 2.1, 2.2, 2.5 - Template selection tab */}
-          {/* Containers and sizes are now part of option groups with group_id 'containers' and 'sizes' */}
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
-            {formState.activeTab === 'details' && (
-              <ProductDetailsSection
-                formData={unifiedData.product}
-                onChange={handleProductChange}
-                isEditing={!!editingProduct}
-                onProductTypeChange={handleProductTypeChange}
-              />
-            )}
-            
-            {/* Template Tab - Requirements 2.1, 2.2, 2.5, 5.5 */}
-            {formState.activeTab === 'template' && (
-              <div className="space-y-6">
-                {/* Template Compatibility Warning - Requirements 5.5 */}
-                {templateCompatibilityWarning && (
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border-2 border-amber-300">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                        <span className="text-amber-600 text-lg">⚠️</span>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-amber-800 mb-1">تحذير التوافق</h4>
-                        <p className="text-sm text-amber-700">{templateCompatibilityWarning}</p>
-                        <p className="text-xs text-amber-600 mt-2">
-                          يمكنك تعديل مجموعات الخيارات من تبويب &quot;مجموعات الخيارات&quot; لتتوافق مع القالب المختار.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-5 border-2 border-violet-200">
-                  <h3 className="text-lg font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-                    <span>🎨</span> قالب المنتج
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    اختر القالب المناسب لتحديد كيفية عرض المنتج وخياراته للعملاء.
-                    سيتم اقتراح مجموعات الخيارات المناسبة تلقائياً.
-                  </p>
-                  <TemplateSelector
-                    value={unifiedData.product.template_id || null}
-                    onChange={handleTemplateChange}
-                    optionGroupsCount={unifiedData.optionGroupAssignments.length}
-                  />
-                </div>
-                
-                {/* Current Template Info */}
-                {unifiedData.product.template_id && (
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-200">
-                    <h4 className="text-sm font-bold text-green-700 mb-2 flex items-center gap-2">
-                      <span>✅</span> القالب المختار
-                    </h4>
-                    {(() => {
-                      const selectedTemplate = templates.find(t => t.id === unifiedData.product.template_id);
-                      if (selectedTemplate) {
-                        return (
-                          <div className="space-y-2">
-                            <p className="font-semibold text-gray-800">{selectedTemplate.name_ar}</p>
-                            <p className="text-sm text-gray-600">{selectedTemplate.description_ar}</p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
-                              <span>📊 مجموعات الخيارات: {selectedTemplate.option_groups_min}-{selectedTemplate.option_groups_max}</span>
-                              <span>🎯 التعقيد: {selectedTemplate.complexity === 'simple' ? 'بسيط' : selectedTemplate.complexity === 'medium' ? 'متوسط' : 'معقد'}</span>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return <p className="text-sm text-gray-500">جاري تحميل معلومات القالب...</p>;
-                    })()}
-                  </div>
-                )}
-                
-                {/* Suggested Groups Info */}
-                {unifiedData.optionGroupAssignments.length > 0 && (
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 border-2 border-blue-200">
-                    <h4 className="text-sm font-bold text-blue-700 mb-2 flex items-center gap-2">
-                      <span>💡</span> مجموعات الخيارات المُعيّنة
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {unifiedData.optionGroupAssignments.map(assignment => {
-                        const group = optionGroups.find(g => g.id === assignment.groupId);
-                        return (
-                          <span
-                            key={assignment.groupId}
-                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
-                          >
-                            {group?.name || assignment.groupId}
-                          </span>
-                        );
-                      })}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      يمكنك تعديل هذه المجموعات من تبويب &quot;مجموعات الخيارات&quot;
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* UI Config Tab - Requirements 4.1-4.6, 5.1, 5.3-5.5 */}
-            {formState.activeTab === 'uiConfig' && (
-              <div className="space-y-6">
-                <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl p-5 border-2 border-indigo-200">
-                  <h3 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
-                    <span>🎨</span> إعدادات العرض
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    تخصيص طريقة عرض المنتج للعملاء، بما في ذلك نمط العرض والأيقونات والألوان.
-                  </p>
-                  <UIConfigEditor
-                    value={(() => {
-                      try {
-                        return JSON.parse(unifiedData.product.ui_config || '{}') as UIConfig;
-                      } catch {
-                        return {} as UIConfig;
-                      }
-                    })()}
-                    onChange={(config: UIConfig) => {
-                      handleProductChange({
-                        ...unifiedData.product,
-                        ui_config: JSON.stringify(config),
-                      });
-                    }}
-                    showPreview={false}
-                  />
-                </div>
-              </div>
-            )}
-            
-            {formState.activeTab === 'optionGroups' && (
-              <div className="space-y-6">
-                {/* Template Compatibility Warning in Options Tab - Requirements 5.5 */}
-                {templateCompatibilityWarning && (
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border-2 border-amber-300">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                        <span className="text-amber-600 text-lg">⚠️</span>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-amber-800 mb-1">تحذير التوافق مع القالب</h4>
-                        <p className="text-sm text-amber-700">{templateCompatibilityWarning}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <OptionGroupsSection
-                  assignments={unifiedData.optionGroupAssignments}
-                  onChange={handleOptionGroupsChange}
-                  availableGroups={optionGroups}
-                  errors={getOptionGroupErrors()}
-                  warnings={getOptionGroupWarnings()}
-                />
-              </div>
-            )}
-            
-            {/* Nutrition Tab - Requirements 5.3 */}
-            {formState.activeTab === 'nutrition' && (
-              <NutritionSection
-                formData={unifiedData.product}
-                onChange={handleProductChange}
-              />
-            )}
-          </form>
-
-          {/* API Error Display - Requirement 5.5 */}
-          {apiError && (
-            <div className="mx-6 mb-0 mt-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                  <span className="text-red-600 text-lg">❌</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-red-800 mb-1">فشل حفظ المنتج</h4>
-                  <p className="text-sm text-red-600">{apiError}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setApiError(null)}
-                  className="text-red-400 hover:text-red-600 transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="p-6 bg-gray-50 border-t border-gray-200">
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-500">
-                {validationResult.errors.length > 0 && (
-                  <span className="text-red-600">
-                    ⚠️ {validationResult.errors.length} خطأ
-                  </span>
-                )}
-                {validationResult.errors.length > 0 && validationResult.warnings.length > 0 && (
-                  <span className="mx-2">|</span>
-                )}
-                {validationResult.warnings.length > 0 && (
-                  <span className="text-yellow-600">
-                    ⚡ {validationResult.warnings.length} تحذير
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="px-6 py-3 text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-100 hover:border-gray-400 transition-all font-semibold"
-                >
-                  ❌ إلغاء
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={formState.isSubmitting}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  <Save size={20} />
-                  <span>
-                    {formState.isSubmitting 
-                      ? 'جاري الحفظ...' 
-                      : editingProduct 
-                        ? '💾 تحديث المنتج' 
-                        : '✨ حفظ المنتج'
-                    }
-                  </span>
-                </button>
-              </div>
-            </div>
+        {/* Actions */}
+        <div className="p-6 bg-gray-50 border-t border-gray-200">
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-6 py-3 text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-100 hover:border-gray-400 transition-all font-semibold"
+            >
+              ❌ إلغاء
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || validationResult.errors.length > 0}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              <Save size={20} />
+              <span>
+                {isSubmitting
+                  ? 'جاري الحفظ...'
+                  : editingProduct
+                    ? '💾 تحديث المنتج'
+                    : '✨ حفظ المنتج'
+                }
+              </span>
+            </button>
           </div>
         </div>
       </div>
-
-      {/* Validation Summary Modal */}
-      {formState.showValidationSummary && (
-        <ValidationSummary
-          errors={validationResult.errors}
-          warnings={validationResult.warnings}
-          onConfirmWithWarnings={handleConfirmWithWarnings}
-          onCancel={handleCancelValidation}
-        />
-      )}
-
-      {/* Change Preview Modal (Requirement 2.2, 2.3) */}
-      {/* Requirements: 5.3 - Containers and sizes are now part of option groups */}
-      <ChangePreviewModal
-        isOpen={formState.showChangePreview}
-        onClose={handleCancelChangePreview}
-        changes={changesSummary}
-        onConfirm={handleConfirmChanges}
-        optionGroups={optionGroups}
-        containers={[]}
-        sizes={[]}
-      />
-    </>
+    </div>
   );
 };
 

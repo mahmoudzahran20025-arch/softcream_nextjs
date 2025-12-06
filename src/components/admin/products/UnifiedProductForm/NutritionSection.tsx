@@ -109,7 +109,7 @@ const NutritionSection: React.FC<NutritionSectionProps> = ({
         <h3 className="text-lg font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
           <span>💚</span> معلومات صحية
         </h3>
-        
+
         <div className="mb-4">
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             الكلمات المفتاحية الصحية (اختر حتى 3)
@@ -123,11 +123,10 @@ const NutritionSection: React.FC<NutritionSectionProps> = ({
                     key={kw.value}
                     type="button"
                     onClick={() => handleHealthKeywordToggle(kw.value)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      formData.health_keywords.includes(kw.value)
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${formData.health_keywords.includes(kw.value)
                         ? 'bg-teal-500 text-white shadow-md'
                         : 'bg-white border border-teal-200 text-teal-700 hover:bg-teal-50'
-                    } ${formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      } ${formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     disabled={formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value)}
                   >
                     {kw.label}
@@ -135,7 +134,7 @@ const NutritionSection: React.FC<NutritionSectionProps> = ({
                 ))}
               </div>
             </div>
-            
+
             <div>
               <p className="text-xs font-medium text-cyan-600 mb-2">🌟 نمط الحياة</p>
               <div className="flex flex-wrap gap-2">
@@ -144,11 +143,10 @@ const NutritionSection: React.FC<NutritionSectionProps> = ({
                     key={kw.value}
                     type="button"
                     onClick={() => handleHealthKeywordToggle(kw.value)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      formData.health_keywords.includes(kw.value)
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${formData.health_keywords.includes(kw.value)
                         ? 'bg-cyan-500 text-white shadow-md'
                         : 'bg-white border border-cyan-200 text-cyan-700 hover:bg-cyan-50'
-                    } ${formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      } ${formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     disabled={formData.health_keywords.length >= 3 && !formData.health_keywords.includes(kw.value)}
                   >
                     {kw.label}
@@ -161,7 +159,7 @@ const NutritionSection: React.FC<NutritionSectionProps> = ({
             المختار: {formData.health_keywords.length}/3
           </p>
         </div>
-        
+
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             الفائدة الصحية (بالعربية)
@@ -204,6 +202,23 @@ const NutritionSection: React.FC<NutritionSectionProps> = ({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* NEW: Health Benefit Description - Priority 2 */}
+      <div className="col-span-2">
+        <label className="block text-sm font-semibold text-green-700 mb-2">
+          الفائدة الصحية (عربي)
+        </label>
+        <textarea
+          value={formData.health_benefit_ar || ''}
+          onChange={(e) => onChange({ ...formData, health_benefit_ar: e.target.value })}
+          rows={2}
+          className="w-full px-4 py-2.5 border-2 border-green-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          placeholder="مثال: غني بالبروتين ويساعد على بناء العضلات"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          💡 وصف مفصل للفائدة الصحية للمنتج
+        </p>
       </div>
     </div>
   );

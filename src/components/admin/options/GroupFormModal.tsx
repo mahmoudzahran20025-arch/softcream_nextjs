@@ -1,22 +1,25 @@
 /**
  * GroupFormModal - Create/Edit Option Group Modal
- * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.4
+ * Requirements: 4.1, 4.2
  * 
  * Modal form for creating new option groups or editing existing ones.
- * Handles validation, form state, submission, and API error display.
- * Includes UIConfigEditor for metadata-driven UI configuration.
+ * Includes two tabs:
+ * - Tab 1: Basic Info (id, name_ar, name_en, icon, display_order)
+ * - Tab 2: UI Config (display style, columns, colors)
  */
 
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Loader2, AlertCircle, Settings2 } from 'lucide-react';
+import { X, Loader2, AlertCircle, Settings2, FileText } from 'lucide-react';
 import type { GroupFormModalProps, OptionGroupFormData } from './types';
 import { INITIAL_GROUP_FORM_DATA, ICON_OPTIONS } from './types';
 import { getOptionErrorMessage, translateApiError } from '@/lib/admin/errorMessages';
-import UIConfigEditor, { validateUIConfig } from './UIConfigEditor';
+import UIConfigEditor from './UIConfigEditor';
 import type { UIConfig } from '@/lib/uiConfig';
 import { parseUIConfig } from '@/lib/uiConfig';
+
+type TabType = 'basic' | 'uiConfig';
 
 /**
  * Validation errors interface
@@ -26,7 +29,6 @@ interface ValidationErrors {
   name_ar?: string;
   name_en?: string;
   icon?: string;
-  ui_config?: string;
 }
 
 /**
@@ -39,9 +41,9 @@ const validateId = (id: string): boolean => {
 /**
  * GroupFormModal Component
  * 
- * Modal for creating/editing option groups.
- * - Create mode: All fields editable, ID required (Requirement 2.1, 2.2)
- * - Edit mode: ID disabled, other fields editable (Requirement 3.1, 3.2)
+ * Simplified modal for creating/editing option groups.
+ * Requirements 4.1: Only id, name_ar, name_en, icon picker, display_order
+ * Requirements 4.2: No UIConfigEditor tab (use default ui_config)
  */
 const GroupFormModal: React.FC<GroupFormModalProps> = ({
   isOpen,
@@ -57,7 +59,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'basic' | 'ui_config'>('basic');
+  const [activeTab, setActiveTab] = useState<TabType>('basic');
 
   const isEditMode = editingGroup !== null;
 
@@ -65,21 +67,12 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
   // Form Initialization
   // ===========================
   
-  /**
-   * Reset form to initial state or populate with editing data
-   * Requirement 3.1: Pre-fill form with current values when editing
-   */
   const initializeForm = useCallback(() => {
     if (editingGroup) {
-      // Parse ui_config from string if needed
-      let parsedUIConfig: UIConfig | undefined;
-      if (editingGroup.ui_config) {
-        if (typeof editingGroup.ui_config === 'string') {
-          parsedUIConfig = parseUIConfig(editingGroup.ui_config);
-        } else {
-          parsedUIConfig = editingGroup.ui_config as UIConfig;
-        }
-      }
+      // Parse ui_config if it's a string
+      const uiConfig = typeof editingGroup.ui_config === 'string' 
+        ? parseUIConfig(editingGroup.ui_config)
+        : editingGroup.ui_config || INITIAL_GROUP_FORM_DATA.ui_config;
       
       setFormData({
         id: editingGroup.id,
@@ -87,9 +80,9 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
         name_en: editingGroup.name_en,
         description_ar: editingGroup.description_ar || '',
         description_en: editingGroup.description_en || '',
-        icon: editingGroup.icon,
+        icon: editingGroup.icon || '📦',
         display_order: editingGroup.display_order,
-        ui_config: parsedUIConfig || INITIAL_GROUP_FORM_DATA.ui_config,
+        ui_config: uiConfig,
       });
     } else {
       setFormData(INITIAL_GROUP_FORM_DATA);
@@ -110,42 +103,25 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
   // Validation
   // ===========================
   
-  /**
-   * Validate form data
-   * Requirement 2.2: Required fields validation
-   * Requirement 3.4: JSON validation for ui_config
-   */
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
 
-    // ID validation (required, format check)
     if (!formData.id.trim()) {
       newErrors.id = 'هذا الحقل مطلوب';
     } else if (!validateId(formData.id)) {
       newErrors.id = 'المعرف يجب أن يكون بالإنجليزية بدون مسافات';
     }
 
-    // Arabic name validation (required)
     if (!formData.name_ar.trim()) {
       newErrors.name_ar = 'هذا الحقل مطلوب';
     }
 
-    // English name validation (required)
     if (!formData.name_en.trim()) {
       newErrors.name_en = 'هذا الحقل مطلوب';
     }
 
-    // Icon validation (required)
     if (!formData.icon.trim()) {
       newErrors.icon = 'هذا الحقل مطلوب';
-    }
-
-    // UI Config validation (Requirement 3.4)
-    if (formData.ui_config) {
-      const uiConfigValidation = validateUIConfig(formData.ui_config);
-      if (!uiConfigValidation.isValid) {
-        newErrors.ui_config = uiConfigValidation.errors.join(', ');
-      }
     }
 
     setErrors(newErrors);
@@ -162,7 +138,6 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error when user starts typing
     if (errors[name as keyof ValidationErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -181,21 +156,6 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
     }
   };
 
-  /**
-   * Handle UI Config changes
-   * Requirement 3.1: Allow configuring ui_config
-   */
-  const handleUIConfigChange = (config: UIConfig) => {
-    setFormData(prev => ({ ...prev, ui_config: config }));
-    if (errors.ui_config) {
-      setErrors(prev => ({ ...prev, ui_config: undefined }));
-    }
-  };
-
-  /**
-   * Handle form submission with API error handling
-   * Requirements: 2.4, 2.5, 3.3, 3.4
-   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setApiError(null);
@@ -211,9 +171,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
       onClose();
     } catch (error: unknown) {
       console.error('Failed to submit form:', error);
-      // Handle API errors - Requirements: 2.5, 3.4
       if (error instanceof Error) {
-        // Check for HTTP status code in error
         const statusMatch = error.message.match(/HTTP (\d{3})/);
         if (statusMatch) {
           const statusCode = parseInt(statusMatch[1], 10);
@@ -235,6 +193,10 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
     }
   };
 
+  const handleUIConfigChange = (config: UIConfig) => {
+    setFormData(prev => ({ ...prev, ui_config: config }));
+  };
+
   // ===========================
   // Render
   // ===========================
@@ -251,7 +213,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-gray-800">
             {isEditMode ? '✏️ تعديل مجموعة الخيارات' : '➕ إضافة مجموعة جديدة'}
           </h3>
@@ -264,7 +226,35 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
           </button>
         </div>
 
-        {/* API Error Display - Requirements: 2.5, 3.4 */}
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 border-b border-gray-200">
+          <button
+            type="button"
+            onClick={() => setActiveTab('basic')}
+            className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === 'basic'
+                ? 'text-pink-600 border-pink-500'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+            }`}
+          >
+            <FileText size={18} />
+            <span>البيانات الأساسية</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('uiConfig')}
+            className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === 'uiConfig'
+                ? 'text-pink-600 border-pink-500'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+            }`}
+          >
+            <Settings2 size={18} />
+            <span>إعدادات العرض</span>
+          </button>
+        </div>
+
+        {/* API Error Display */}
         {apiError && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -275,7 +265,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
           </div>
         )}
 
-        {/* Validation Summary - Requirements: 2.4, 3.4 */}
+        {/* Validation Summary */}
         {Object.keys(errors).length > 0 && (
           <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -286,215 +276,151 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
                 {errors.name_ar && <li>الاسم بالعربية: {errors.name_ar}</li>}
                 {errors.name_en && <li>الاسم بالإنجليزية: {errors.name_en}</li>}
                 {errors.icon && <li>الأيقونة: {errors.icon}</li>}
-                {errors.ui_config && <li>إعدادات العرض: {errors.ui_config}</li>}
               </ul>
             </div>
           </div>
         )}
 
-        {/* Tabs - Requirements: 3.1 */}
-        <div className="flex gap-2 mb-4 border-b border-gray-200">
-          <button
-            type="button"
-            onClick={() => setActiveTab('basic')}
-            className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 -mb-px ${
-              activeTab === 'basic'
-                ? 'border-pink-500 text-pink-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            📝 البيانات الأساسية
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('ui_config')}
-            className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 -mb-px flex items-center gap-1 ${
-              activeTab === 'ui_config'
-                ? 'border-pink-500 text-pink-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Settings2 size={16} />
-            إعدادات العرض
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Basic Tab Content */}
+          {/* Basic Info Tab */}
           {activeTab === 'basic' && (
             <>
-          {/* ID Field - Requirement 2.2, 3.2 */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              المعرف (ID) *
-            </label>
-            <input
-              type="text"
-              name="id"
-              value={formData.id}
-              onChange={handleInputChange}
-              disabled={isEditMode}
-              placeholder="flavors"
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 font-mono ${
-                errors.id ? 'border-red-500' : 'border-gray-200'
-              } ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-            />
-            {errors.id && (
-              <p className="text-red-500 text-sm mt-1">{errors.id}</p>
-            )}
-            {!isEditMode && (
-              <p className="text-xs text-gray-500 mt-1">
-                معرف فريد بالإنجليزية (مثال: flavors, toppings, sauces)
-              </p>
-            )}
-          </div>
+              {/* ID Field */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  المعرف (ID) *
+                </label>
+                <input
+                  type="text"
+                  name="id"
+                  value={formData.id}
+                  onChange={handleInputChange}
+                  disabled={isEditMode}
+                  placeholder="flavors"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 font-mono ${
+                    errors.id ? 'border-red-500' : 'border-gray-200'
+                  } ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                />
+                {errors.id && (
+                  <p className="text-red-500 text-sm mt-1">{errors.id}</p>
+                )}
+                {!isEditMode && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    معرف فريد بالإنجليزية (مثال: flavors, toppings, sauces)
+                  </p>
+                )}
+              </div>
 
-          {/* Arabic Name - Requirement 2.2 */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              الاسم بالعربية *
-            </label>
-            <input
-              type="text"
-              name="name_ar"
-              value={formData.name_ar}
-              onChange={handleInputChange}
-              placeholder="نكهات الآيس كريم"
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${
-                errors.name_ar ? 'border-red-500' : 'border-gray-200'
-              }`}
-            />
-            {errors.name_ar && (
-              <p className="text-red-500 text-sm mt-1">{errors.name_ar}</p>
-            )}
-          </div>
+              {/* Arabic Name */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  الاسم بالعربية *
+                </label>
+                <input
+                  type="text"
+                  name="name_ar"
+                  value={formData.name_ar}
+                  onChange={handleInputChange}
+                  placeholder="نكهات الآيس كريم"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${
+                    errors.name_ar ? 'border-red-500' : 'border-gray-200'
+                  }`}
+                />
+                {errors.name_ar && (
+                  <p className="text-red-500 text-sm mt-1">{errors.name_ar}</p>
+                )}
+              </div>
 
-          {/* English Name - Requirement 2.2 */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              الاسم بالإنجليزية *
-            </label>
-            <input
-              type="text"
-              name="name_en"
-              value={formData.name_en}
-              onChange={handleInputChange}
-              placeholder="Ice Cream Flavors"
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${
-                errors.name_en ? 'border-red-500' : 'border-gray-200'
-              }`}
-            />
-            {errors.name_en && (
-              <p className="text-red-500 text-sm mt-1">{errors.name_en}</p>
-            )}
-          </div>
+              {/* English Name */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  الاسم بالإنجليزية *
+                </label>
+                <input
+                  type="text"
+                  name="name_en"
+                  value={formData.name_en}
+                  onChange={handleInputChange}
+                  placeholder="Ice Cream Flavors"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${
+                    errors.name_en ? 'border-red-500' : 'border-gray-200'
+                  }`}
+                />
+                {errors.name_en && (
+                  <p className="text-red-500 text-sm mt-1">{errors.name_en}</p>
+                )}
+              </div>
 
-          {/* Icon Picker - Requirement 2.2 */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              الأيقونة *
-            </label>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowIconPicker(!showIconPicker)}
-                className={`w-full px-4 py-3 border rounded-lg text-right flex items-center justify-between ${
-                  errors.icon ? 'border-red-500' : 'border-gray-200'
-                } hover:border-pink-300 transition-colors`}
-              >
-                <span className="text-2xl">{formData.icon}</span>
-                <span className="text-gray-500 text-sm">اختر أيقونة</span>
-              </button>
-              
-              {showIconPicker && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10">
-                  <div className="grid grid-cols-8 gap-2">
-                    {ICON_OPTIONS.map((icon) => (
-                      <button
-                        key={icon}
-                        type="button"
-                        onClick={() => handleIconSelect(icon)}
-                        className={`p-2 text-xl rounded-lg hover:bg-pink-100 transition-colors ${
-                          formData.icon === icon ? 'bg-pink-200' : ''
-                        }`}
-                      >
-                        {icon}
-                      </button>
-                    ))}
-                  </div>
+              {/* Icon Picker */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  الأيقونة *
+                </label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowIconPicker(!showIconPicker)}
+                    className={`w-full px-4 py-3 border rounded-lg text-right flex items-center justify-between ${
+                      errors.icon ? 'border-red-500' : 'border-gray-200'
+                    } hover:border-pink-300 transition-colors`}
+                  >
+                    <span className="text-2xl">{formData.icon}</span>
+                    <span className="text-gray-500 text-sm">اختر أيقونة</span>
+                  </button>
+                  
+                  {showIconPicker && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10">
+                      <div className="grid grid-cols-8 gap-2">
+                        {ICON_OPTIONS.map((icon) => (
+                          <button
+                            key={icon}
+                            type="button"
+                            onClick={() => handleIconSelect(icon)}
+                            className={`p-2 text-xl rounded-lg hover:bg-pink-100 transition-colors ${
+                              formData.icon === icon ? 'bg-pink-200' : ''
+                            }`}
+                          >
+                            {icon}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            {errors.icon && (
-              <p className="text-red-500 text-sm mt-1">{errors.icon}</p>
-            )}
-          </div>
+                {errors.icon && (
+                  <p className="text-red-500 text-sm mt-1">{errors.icon}</p>
+                )}
+              </div>
 
-          {/* Optional Fields Section - Requirement 2.3 */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-4">
-            <h4 className="font-semibold text-gray-700 text-sm">حقول اختيارية</h4>
-            
-            {/* Arabic Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
-                الوصف بالعربية
-              </label>
-              <textarea
-                name="description_ar"
-                value={formData.description_ar || ''}
-                onChange={handleInputChange}
-                placeholder="وصف المجموعة بالعربية..."
-                rows={2}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
-              />
-            </div>
-
-            {/* English Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
-                الوصف بالإنجليزية
-              </label>
-              <textarea
-                name="description_en"
-                value={formData.description_en || ''}
-                onChange={handleInputChange}
-                placeholder="Group description in English..."
-                rows={2}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
-              />
-            </div>
-
-            {/* Display Order */}
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
-                ترتيب العرض
-              </label>
-              <input
-                type="number"
-                name="display_order"
-                value={formData.display_order}
-                onChange={handleNumberChange}
-                min={0}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                الأرقام الأصغر تظهر أولاً
-              </p>
-            </div>
-          </div>
+              {/* Display Order */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  ترتيب العرض
+                </label>
+                <input
+                  type="number"
+                  name="display_order"
+                  value={formData.display_order}
+                  onChange={handleNumberChange}
+                  min={0}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  الأرقام الأصغر تظهر أولاً
+                </p>
+              </div>
             </>
           )}
 
-          {/* UI Config Tab Content - Requirements: 3.1, 3.2, 3.3, 3.4 */}
-          {activeTab === 'ui_config' && (
-            <div className="space-y-4">
+          {/* UI Config Tab */}
+          {activeTab === 'uiConfig' && (
+            <div className="min-h-[300px]">
               <p className="text-sm text-gray-600 mb-4">
-                تخصيص طريقة عرض هذه المجموعة للعملاء. هذه الإعدادات تتحكم في شكل البطاقات والأيقونات والألوان.
+                تحكم في كيفية عرض هذه المجموعة للعملاء في واجهة المنتج
               </p>
               <UIConfigEditor
                 value={formData.ui_config || INITIAL_GROUP_FORM_DATA.ui_config!}
                 onChange={handleUIConfigChange}
-                showPreview={false}
               />
             </div>
           )}

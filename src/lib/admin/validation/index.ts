@@ -163,6 +163,12 @@ export function validateProductData(data: ProductFormData): ValidationResult {
   // Check required field: id
   if (!data.id || data.id.trim() === '') {
     result.errors.push(createValidationError('id', ERROR_CODES.MISSING_ID));
+  } else {
+    // Validate ID format: only English letters, numbers, underscores, and hyphens
+    const validIdPattern = /^[a-zA-Z0-9_-]+$/;
+    if (!validIdPattern.test(data.id)) {
+      result.errors.push(createValidationError('id', ERROR_CODES.INVALID_ID_FORMAT));
+    }
   }
 
   // Check required field: name

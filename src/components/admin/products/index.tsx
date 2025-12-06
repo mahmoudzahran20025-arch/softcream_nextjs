@@ -1,12 +1,12 @@
 // src/components/admin/products/index.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Search, Plus, CheckSquare } from 'lucide-react';
-import { 
-  getProducts, 
-  updateProduct, 
-  deleteProduct, 
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, Plus, CheckSquare, Package, CheckCircle, XCircle, Filter } from 'lucide-react';
+import {
+  getProducts,
+  updateProduct,
+  deleteProduct,
   getBYOOptions,
   bulkAssignOptionGroup,
   createProductUnified,
@@ -16,10 +16,10 @@ import {
   type BYOOptionGroup
 } from '@/lib/admin';
 import type { ProductsPageProps } from './types';
-import type { 
-  OptionGroupInfo, 
-  OptionGroupAssignment, 
-  UnifiedProductData 
+import type {
+  OptionGroupInfo,
+  OptionGroupAssignment,
+  UnifiedProductData
 } from './UnifiedProductForm/types';
 import type { BulkAssignResult } from './BulkAssignModal';
 import ProductCard from './ProductCard';
@@ -36,6 +36,7 @@ interface ToastNotification {
 const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDelete }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -44,16 +45,35 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
-  
+
   // Toast notification state (Requirement 5.5)
   const [toast, setToast] = useState<ToastNotification | null>(null);
-  
+
   /**
    * Option groups for UnifiedProductForm
    * Requirements: 5.3 - Containers and sizes are now part of option groups
    * with group_id 'containers' and 'sizes' respectively
    */
   const [optionGroups, setOptionGroups] = useState<OptionGroupInfo[]>([]);
+
+  /**
+   * Calculate stats for products
+   * Requirements: 1.3 - Stats cards: total products, available, unavailable
+   */
+  const stats = useMemo(() => ({
+    total: products.length,
+    available: products.filter(p => p.available === 1).length,
+    unavailable: products.filter(p => p.available === 0).length,
+  }), [products]);
+
+  /**
+   * Get unique categories from products for filter dropdown
+   * Requirements: 1.2 - Category filter
+   */
+  const categories = useMemo(() => {
+    const uniqueCategories = [...new Set(products.map(p => p.category))];
+    return uniqueCategories.sort();
+  }, [products]);
 
   useEffect(() => {
     loadProducts();
@@ -81,6 +101,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         const groups: OptionGroupInfo[] = response.data.map((group: BYOOptionGroup) => ({
           id: group.id,
           name: group.name_ar,
+          nameAr: group.name_ar,
           nameEn: group.name_en,
           icon: group.icon,
           optionsCount: group.options?.length || 0,
@@ -114,20 +135,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   };
 
   /**
-   * Handle wizard form submission (simplified flow)
-   */
-  const handleWizardSubmit = async (data: ProductWizardData) => {
-    // Convert wizard data to unified format
-    const unifiedData: UnifiedProductData = {
-      product: data.product,
-      optionGroupAssignments: data.optionGroupAssignments,
-      containerAssignments: [],
-      sizeAssignments: [],
-    };
-    await handleUnifiedSubmit(unifiedData);
-  };
-
-  /**
    * Handle unified form submission
    * Requirements: 1.5 - Save product and all assignments in a single transaction
    * Requirements: 2.4 - Update product data and product_options atomically
@@ -149,8 +156,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         // Template field - single source of truth (replaces product_type and card_style)
         template_id: data.product.template_id || 'template_1',
         // Discount fields
+        // Note: discount_percentage is calculated automatically in frontend from old_price and price
         old_price: data.product.old_price ? parseFloat(data.product.old_price) : undefined,
-        discount_percentage: data.product.discount_percentage ? parseInt(data.product.discount_percentage) : undefined,
         // Nutrition fields
         calories: parseInt(data.product.calories) || 0,
         protein: parseFloat(data.product.protein) || 0,
@@ -160,8 +167,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         fiber: parseFloat(data.product.fiber) || 0,
         energy_score: parseInt(data.product.energy_score) || 0,
         energy_type: data.product.energy_type as 'mental' | 'physical' | 'balanced' | 'none' | undefined,
-        health_keywords: data.product.health_keywords?.length > 0 
-          ? JSON.stringify(data.product.health_keywords) 
+        health_keywords: data.product.health_keywords?.length > 0
+          ? JSON.stringify(data.product.health_keywords)
           : undefined,
         health_benefit_ar: data.product.health_benefit_ar || undefined
       };
@@ -182,19 +189,36 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
       if (editingProduct) {
         // Update existing product with unified endpoint
         // Requirements: 5.3 - No separate containers/sizes, all handled via option groups
-        await updateProductUnified(editingProduct.id, {
+
+        // 🔍 DEBUG: Log what we're sending to backend
+        console.log('📤 Updating product:', editingProduct.id);
+        console.log('📤 Product data:', productData);
+        console.log('📤 Template ID:', productData.template_id);
+        console.log('📤 Option groups:', optionGroupsPayload);
+
+        const response = await updateProductUnified(editingProduct.id, {
           product: productData,
           optionGroups: optionGroupsPayload,
           containers: [], // Deprecated: containers are now option groups
           sizes: []       // Deprecated: sizes are now option groups
         });
+
+        console.log('Product updated:', response);
+
+        // Reload products from server to get fresh data
+        await loadProducts();
         
-        const updatedProduct = { ...editingProduct, ...productData };
-        setProducts(products.map(p => 
-          p.id === editingProduct.id ? updatedProduct : p
-        ));
+        // Update editingProduct with new data so form reflects changes
+        const updatedProduct = { ...editingProduct, ...productData } as Product;
+        setEditingProduct(updatedProduct);
+        
         onUpdate?.(updatedProduct);
         showToast('success', 'تم تحديث المنتج بنجاح');
+        
+        // Close form after successful update
+        setShowCreateModal(false);
+        setEditingProduct(null);
+        onRefresh?.();
       } else {
         // Create new product with unified endpoint
         // Requirements: 5.3 - No separate containers/sizes, all handled via option groups
@@ -206,11 +230,12 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         });
         showToast('success', 'تم إنشاء المنتج بنجاح');
         await loadProducts();
+        
+        // Close form after successful creation
+        setShowCreateModal(false);
+        setEditingProduct(null);
+        onRefresh?.();
       }
-      
-      setShowCreateModal(false);
-      setEditingProduct(null);
-      onRefresh?.();
     } catch (error) {
       console.error('Failed to save product:', error);
       // Requirement 5.5: Display meaningful error message
@@ -226,7 +251,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
 
   const handleDelete = async (productId: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
-    
+
     try {
       await deleteProduct(productId);
       setProducts(products.filter(p => p.id !== productId));
@@ -244,7 +269,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
     try {
       const newAvailability = product.available === 1 ? 0 : 1;
       await updateProduct(product.id, { ...product, available: newAvailability });
-      setProducts(products.map(p => 
+      setProducts(products.map(p =>
         p.id === product.id ? { ...p, available: newAvailability } : p
       ));
       showToast('success', `تم ${newAvailability === 1 ? 'تفعيل' : 'تعطيل'} المنتج`);
@@ -307,7 +332,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
    */
   const handleBulkAssignConfirm = async (assignment: OptionGroupAssignment): Promise<BulkAssignResult> => {
     const productIds = Array.from(selectedProductIds);
-    
+
     try {
       const response = await bulkAssignOptionGroup({
         productIds,
@@ -375,11 +400,24 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   // Get selected products for bulk operations
   const selectedProducts = products.filter(p => selectedProductIds.has(p.id));
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.nameEn?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  /**
+   * Filter products by search query and category
+   * Requirements: 1.2 - Search bar and category filter
+   */
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      // Search filter
+      const matchesSearch = !searchQuery ||
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.nameEn?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Category filter
+      const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, searchQuery, categoryFilter]);
 
   if (isLoading) {
     return (
@@ -404,57 +442,92 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
           {/* Selection Mode Toggle */}
           <button
             onClick={toggleSelectionMode}
-            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all text-sm sm:text-base ${
-              selectionMode
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all text-sm sm:text-base ${selectionMode
                 ? 'bg-purple-100 text-purple-700 border border-purple-300'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-            }`}
+              }`}
           >
             <CheckSquare size={18} />
             <span className="hidden sm:inline">{selectionMode ? 'إلغاء التحديد' : 'تحديد متعدد'}</span>
           </button>
-          
-          {/* Add Product Button with Mode Toggle */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => {
-                setEditingProduct(null);
-                setFormMode('wizard');
-                setShowCreateModal(true);
-              }}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-sm sm:text-base"
-            >
-              <Plus size={18} />
-              <span>إضافة منتج</span>
-            </button>
-            <button
-              onClick={() => {
-                setEditingProduct(null);
-                setFormMode('advanced');
-                setShowCreateModal(true);
-              }}
-              className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all"
-              title="الوضع المتقدم"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
+
+          {/* Add Product Button */}
+          <button
+            onClick={() => {
+              setEditingProduct(null);
+              setShowCreateModal(true);
+            }}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-sm sm:text-base"
+          >
+            <Plus size={18} />
+            <span>إضافة منتج</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Cards - Requirements: 1.3 */}
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border-r-4 border-blue-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-xs sm:text-sm">إجمالي</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.total}</p>
+            </div>
+            <Package className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border-r-4 border-green-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-xs sm:text-sm">متاح</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.available}</p>
+            </div>
+            <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border-r-4 border-red-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-xs sm:text-sm">غير متاح</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.unavailable}</p>
+            </div>
+            <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
           </div>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-        <input
-          type="text"
-          placeholder="البحث عن منتج..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pr-10 pl-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base"
-        />
+      {/* Search and Filters - Requirements: 1.2 */}
+      <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="البحث عن منتج..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pr-10 pl-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base"
+            />
+          </div>
+
+          {/* Category Filter - Requirements: 1.2 */}
+          <div className="relative">
+            <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full sm:w-auto pr-10 pl-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base appearance-none bg-white cursor-pointer"
+            >
+              <option value="all">كل الفئات</option>
+              {categories.map(category => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Bulk Actions Toolbar - shown when in selection mode */}
@@ -528,15 +601,13 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
       {toast && (
         <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-50 animate-in slide-in-from-bottom-4 duration-300">
           <div
-            className={`flex items-center gap-3 p-4 rounded-xl shadow-lg border-2 ${
-              toast.type === 'success'
+            className={`flex items-center gap-3 p-4 rounded-xl shadow-lg border-2 ${toast.type === 'success'
                 ? 'bg-green-50 border-green-200 text-green-800'
                 : 'bg-red-50 border-red-200 text-red-800'
-            }`}
+              }`}
           >
-            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-              toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'
-            }`}>
+            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
               <span className="text-lg">
                 {toast.type === 'success' ? '✅' : '❌'}
               </span>
@@ -544,11 +615,10 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
             <p className="flex-1 text-sm font-medium">{toast.message}</p>
             <button
               onClick={() => setToast(null)}
-              className={`flex-shrink-0 p-1 rounded-lg transition-colors ${
-                toast.type === 'success'
+              className={`flex-shrink-0 p-1 rounded-lg transition-colors ${toast.type === 'success'
                   ? 'hover:bg-green-100 text-green-600'
                   : 'hover:bg-red-100 text-red-600'
-              }`}
+                }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

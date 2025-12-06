@@ -20,8 +20,9 @@ import type {
  * Requirements: 1.1
  */
 export async function getOptionGroups(): Promise<OptionGroupsResponse> {
-  return apiRequest('/admin/options');
+  return apiRequest('/admin/option-groups');
 }
+
 
 /**
  * Create a new option group

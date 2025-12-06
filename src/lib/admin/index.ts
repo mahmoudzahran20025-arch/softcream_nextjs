@@ -125,20 +125,8 @@ export {
   OrdersPolling
 } from './polling'
 
-// Templates (local definitions)
-export {
-  PRODUCT_TEMPLATES,
-  getTemplateForProductType,
-  applySuggestedGroups,
-  hasTemplateForProductType,
-  getAvailableProductTypes,
-  suggestsContainers,
-  suggestsSizes,
-  type ProductTemplate as LocalProductTemplate,
-  type SuggestedGroup
-} from './templates'
-
 // Templates API (database-backed)
+// Note: Local templates.ts was archived - use templates.api.ts instead
 export {
   getTemplates,
   getTemplateById,

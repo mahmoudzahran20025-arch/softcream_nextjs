@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
-import { CompactCard } from '@/components/ui/cards'
+import { SimpleCard } from '@/components/ui/cards'
 import { getCategoryConfig } from '@/config/categories'
 
 interface Product {
@@ -13,8 +13,7 @@ interface Product {
     old_price?: number
     image?: string
     category?: string
-    template_id?: string
-    layout_mode?: string
+    template_id?: string // ✅ Unified System - single source of truth
 }
 
 interface RecommendationsSectionProps {
@@ -94,7 +93,7 @@ export default function RecommendationsSection({
             {/* Recommendations Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {recommendations.map(product => (
-                    <CompactCard
+                    <SimpleCard
                         key={product.id}
                         product={product}
                         config={getCategoryConfig(product.category)}

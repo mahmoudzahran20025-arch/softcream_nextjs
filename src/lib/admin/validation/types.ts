@@ -23,6 +23,9 @@ export const ERROR_CODES = {
   MISSING_PRICE: 'MISSING_PRICE',
   INVALID_PRICE: 'INVALID_PRICE',
   
+  // ID format validation
+  INVALID_ID_FORMAT: 'INVALID_ID_FORMAT',
+  
   // Option group assignment errors (Requirements 3.1, 3.3)
   INVALID_MIN_MAX: 'INVALID_MIN_MAX',
   DUPLICATE_GROUP: 'DUPLICATE_GROUP',
@@ -112,6 +115,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ERROR_CODES.MISSING_CATEGORY]: 'الفئة مطلوبة',
   [ERROR_CODES.MISSING_PRICE]: 'السعر مطلوب',
   [ERROR_CODES.INVALID_PRICE]: 'السعر غير صالح',
+  [ERROR_CODES.INVALID_ID_FORMAT]: 'معرف المنتج يجب أن يحتوي على حروف إنجليزية وأرقام فقط (a-z, 0-9, -, _)',
   [ERROR_CODES.INVALID_MIN_MAX]: 'الحد الأدنى لا يمكن أن يكون أكبر من الحد الأقصى',
   [ERROR_CODES.DUPLICATE_GROUP]: 'هذه المجموعة مضافة بالفعل',
   [ERROR_CODES.INVALID_DATA]: 'البيانات غير صالحة',

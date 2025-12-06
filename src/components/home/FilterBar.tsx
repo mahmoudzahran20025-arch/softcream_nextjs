@@ -42,7 +42,7 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
   // ✅ Dynamic Categories: Extract from products and sort by count
   const CATEGORIES = useMemo(() => {
     const products = filteredProducts || []
-    
+
     // Group products by category
     const categoryGroups = products.reduce((acc, product) => {
       const cat = product.category || 'أخرى'
@@ -52,7 +52,7 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
       acc[cat].push(product)
       return acc
     }, {} as Record<string, any[]>)
-    
+
     // Sort by product count (most products first)
     const sortedCategories = Object.entries(categoryGroups)
       .sort(([, a], [, b]) => b.length - a.length)
@@ -63,15 +63,15 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
         color: getCategoryColor(name),
         count: products.length
       }))
-    
+
     // Add "All" at the beginning
     return [
-      { 
-        value: 'all', 
-        label: 'الكل', 
-        icon: Grid, 
+      {
+        value: 'all',
+        label: 'الكل',
+        icon: Grid,
         color: '#FF6B9D',
-        count: products.length 
+        count: products.length
       },
       ...sortedCategories
     ]
@@ -96,10 +96,10 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
     if (!activeCategory || isUserInteracting || !categoryScrollRef.current) {
       return
     }
-    
+
     const container = categoryScrollRef.current
     const activeTab = container.querySelector(`[data-category="${activeCategory}"]`) as HTMLElement
-    
+
     if (activeTab) {
       // ✅ INCREASED delay to prevent jitter and flickering
       const timeoutId = setTimeout(() => {
@@ -108,14 +108,14 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
         const tabLeft = activeTab.offsetLeft
         const tabWidth = activeTab.offsetWidth
         const centerPos = tabLeft - (containerWidth / 2) + (tabWidth / 2)
-        
+
         // Smooth scroll to center
         container.scrollTo({
           left: centerPos,
           behavior: 'smooth'
         })
       }, 300) // ✅ Increased from 100ms to 300ms to reduce flickering
-      
+
       return () => clearTimeout(timeoutId)
     }
   }, [activeCategory, isUserInteracting])
@@ -143,7 +143,7 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
       maxCalories: calorieRange.max ?? null,
       searchQuery: filters.searchQuery || searchQuery
     }
-    
+
     applyFilters(finalFilters)
 
     if (onFiltersChange) {
@@ -154,11 +154,11 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
   // Handle search with debounce
   const handleSearch = (query: string) => {
     setSearchQuery(query)
-    
+
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
-    
+
     searchTimeoutRef.current = setTimeout(() => {
       applyAllFilters({ ...localFilters, searchQuery: query })
     }, 300)
@@ -184,7 +184,7 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
     setLocalFilters(resetFilters)
     setSearchQuery('')
     applyAllFilters({ ...resetFilters, searchQuery: '' })
-    
+
     if (onClearFilters) {
       onClearFilters()
     }
@@ -192,13 +192,13 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
 
   // Track scroll position for smooth sticky behavior
   const [isScrolled, setIsScrolled] = useState(false)
-  
+
   useEffect(() => {
     const handleScroll = () => {
       // Check if scrolled past the initial position (e.g., 100px)
       setIsScrolled(window.scrollY > 100)
     }
-    
+
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -215,20 +215,19 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
   return (
     <>
       {/* ✅ Category Navigation Tabs - Smooth Sticky Behavior */}
-      <div 
-        className={`sticky top-[72px] z-40 bg-gradient-to-r from-pink-50/95 via-purple-50/95 to-pink-50/95 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 backdrop-blur-sm border-b border-pink-200/50 dark:border-slate-700/50 transition-all duration-300 ${
-          isScrolled ? 'shadow-md' : 'shadow-sm'
-        }`}
+      <div
+        className={`sticky top-[72px] z-40 bg-gradient-to-r from-pink-50/95 via-purple-50/95 to-pink-50/95 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 backdrop-blur-sm border-b border-pink-200/50 dark:border-slate-700/50 transition-all duration-300 ${isScrolled ? 'shadow-md' : 'shadow-sm'
+          }`}
         style={{ willChange: 'transform, box-shadow' }}
       >
         <div className="container mx-auto px-4 py-2.5">
           <div className="flex items-center gap-2">
             {/* Category Pills - Scrollable - ✅ Smaller & Brand Colors */}
-            <div 
+            <div
               ref={categoryScrollRef}
               className="flex-1 flex gap-1.5 overflow-x-auto scrollbar-hide"
-              style={{ 
-                scrollbarWidth: 'none', 
+              style={{
+                scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
               }}
             >
@@ -236,17 +235,16 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
                 const categoryId = category.value
                 const isActive = activeCategory === categoryId
                 const Icon = category.icon
-                
+
                 return (
                   <button
                     key={categoryId}
                     data-category={categoryId}
                     onClick={() => scrollToCategory(categoryId)}
-                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold transition-all duration-300 whitespace-nowrap text-xs ${
-                      isActive
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold transition-all duration-300 whitespace-nowrap text-xs ${isActive
                         ? 'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white shadow-lg shadow-pink-500/40 scale-105'
                         : 'bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-pink-50 dark:hover:bg-slate-700 border border-pink-200/50 dark:border-slate-600 hover:border-[#FF6B9D]/50 hover:scale-[1.02]'
-                    }`}
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span>{category.label}</span>
@@ -258,11 +256,10 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
             {/* Filter Toggle Button - ✅ Smaller & Brand Colors */}
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className={`flex-shrink-0 flex items-center justify-center gap-1.5 min-w-[36px] h-[36px] px-3 rounded-full font-bold transition-all duration-300 shadow-md relative ${
-                showAdvanced
+              className={`flex-shrink-0 flex items-center justify-center gap-1.5 min-w-[36px] h-[36px] px-3 rounded-full font-bold transition-all duration-300 shadow-md relative ${showAdvanced
                   ? 'bg-gradient-to-r from-[#FF6B9D] to-[#A3164D] text-white shadow-lg shadow-pink-500/40 scale-105'
                   : 'bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 dark:hover:from-slate-700 dark:hover:to-slate-600 border border-pink-200/50 dark:border-slate-600 hover:border-[#FF6B9D]/50'
-              }`}
+                }`}
             >
               <Filter className="w-4 h-4" />
               {activeFilterCount > 0 && (
@@ -387,7 +384,7 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
               onClick={() => setShowAdvanced(false)}
               className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
             />
-            
+
             {/* Drawer */}
             <motion.div
               initial={{ y: '100%' }}
@@ -400,7 +397,7 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
               <div className="flex justify-center pt-4 pb-2">
                 <div className="w-16 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
               </div>
-              
+
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b-2 border-slate-200 dark:border-slate-700">
                 <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -414,7 +411,7 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
                   <X className="w-6 h-6 text-slate-500" />
                 </button>
               </div>
-              
+
               {/* Content */}
               <div className="p-6 space-y-6">
                 {/* Search Bar - Prominent */}
@@ -502,7 +499,7 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
                   </button>
                 </div>
               </div>
-              
+
               {/* Safe area for iOS */}
               <div className="h-8" />
             </motion.div>

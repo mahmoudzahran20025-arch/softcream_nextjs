@@ -59,9 +59,9 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
   // Group products by category (memoized for performance)
   const groupedProducts = useMemo(() => {
     if (!products || products.length === 0) return []
-    
+
     const groups: Record<string, Product[]> = {}
-    
+
     products.forEach(product => {
       const category = product.category || 'أخرى'
       if (!groups[category]) {
@@ -89,7 +89,7 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
         hasScrolledRef.current = true
       }
     }
-    
+
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -97,45 +97,45 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
   // ✅ Smart IntersectionObserver for auto-highlighting
   useEffect(() => {
     if (isUserInteracting) return // Respect interaction lock
-    
+
     // Clean up previous observer
     if (observerRef.current) {
       observerRef.current.disconnect()
     }
-    
+
     // Create new observer with multiple thresholds
     observerRef.current = new IntersectionObserver(
       (entries) => {
         if (isUserInteracting) return // Double-check during callback
-        
+
         // ✅ CRITICAL FIX: Only activate after user scrolls past hero section
         if (!hasScrolledRef.current) {
           return // Wait until user scrolls down
         }
-        
+
         // ✅ IMPROVED LOGIC: Find the section that's most prominently in view
         // Filter entries that are actually visible (intersecting)
         const visibleEntries = entries.filter(entry => entry.isIntersecting && entry.intersectionRatio > 0)
-        
+
         if (visibleEntries.length === 0) return
-        
+
         // ✅ Smart selection: Prioritize sections that are crossing the threshold line
         // The threshold line is at the top of the viewport (after sticky header)
         const sortedEntries = visibleEntries.sort((a, b) => {
           const aRect = a.target.getBoundingClientRect()
           const bRect = b.target.getBoundingClientRect()
-          
+
           // Calculate distance from threshold line (top of viewport + header offset)
           const thresholdLine = 180 // Header (72px) + Category Tabs (60px) + padding
           const aDistance = Math.abs(aRect.top - thresholdLine)
           const bDistance = Math.abs(bRect.top - thresholdLine)
-          
+
           // Prefer the section closest to the threshold line
           return aDistance - bDistance
         })
-        
+
         const bestMatch = sortedEntries[0]
-        
+
         // ✅ STRICTER: Only update if section is significantly visible (>25%)
         if (bestMatch && bestMatch.intersectionRatio > 0.25) {
           const category = bestMatch.target.getAttribute('data-category')
@@ -152,7 +152,7 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
         rootMargin: '-192px 0px -40% 0px'
       }
     )
-    
+
     // Observe all category sections
     const sections = document.querySelectorAll('[data-category]')
     sections.forEach(section => {
@@ -160,7 +160,7 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
         observerRef.current.observe(section)
       }
     })
-    
+
     return () => {
       if (observerRef.current) {
         observerRef.current.disconnect()

@@ -2,10 +2,20 @@
 // api.ts - Server-Safe API Service for Next.js
 // ✅ FIXED: Device ID support + Proper error handling for validation
 // CRITICAL: Never send prices from frontend - backend calculates all prices
+// 
+// Uses shared types from @/types/products and @/types/options
+// Source of truth: softcream-api/schema.sql
 // ================================================================
 
 import { API_CONFIG, STORAGE_KEYS } from '@/config/constants'
 import type { Option, OptionGroup } from '@/types/options'
+import type {
+  BaseProduct,
+  ProductConfiguration as SharedProductConfiguration,
+  ContainerType as SharedContainerType,
+  ProductSize as SharedProductSize,
+  NutritionInfo,
+} from '@/types/products'
 
 const API_URL = API_CONFIG.BASE_URL
 
@@ -52,55 +62,16 @@ export interface Addon {
   available?: number
 }
 
-export interface Product {
-  id: string
-  name: string
-  nameEn?: string
-  price: number
-  image?: string
-  category?: string
-  categoryEn?: string
-  description?: string
-  descriptionEn?: string
-  tags?: string
-  ingredients?: string
-  allergens?: string
-  nutrition_facts?: string
-  available?: number
-
-  // Nutrition
-  calories?: number
-  protein?: number
-  carbs?: number
-  sugar?: number
-  fat?: number
-  fiber?: number
-  energy_type?: string
-  energy_score?: number
-  badge?: string
-
-  // ✨ Unified Configuration System
+/**
+ * Product interface for Customer operations
+ * Extends BaseProduct from shared types with customer-specific fields
+ */
+export interface Product extends BaseProduct {
+  // ✨ Unified Configuration System (Customer-specific)
   optionGroups?: OptionGroup[]
   options_preview?: any
 
-  // ✅ Template System Fields (purified - no legacy fields)
-  template_id?: string
-  template_variant?: string
-  is_template_dynamic?: number
-  ui_config?: string
-
-  // ✅ Pricing with Discounts
-  old_price?: number
-  discount_percentage?: number
-
-  // ✅ Card Configuration (moved to ui_config)
-  // Badge data is now in ui_config JSON field
-
-  // ✅ Health System Fields
-  health_keywords?: string
-  health_benefit_ar?: string
-
-  // Parsed fields (from expand parameter)
+  // Parsed fields (from expand parameter - Customer-specific)
   ingredientsList?: string[]
   allergensList?: string[]
   nutritionData?: any
@@ -314,38 +285,29 @@ export async function getCustomizationRules(productId: string, lang: 'ar' | 'en'
 // Product Configuration API (Sizes, Containers, Customization)
 // ================================================================
 
-export interface ContainerType {
-  id: string
-  name: string
-  nameAr: string
-  nameEn: string
-  description?: string
-  priceModifier: number
-  image?: string
+/**
+ * ContainerType for Customer operations
+ * Extends SharedContainerType with customer-specific fields
+ */
+export interface ContainerType extends SharedContainerType {
   maxSizes: number
   isDefault: boolean
-  nutrition: {
-    calories: number
-    protein: number
-    carbs: number
-    sugar: number
-    fat: number
-    fiber: number
-  }
 }
 
-export interface ProductSize {
-  id: string
-  name: string
-  nameAr: string
-  nameEn: string
-  priceModifier: number
-  nutritionMultiplier: number
+/**
+ * ProductSize for Customer operations
+ * Extends SharedProductSize with customer-specific fields
+ */
+export interface ProductSize extends SharedProductSize {
   isDefault: boolean
   containerId?: string
 }
 
-export interface ProductConfiguration {
+/**
+ * ProductConfiguration for Customer operations
+ * Uses shared ProductConfiguration type with customer-specific extensions
+ */
+export interface ProductConfiguration extends SharedProductConfiguration {
   product: {
     id: string
     name: string
@@ -354,21 +316,8 @@ export interface ProductConfiguration {
     basePrice: number
     templateId: string  // ✅ Backend returns templateId (not productType)
     isCustomizable: boolean
-    baseNutrition: {
-      calories: number
-      protein: number
-      carbs: number
-      sugar: number
-      fat: number
-      fiber: number
-    }
+    baseNutrition: NutritionInfo
   }
-  hasContainers: boolean
-  containers: ContainerType[]
-  hasSizes: boolean
-  sizes: ProductSize[]
-  hasCustomization: boolean
-  customizationRules: any[]
 }
 
 export async function getProductConfiguration(productId: string, lang: 'ar' | 'en' = 'ar'): Promise<ProductConfiguration | null> {

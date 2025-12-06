@@ -1,119 +1,81 @@
 /**
  * Products API - Admin Product Management
+ * 
+ * Uses shared types from @/types/products and @/types/options
+ * Source of truth: softcream-api/schema.sql
  */
 
 import { apiRequest } from './apiClient'
 
 // ===========================
-// Types
+// Import Shared Types
 // ===========================
 
-export interface Product {
-  id: string
-  name: string
-  nameEn?: string
-  category: string
-  categoryEn?: string
-  price: number
-  description?: string
-  descriptionEn?: string
-  image?: string
-  badge?: string
-  available: number
-  // Nutrition fields
-  calories?: number
-  protein?: number
-  carbs?: number
-  fat?: number
-  sugar?: number
-  fiber?: number
-  // Energy fields
-  energy_type?: 'mental' | 'physical' | 'balanced' | 'none'
-  energy_score?: number
-  // Metadata fields (JSON strings)
-  tags?: string
-  ingredients?: string
-  nutrition_facts?: string
-  allergens?: string
+import type {
+  BaseProduct,
+  ProductConfiguration as SharedProductConfiguration,
+  ContainerType,
+  ProductSize,
+  OptionGroupAssignment,
+  CustomizationRule,
+  NutritionInfo,
+  ContainerAssignment,
+  SizeAssignment,
+} from '@/types/products'
 
-  // ✅ Template System Fields (Purified - Requirements 3.1)
-  // ❌ REMOVED: product_type (deprecated - use option_groups instead)
-  // ❌ REMOVED: layout_mode (deprecated - use template_id instead)
-  // ❌ REMOVED: card_style (deprecated - use template_id instead)
-  template_id?: string
-  template_variant?: string
-  is_template_dynamic?: number
-  ui_config?: string
+import type { Option, OptionGroup } from '@/types/options'
 
-  // ✅ Pricing with Discounts
-  old_price?: number
-  discount_percentage?: number
+// ===========================
+// Re-export Shared Types for convenience
+// ===========================
 
-  // ✅ Card Configuration
-  card_badge?: string
-  card_badge_color?: string
-
-  // ✅ Health System Fields
-  health_keywords?: string
-  health_benefit_ar?: string
+export type {
+  BaseProduct,
+  ContainerType,
+  ProductSize,
+  CustomizationRule,
+  NutritionInfo,
+  Option,
+  OptionGroup,
 }
 
+// ===========================
+// Admin-Specific Type Aliases
+// ===========================
+
 /**
- * BYO Option interface
+ * Product type for Admin operations
+ * Alias for BaseProduct from shared types
+ */
+export type Product = BaseProduct
+
+/**
+ * BYO Option - Alias for Option from shared types
  * Note: Options table uses `group_id` to reference option_groups.id
  * This is different from product_options which uses `option_group_id`
  */
-export interface BYOOption {
-  id: string
-  /** The option group this option belongs to (references option_groups.id) */
-  group_id: string
-  name_ar: string
-  name_en: string
-  description_ar?: string
-  description_en?: string
-  base_price: number
-  image?: string
-  available: number
-  display_order: number
-  calories: number
-  protein: number
-  carbs: number
-  sugar: number
-  fat: number
-  fiber: number
-}
+export type BYOOption = Option
 
-export interface BYOOptionGroup {
-  id: string
-  name_ar: string
-  name_en: string
-  description_ar?: string
-  description_en?: string
-  display_order: number
-  icon: string
-  options: BYOOption[]
-}
+/**
+ * BYO Option Group - Alias for OptionGroup from shared types
+ */
+export type BYOOptionGroup = OptionGroup
 
-export interface ProductConfiguration {
-  product: {
-    id: string
-    name: string
-    basePrice: number
-    templateId: string  // ✅ Using templateId (purified)
-    isCustomizable: boolean
-  }
-  hasContainers: boolean
-  containers: any[]
-  hasSizes: boolean
-  sizes: any[]
-  hasCustomization: boolean
-  customizationRules: any[]
-}
+/**
+ * Product Configuration for Admin
+ * Uses shared ProductConfiguration type
+ */
+export type ProductConfiguration = SharedProductConfiguration
 
 // ===========================
 // Full Product Types (for unified form)
+// Admin-specific extended types
 // ===========================
 
+/**
+ * Option Group Info for Admin display
+ * Summary information about an option group
+ */
 export interface OptionGroupInfo {
   id: string
   nameAr: string
@@ -127,44 +89,42 @@ export interface OptionGroupInfo {
 
 /**
  * Full option group assignment with group details
+ * Extends OptionGroupAssignment from shared types with admin-specific fields
  * Uses option_group_id as per unified options system (Requirements 5.2)
+ * 
+ * Note: Override columns were removed in Migration 0025
+ * - is_required, min_selections, max_selections are now the only values
+ * - price_override is still available for per-product pricing
  */
-export interface OptionGroupAssignmentFull {
-  /** The option group ID (from option_group_id column in database) */
-  groupId: string
-  isRequired: boolean
-  minSelections: number
-  maxSelections: number
-  displayOrder: number
-  // Override flags (null means using group default)
-  isRequiredOverride: number | null
-  minSelectionsOverride: number | null
-  maxSelectionsOverride: number | null
+export interface OptionGroupAssignmentFull extends Omit<OptionGroupAssignment, 'group'> {
   group: OptionGroupInfo
 }
 
+/**
+ * Container Info for Admin display
+ * Summary information about a container type
+ */
 export interface ContainerInfo {
   id: string
   nameAr: string
   nameEn: string
   priceModifier: number
   image?: string
-  nutrition: {
-    calories: number
-    protein: number
-    carbs: number
-    fat: number
-    sugar: number
-    fiber: number
-  }
+  nutrition: NutritionInfo
 }
 
-export interface ContainerAssignmentFull {
-  containerId: string
-  isDefault: boolean
+/**
+ * Full container assignment with container details
+ * Extends ContainerAssignment from shared types
+ */
+export interface ContainerAssignmentFull extends Omit<ContainerAssignment, 'container'> {
   container: ContainerInfo
 }
 
+/**
+ * Size Info for Admin display
+ * Summary information about a product size
+ */
 export interface SizeInfo {
   id: string
   nameAr: string
@@ -173,9 +133,11 @@ export interface SizeInfo {
   nutritionMultiplier: number
 }
 
-export interface SizeAssignmentFull {
-  sizeId: string
-  isDefault: boolean
+/**
+ * Full size assignment with size details
+ * Extends SizeAssignment from shared types
+ */
+export interface SizeAssignmentFull extends Omit<SizeAssignment, 'size'> {
   priceOverride: number | null
   available: boolean
   size: SizeInfo
@@ -253,20 +215,9 @@ export async function getProductFull(productId: string): Promise<ProductFullResp
   return apiRequest(`/admin/products/${productId}/full`)
 }
 
-/**
- * Customization rule for product options
- * Uses option_group_id as per unified options system
- * Note: product_options table uses option_group_id (not group_id)
- */
-export interface CustomizationRule {
-  /** The option group ID (references option_groups.id via product_options.option_group_id) */
-  option_group_id: string
-  is_required?: boolean
-  min_selections?: number
-  max_selections?: number
-  price_override?: number
-  display_order?: number
-}
+// CustomizationRule is imported from @/types/products
+// Uses option_group_id as per unified options system
+// Note: product_options table uses option_group_id (not group_id)
 
 /**
  * Update product customization data
@@ -301,8 +252,9 @@ export async function updateProductCustomization(
 // ===========================
 
 export async function getBYOOptions(): Promise<{ success: boolean; data: BYOOptionGroup[] }> {
-  return apiRequest('/admin/options')
+  return apiRequest('/admin/option-groups')
 }
+
 
 export async function createBYOOption(data: Partial<BYOOption> & { id: string }): Promise<{
   success: boolean

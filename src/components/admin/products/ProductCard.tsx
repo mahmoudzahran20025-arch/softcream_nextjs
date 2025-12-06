@@ -5,7 +5,6 @@ import React from 'react';
 import { Edit, Trash2, Eye, EyeOff, Check } from 'lucide-react';
 import Image from 'next/image';
 import type { ProductCardProps } from './types';
-import TemplateBadge from './TemplateBadge';
 import OptionGroupsBadge from './OptionGroupsBadge';
 
 /**
@@ -23,11 +22,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
   isSelected = false,
   onSelectionChange,
   selectionMode = false,
-  // Template badge props (Requirements: 5.1)
-  templateId,
-  templateComplexity,
-  templateNameAr,
-  templateNameEn,
+  // Template badge props removed (archived per Requirements 6.1)
+  templateId: _templateId,
+  templateComplexity: _templateComplexity,
+  templateNameAr: _templateNameAr,
+  templateNameEn: _templateNameEn,
   // Option groups badge props (Requirements: 5.2)
   assignedGroups = []
 }) => {
@@ -124,17 +123,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
 
-        {/* Badges Section - Template and Option Groups */}
-        {/* Requirements: 5.1 - Template Badge, 5.2 - Option Groups Badge */}
+        {/* Badges Section - Option Groups */}
+        {/* Requirements: 5.2 - Option Groups Badge */}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {/* Template Badge (Requirements: 5.1) */}
-          <TemplateBadge
-            templateId={templateId || (product as any).template_id}
-            complexity={templateComplexity}
-            nameAr={templateNameAr}
-            nameEn={templateNameEn}
-          />
-
           {/* Option Groups Badge (Requirements: 5.2) */}
           <OptionGroupsBadge
             productId={product.id}

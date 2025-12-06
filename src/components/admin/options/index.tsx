@@ -10,7 +10,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Search, Package } from 'lucide-react';
+import { Plus, Search, Package, Layers, CheckCircle, XCircle } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -35,9 +35,8 @@ import GroupFormModal from './GroupFormModal';
 import OptionFormModal from './OptionFormModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import OptionGroupSkeleton from './OptionGroupSkeleton';
-import OptionsTable from './OptionsTable';
 
-type ViewMode = 'groups' | 'table';
+// Simplified: Only groups view mode (Requirements: 6.2 - archive OptionsTable and OptionCards)
 
 /**
  * SortableOptionGroupCard - Wrapper for OptionGroupCard with drag & drop
@@ -121,9 +120,6 @@ const OptionsPage: React.FC = () => {
   // Track if reordering is in progress
   const [isReordering, setIsReordering] = useState(false);
 
-  // Track active view mode (groups or table)
-  const [viewMode, setViewMode] = useState<ViewMode>('groups');
-
   // ===========================
   // Drag & Drop Sensors (Requirement 4.4)
   // ===========================
@@ -167,6 +163,30 @@ const OptionsPage: React.FC = () => {
   useEffect(() => {
     fetchOptionGroups();
   }, [fetchOptionGroups]);
+
+  // ===========================
+  // Stats Calculation (Requirement 3.4)
+  // ===========================
+  const stats = useMemo(() => {
+    const totalGroups = state.optionGroups.length;
+    const totalOptions = state.optionGroups.reduce(
+      (sum, group) => sum + (group.options || []).length,
+      0
+    );
+    const availableOptions = state.optionGroups.reduce(
+      (sum, group) =>
+        sum + (group.options || []).filter((opt) => opt.available === 1).length,
+      0
+    );
+    const unavailableOptions = totalOptions - availableOptions;
+
+    return {
+      totalGroups,
+      totalOptions,
+      availableOptions,
+      unavailableOptions,
+    };
+  }, [state.optionGroups]);
 
   // ===========================
   // Search/Filter Logic (Requirement 9.1, 9.2)
@@ -669,75 +689,75 @@ const OptionsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="flex border-b border-gray-200">
-          <button
-            onClick={() => setViewMode('groups')}
-            className={`flex-1 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2 ${viewMode === 'groups'
-              ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white'
-              : 'text-gray-600 hover:bg-gray-50'
-              }`}
-          >
-            <Package size={20} />
-            <span>عرض المجموعات</span>
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            className={`flex-1 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2 ${viewMode === 'table'
-              ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white'
-              : 'text-gray-600 hover:bg-gray-50'
-              }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            <span>جدول شامل</span>
-          </button>
+      {/* Stats Cards (Requirement 3.4) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 shadow-sm border-r-4 border-blue-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">المجموعات</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.totalGroups}</p>
+            </div>
+            <Layers className="w-8 h-8 text-blue-500" />
+          </div>
         </div>
 
-        {/* Search Bar - Only show for groups view */}
-        {viewMode === 'groups' && (
-          <div className="p-4">
-            <div className="relative">
-              <Search
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                size={20}
-              />
-              <input
-                type="text"
-                placeholder="بحث في المجموعات والخيارات..."
-                value={state.searchQuery}
-                onChange={handleSearchChange}
-                className="w-full pr-10 pl-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-              />
+        <div className="bg-white rounded-xl p-4 shadow-sm border-r-4 border-purple-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">إجمالي الخيارات</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.totalOptions}</p>
             </div>
+            <Package className="w-8 h-8 text-purple-500" />
           </div>
-        )}
+        </div>
+
+        <div className="bg-white rounded-xl p-4 shadow-sm border-r-4 border-green-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">متوفرة</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.availableOptions}</p>
+            </div>
+            <CheckCircle className="w-8 h-8 text-green-500" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 shadow-sm border-r-4 border-red-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">غير متوفرة</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.unavailableOptions}</p>
+            </div>
+            <XCircle className="w-8 h-8 text-red-500" />
+          </div>
+        </div>
       </div>
 
-      {/* Content */}
-      {viewMode === 'table' ? (
-        /* Table View */
-        state.isLoading ? (
-          renderLoading()
-        ) : (
-          <OptionsTable
-            optionGroups={state.optionGroups}
-            onRefresh={fetchOptionGroups}
+      {/* Search Bar */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-4">
+        <div className="relative">
+          <Search
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={20}
           />
-        )
+          <input
+            type="text"
+            placeholder="بحث في المجموعات والخيارات..."
+            value={state.searchQuery}
+            onChange={handleSearchChange}
+            className="w-full pr-10 pl-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+        </div>
+      </div>
+
+      {/* Content - Groups View Only (Simplified per Requirements 6.2) */}
+      {state.isLoading ? (
+        renderLoading()
+      ) : state.optionGroups.length === 0 ? (
+        renderEmptyState()
+      ) : filteredGroups.length === 0 ? (
+        renderNoResults()
       ) : (
-        /* Groups View */
-        state.isLoading ? (
-          renderLoading()
-        ) : state.optionGroups.length === 0 ? (
-          renderEmptyState()
-        ) : filteredGroups.length === 0 ? (
-          renderNoResults()
-        ) : (
-          renderOptionGroups()
-        )
+        renderOptionGroups()
       )}
 
       {/* Group Form Modal - Requirements 2.1, 3.1 */}

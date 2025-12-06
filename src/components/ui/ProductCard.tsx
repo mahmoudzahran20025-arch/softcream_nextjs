@@ -4,8 +4,6 @@ import { getCategoryConfig } from '@/config/categories'
 import {
   BYOProductCard,
   StandardProductCard,
-  FeaturedProductCard,
-  CompactProductCard,
   SimpleCard
 } from './cards'
 
@@ -97,7 +95,7 @@ export interface Product {
 interface ProductCardProps {
   product: Product
   onAddToCart?: (product: Product, quantity: number) => void
-  forceCardType?: 'simple' | 'medium' | 'complex' | 'standard' | 'wizard' | 'compact' | 'featured' | 'byo'
+  forceCardType?: 'simple' | 'medium' | 'complex' | 'standard' | 'wizard' | 'byo'
 }
 
 /**
@@ -142,16 +140,9 @@ export default function ProductCard({ product, forceCardType, onAddToCart }: Pro
       return <SimpleCard product={productWithUIConfig} config={categoryConfig} onAddToCart={onAddToCart} uiConfig={uiConfig} />
 
     // ComplexCard - للمنتجات المعقدة BYO (template_3)
-    // Requirements 9.3: template_id='template_3' → WizardCard (BYOProductCard)
+    // Requirements 9.3: template_id='template_3' → BYOProductCard
     case 'complex':
       return <BYOProductCard product={productWithUIConfig} config={categoryConfig} uiConfig={uiConfig} />
-
-    // Legacy cards (for backward compatibility)
-    case 'featured':
-      return <FeaturedProductCard product={productWithUIConfig} config={categoryConfig} />
-
-    case 'compact':
-      return <CompactProductCard product={productWithUIConfig} config={categoryConfig} />
 
     // MediumCard - للمنتجات المتوسطة (template_2 - default fallback)
     // Requirements 9.2: template_id='template_2' → StandardCard
@@ -163,7 +154,7 @@ export default function ProductCard({ product, forceCardType, onAddToCart }: Pro
 
 /**
  * Normalize forceCardType to internal card type
- * Requirements 7.2: forceCardType prop overrides automatic selection
+ * ✅ Unified System: Only 3 card types (simple, medium, complex)
  */
 function normalizeCardType(forceCardType: string): CardType {
   switch (forceCardType) {
@@ -176,17 +167,13 @@ function normalizeCardType(forceCardType: string): CardType {
     case 'wizard':
     case 'byo':
       return 'complex'
-    case 'featured':
-      return 'featured'
-    case 'compact':
-      return 'compact'
     default:
       return 'medium'
   }
 }
 
-// Internal card type union
-export type CardType = 'simple' | 'medium' | 'complex' | 'featured' | 'compact'
+// Internal card type union - ✅ Unified: Only 3 types
+export type CardType = 'simple' | 'medium' | 'complex'
 
 /**
  * Determine card type from product template_id

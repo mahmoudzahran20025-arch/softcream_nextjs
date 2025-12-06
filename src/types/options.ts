@@ -36,6 +36,5 @@ export interface OptionGroup {
     min_selections: number
     max_selections: number
     options: Option[]
-    // From product_options join
-    group_order?: number
+    // ❌ REMOVED: group_order (Migration 0025 - redundant with display_order)
 }

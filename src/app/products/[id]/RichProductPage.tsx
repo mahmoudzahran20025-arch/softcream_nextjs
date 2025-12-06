@@ -38,12 +38,12 @@ function useSmartScroll() {
   const handleScroll = useCallback(() => {
     const currentScrollY = window.scrollY
     const scrollDelta = currentScrollY - lastScrollY.current
-    
+
     // Determine scroll direction
     if (Math.abs(scrollDelta) > 5) {
       const direction = scrollDelta > 0 ? 'down' : 'up'
       scrollDirection.current = direction
-      
+
       // Hide header on scroll down
       if (direction === 'down' && currentScrollY > 100) {
         setShowHeader(false)
@@ -56,9 +56,9 @@ function useSmartScroll() {
         setShowHeader(true)
       }
     }
-    
+
     lastScrollY.current = currentScrollY
-    
+
     // Set to idle after scroll stops
     if (scrollTimeout.current) {
       clearTimeout(scrollTimeout.current)
@@ -168,7 +168,7 @@ function RichProductPageContent({ product, allProducts }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Spacer for fixed header */}
       <div className="h-[72px]" />
 

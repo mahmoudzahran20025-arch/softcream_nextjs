@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles, Star, ChevronDown, ChevronUp } from 'lucide-react'
+import { Sparkles, Star, ChevronDown, ChevronUp, Tag } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import PriceDisplay from '@/components/ui/common/PriceDisplay'
+import { DiscountBadge } from '@/components/ui/common'
 import { HealthBadges } from '@/components/ui/health'
 import { parseHealthKeywords } from '@/lib/health/keywords'
 
@@ -12,6 +13,7 @@ interface Product {
   name: string
   nameEn?: string
   price: number
+  old_price?: number  // ✅ NEW: for discount display
   description?: string
   energy_score?: number
   category?: string
@@ -31,6 +33,11 @@ export default function ProductHeader({ product, displayPrice }: ProductHeaderPr
   // Check if description is long enough to need expansion
   const descriptionLength = product.description?.length || 0
   const needsExpansion = descriptionLength > 120
+
+  // ✅ Calculate discount percentage
+  const discountPct = product.old_price && product.old_price > product.price
+    ? Math.round(((product.old_price - product.price) / product.old_price) * 100)
+    : 0
 
   return (
     <motion.div
@@ -98,10 +105,29 @@ export default function ProductHeader({ product, displayPrice }: ProductHeaderPr
           )}
         </div>
 
-        {/* Price + Energy Badge */}
-        <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+        {/* Price + Badges */}
+        <div className="flex-shrink-0 flex flex-col items-end gap-2">
+          {/* ✅ Discount Badge - Prominent like apps */}
+          {discountPct > 0 && (
+            <motion.div
+              initial={{ scale: 0, rotate: -12 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', delay: 0.2 }}
+              className="relative"
+            >
+              <div className="bg-gradient-to-br from-red-500 via-red-600 to-rose-600 text-white px-3 py-1.5 rounded-xl shadow-lg shadow-red-500/30 flex items-center gap-1.5">
+                <Tag className="w-4 h-4" />
+                <span className="font-black text-sm">خصم {discountPct}%</span>
+              </div>
+              {/* Shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-xl animate-pulse" />
+            </motion.div>
+          )}
+
+          {/* ✅ NEW: Pass oldPrice to show discount */}
           <PriceDisplay
             price={displayPrice ?? product.price}
+            oldPrice={product.old_price}
             size="lg"
             className="text-pink-600 dark:text-pink-400"
           />

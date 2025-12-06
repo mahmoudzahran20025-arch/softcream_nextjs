@@ -13,6 +13,7 @@
 
 import React from 'react';
 import type { ProductDetailsSectionProps } from './types';
+import { TEMPLATES, getTemplateById } from './templateConfig';
 
 const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
   formData,
@@ -41,11 +42,18 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
               type="text"
               required
               value={formData.id}
-              onChange={(e) => handleChange('id', e.target.value)}
+              onChange={(e) => {
+                // Only allow English letters, numbers, underscores, and hyphens
+                const sanitized = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+                handleChange('id', sanitized);
+              }}
               disabled={isEditing}
               className="w-full px-4 py-2.5 border-2 border-pink-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all bg-white disabled:bg-gray-100"
               placeholder="مثال: ice-cream-vanilla"
+              pattern="[a-zA-Z0-9_-]+"
+              title="يجب أن يحتوي على حروف إنجليزية وأرقام فقط"
             />
+            <p className="text-xs text-gray-500 mt-1">حروف إنجليزية وأرقام فقط (a-z, 0-9, -, _)</p>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">الاسم (العربية) *</label>
@@ -115,6 +123,69 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
         </div>
       </div>
 
+      {/* Template Selection */}
+      <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl p-5 border-2 border-indigo-200">
+        <h3 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent mb-3 flex items-center gap-2">
+          <span>🎨</span> اختر قالب العرض
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          القالب يحدد كيف سيظهر المنتج للعملاء وطريقة التخصيص
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {TEMPLATES.map(template => (
+            <button
+              key={template.id}
+              type="button"
+              onClick={() => handleChange('template_id', template.id)}
+              className={`p-4 rounded-xl border-2 text-right transition-all ${formData.template_id === template.id
+                ? 'border-indigo-500 bg-indigo-50 shadow-md'
+                : 'border-gray-200 bg-white hover:border-indigo-300'
+                }`}
+            >
+              <div className="flex items-start gap-3 mb-2">
+                <span className="text-3xl">{template.icon}</span>
+                <div className="flex-1">
+                  <div className="font-bold text-gray-800">{template.name}</div>
+                  <div className="text-xs text-gray-500">{template.nameEn}</div>
+                </div>
+                {formData.template_id === template.id && (
+                  <span className="text-green-500 text-xl">✓</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mb-2">{template.description}</p>
+              <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                {template.preview}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Selected Template Details */}
+        {formData.template_id && (() => {
+          const selectedTemplate = getTemplateById(formData.template_id)
+          return selectedTemplate && (
+            <div className="mt-4 p-4 bg-white rounded-lg border border-indigo-200">
+              <div className="text-sm font-semibold text-indigo-700 mb-2">
+                📌 الاستخدام المثالي:
+              </div>
+              <p className="text-sm text-gray-700 mb-3">{selectedTemplate.usage}</p>
+              <div className="text-sm font-semibold text-indigo-700 mb-2">
+                ✨ المميزات:
+              </div>
+              <ul className="text-sm text-gray-700 space-y-1">
+                {selectedTemplate.features.map((feature, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-indigo-500 mt-0.5">•</span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })()}
+      </div>
+
       {/* Pricing & Discounts Section - Requirement 8 */}
       <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 border-2 border-amber-200">
         <h3 className="text-lg font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
@@ -143,76 +214,52 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
           {/* Old Price */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              السعر القديم (اختياري)
+              السعر الأصلي (قبل الخصم) *
             </label>
+            <p className="text-xs text-gray-600 mb-2">
+              أدخل السعر الأصلي إذا كان هناك خصم. النسبة ستُحسب تلقائياً
+            </p>
             <div className="relative">
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={formData.old_price || ''}
-                onChange={(e) => {
-                  const oldPriceStr = e.target.value;
-                  handleChange('old_price', oldPriceStr);
-
-                  // Auto-calculate discount percentage
-                  const oldPrice = oldPriceStr ? parseFloat(oldPriceStr) : 0;
-                  const currentPrice = formData.price ? parseFloat(formData.price) : 0;
-
-                  if (oldPrice && currentPrice && oldPrice > currentPrice) {
-                    const discountPct = Math.round(((oldPrice - currentPrice) / oldPrice) * 100);
-                    handleChange('discount_percentage', discountPct.toString());
-                  } else {
-                    handleChange('discount_percentage', '');
-                  }
-                }}
+                onChange={(e) => handleChange('old_price', e.target.value)}
                 className="w-full px-4 py-2.5 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
                 placeholder="50.00"
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">ج</span>
             </div>
           </div>
-
-          {/* Discount Percentage */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              نسبة الخصم (%)
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={formData.discount_percentage || ''}
-                onChange={(e) => handleChange('discount_percentage', e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white disabled:bg-gray-100"
-                placeholder="تلقائي"
-                disabled
-              />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">%</span>
-            </div>
-          </div>
         </div>
 
-        {/* Discount Preview */}
+        {/* Discount Preview - Auto-calculated */}
         {(() => {
           const oldPrice = formData.old_price ? parseFloat(formData.old_price) : 0;
           const currentPrice = formData.price ? parseFloat(formData.price) : 0;
-          const discountPct = formData.discount_percentage ? parseInt(formData.discount_percentage) : 0;
+          const discountPct = oldPrice && currentPrice && oldPrice > currentPrice
+            ? Math.round(((oldPrice - currentPrice) / oldPrice) * 100)
+            : 0;
 
-          return oldPrice && currentPrice && oldPrice > currentPrice && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-green-600">🎯</span>
-                <span className="text-sm text-green-800">
-                  سيظهر السعر: <span className="line-through opacity-75">{oldPrice}</span> <span className="font-bold">{currentPrice} ج.م</span>
+          return discountPct > 0 && (
+            <div className="mt-4 p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-600 text-xl">✨</span>
+                  <span className="text-sm font-semibold text-green-800">معاينة الخصم</span>
+                </div>
+                <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-md">
+                  خصم {discountPct}%
                 </span>
               </div>
-              <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
-                خصم {discountPct}%
-              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg text-gray-400 line-through">{oldPrice} ج.م</span>
+                <span className="text-2xl font-bold text-green-600">{currentPrice} ج.م</span>
+                <span className="text-sm text-green-700">وفّر {(oldPrice - currentPrice).toFixed(2)} جنيه!</span>
+              </div>
             </div>
-          )
+          );
         })()}
       </div>
 
@@ -244,6 +291,168 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
           </div>
         </div>
       </div>
+
+      {/* NEW: Energy System Section - Priority 2 */}
+      <details className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border-2 border-yellow-200 overflow-hidden">
+        <summary className="p-4 cursor-pointer hover:bg-yellow-100 transition-colors flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">⚡</span>
+            <h3 className="text-lg font-bold text-yellow-800">نظام الطاقة</h3>
+            <span className="text-xs bg-yellow-200 text-yellow-700 px-2 py-0.5 rounded-full">🔮 مستقبلي</span>
+          </div>
+        </summary>
+        <div className="p-4 bg-white space-y-4">
+          <p className="text-sm text-gray-600 mb-3">
+            💡 لتصنيف المنتجات حسب نوع الطاقة التي تمنحها
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">نوع الطاقة</label>
+              <select
+                value={formData.energy_type}
+                onChange={(e) => handleChange('energy_type', e.target.value)}
+                className="w-full px-4 py-2.5 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+              >
+                <option value="none">لا يوجد</option>
+                <option value="mental">طاقة ذهنية 🧠</option>
+                <option value="physical">طاقة جسدية 💪</option>
+                <option value="balanced">متوازن ⚖️</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">درجة الطاقة (0-100)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={formData.energy_score}
+                onChange={(e) => handleChange('energy_score', e.target.value)}
+                className="w-full px-4 py-2.5 border-2 border-yellow-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </div>
+      </details>
+
+      {/* NEW: Metadata Section - Priority 3 */}
+      <details className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border-2 border-slate-200 overflow-hidden">
+        <summary className="p-4 cursor-pointer hover:bg-slate-100 transition-colors flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">📊</span>
+            <h3 className="text-lg font-bold text-slate-800">بيانات إضافية (JSON)</h3>
+            <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">🔮 مستقبلي</span>
+          </div>
+        </summary>
+        <div className="p-4 bg-white space-y-4">
+          <p className="text-sm text-gray-600 mb-3">
+            💡 بيانات متقدمة للبحث والتصنيف (صيغة JSON)
+          </p>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Tags (JSON Array)</label>
+            <textarea
+              value={formData.tags}
+              onChange={(e) => handleChange('tags', e.target.value)}
+              rows={2}
+              className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm"
+              placeholder='["حلو", "منعش", "صيفي"]'
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">المكونات (JSON Array)</label>
+            <textarea
+              value={formData.ingredients}
+              onChange={(e) => handleChange('ingredients', e.target.value)}
+              rows={2}
+              className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm"
+              placeholder='["حليب", "سكر", "فانيليا"]'
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">مسببات الحساسية (JSON Array)</label>
+            <textarea
+              value={formData.allergens}
+              onChange={(e) => handleChange('allergens', e.target.value)}
+              rows={2}
+              className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm"
+              placeholder='["حليب", "مكسرات"]'
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">حقائق غذائية (JSON Object)</label>
+            <textarea
+              value={formData.nutrition_facts}
+              onChange={(e) => handleChange('nutrition_facts', e.target.value)}
+              rows={3}
+              className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm"
+              placeholder='{"serving_size": "100g", "servings_per_container": 4}'
+            />
+          </div>
+        </div>
+      </details>
+
+      {/* NEW: Template Advanced Section - Priority 3 */}
+      <details className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200 overflow-hidden">
+        <summary className="p-4 cursor-pointer hover:bg-purple-100 transition-colors flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🔧</span>
+            <h3 className="text-lg font-bold text-purple-800">إعدادات قالب متقدمة</h3>
+            <span className="text-xs bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full">🔮 مستقبلي</span>
+          </div>
+        </summary>
+        <div className="p-4 bg-white space-y-4">
+          <p className="text-sm text-gray-600 mb-3">
+            💡 لتخصيصات متقدمة للعرض
+          </p>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">نسخة القالب (Template Variant)</label>
+            <input
+              type="text"
+              value={formData.template_variant || ''}
+              onChange={(e) => handleChange('template_variant', e.target.value)}
+              className="w-full px-4 py-2.5 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              placeholder="مثال: premium, compact"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              💡 لتنويع نفس القالب بأشكال مختلفة
+            </p>
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.is_template_dynamic === 1}
+                onChange={(e) => handleChange('is_template_dynamic', e.target.checked ? 1 : 0)}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <span className="text-sm font-semibold text-gray-700">قالب ديناميكي</span>
+            </label>
+            <p className="text-xs text-gray-500 mt-1 mr-6">
+              💡 للقوالب التي تتغير بناءً على البيانات أو الوقت
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">تكوين واجهة المستخدم (JSON)</label>
+            <textarea
+              value={formData.ui_config}
+              onChange={(e) => handleChange('ui_config', e.target.value)}
+              rows={4}
+              className="w-full px-4 py-2.5 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
+              placeholder='{"badge": "جديد", "badge_color": "blue"}'
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              💡 إعدادات العرض المتقدمة (badge, colors, layout)
+            </p>
+          </div>
+        </div>
+      </details>
 
       {/* Availability */}
       <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200">

@@ -41,6 +41,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
         available: editingProduct.available,
         // ✅ Template System (Requirements 3.1)
         template_id: editingProduct.template_id || 'template_1',
+        ui_config: editingProduct.ui_config || '{}',
+        // Discount fields
+        old_price: editingProduct.old_price?.toString() || '',
+        discount_percentage: editingProduct.discount_percentage?.toString() || '',
+        // Nutrition
         calories: editingProduct.calories?.toString() || '',
         protein: editingProduct.protein?.toString() || '',
         carbs: editingProduct.carbs?.toString() || '',

@@ -28,7 +28,7 @@ interface Product {
   energy_type?: string
   energy_score?: number
   badge?: string
-  layout_mode?: 'complex' | 'medium' | 'simple' | 'builder' | 'composer' | 'selector' | 'standard'
+  template_id?: string
 }
 
 interface ProductsSwiperWrapperProps {
@@ -36,12 +36,13 @@ interface ProductsSwiperWrapperProps {
   category: string
 }
 
-export default function ProductsSwiperWrapper({ products, category }: ProductsSwiperWrapperProps) {
-  // Determine slide width based on complexity of the first product
-  // Complex products (BYO) need more space
-  const isComplex = products[0]?.layout_mode === 'complex' || products[0]?.layout_mode === 'builder'
-  const slideWidthClass = isComplex ? '!w-[220px] md:!w-[260px]' : '!w-[160px] md:!w-[200px]'
+/**
+ * Unified slide width for all card types
+ * Consistent 180px base width across all templates
+ */
+const SLIDE_WIDTH_CLASS = '!w-[170px] sm:!w-[180px] md:!w-[190px] lg:!w-[200px]'
 
+export default function ProductsSwiperWrapper({ products, category }: ProductsSwiperWrapperProps) {
   return (
     <Swiper
       modules={productSwiperConfig.modules}
@@ -54,10 +55,7 @@ export default function ProductsSwiperWrapper({ products, category }: ProductsSw
       aria-label={`Products in ${category} category`}
     >
       {products.map(product => (
-        <SwiperSlide
-          key={product.id}
-          className={slideWidthClass}
-        >
+        <SwiperSlide key={product.id} className={SLIDE_WIDTH_CLASS}>
           <ProductCard product={product} />
         </SwiperSlide>
       ))}

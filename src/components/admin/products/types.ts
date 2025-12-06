@@ -1,6 +1,28 @@
+/**
+ * Admin Products Types
+ * 
+ * ⚠️ This file re-exports from @/types/admin for backward compatibility
+ * New code should import directly from @/types/admin
+ */
 
-// src/components/admin/products/types.ts
+// ===========================
+// Re-export from unified types
+// ===========================
+
 import type { Product } from '@/lib/admin';
+
+export type {
+  ProductFormData,
+} from '@/types/admin';
+
+export {
+  HEALTH_KEYWORDS_OPTIONS,
+  INITIAL_PRODUCT_FORM_DATA as INITIAL_FORM_DATA,
+} from '@/types/admin';
+
+// ===========================
+// Component-specific Props Types
+// ===========================
 
 export interface ProductsPageProps {
   onRefresh?: () => void;
@@ -43,7 +65,7 @@ export interface ProductFormProps {
   isOpen: boolean;
   onClose: () => void;
   editingProduct: Product | null;
-  onSubmit: (formData: ProductFormData) => Promise<void>;
+  onSubmit: (formData: import('@/types/admin').ProductFormData) => Promise<void>;
 }
 
 /**
@@ -60,98 +82,14 @@ export interface ConfigModalProps {
   onUpdateProductType: (productType: string) => Promise<void>;
 }
 
-export interface ProductFormData {
-  id: string;
-  name: string;
-  nameEn: string;
-  category: string;
-  categoryEn: string;
-  price: string;
-  description: string;
-  descriptionEn: string;
-  image: string;
-  badge: string;
-  available: number;
-  // ❌ REMOVED: product_type (deprecated - use template_id instead, Requirements 3.1)
-  // ❌ REMOVED: is_customizable (now derived from option groups)
-  // ✅ Template System
-  template_id: string;
-  calories: string;
-  protein: string;
-  carbs: string;
-  fat: string;
-  sugar: string;
-  fiber: string;
-  energy_type: string;
-  energy_score: string;
-  tags: string;
-  ingredients: string;
-  nutrition_facts: string;
-  allergens: string;
-  // Health-Driven Cart fields
-  health_keywords: string[];
-  health_benefit_ar: string;
-}
-
 export interface ProductConfig {
   product?: {
     productType: string;
   };
   hasContainers: boolean;
-  containers?: any[];
+  containers?: unknown[];
   hasSizes: boolean;
-  sizes?: any[];
+  sizes?: unknown[];
   hasCustomization: boolean;
-  customizationRules?: any[];
+  customizationRules?: unknown[];
 }
-
-// ❌ REMOVED: PRODUCT_TYPES constant (deprecated - use template_id instead, Requirements 3.1)
-// Product display is now controlled by template_id: 'template_1', 'template_2', 'template_3'
-
-export const INITIAL_FORM_DATA: ProductFormData = {
-  id: '',
-  name: '',
-  nameEn: '',
-  category: '',
-  categoryEn: '',
-  price: '',
-  description: '',
-  descriptionEn: '',
-  image: '',
-  badge: '',
-  available: 1,
-  // ✅ Template System (Requirements 3.1)
-  template_id: 'template_1',
-  calories: '',
-  protein: '',
-  carbs: '',
-  fat: '',
-  sugar: '',
-  fiber: '',
-  energy_type: 'none',
-  energy_score: '',
-  tags: '',
-  ingredients: '',
-  nutrition_facts: '',
-  allergens: '',
-  // Health-Driven Cart fields
-  health_keywords: [],
-  health_benefit_ar: ''
-};
-
-// Health Keywords for admin selection
-export const HEALTH_KEYWORDS_OPTIONS = {
-  nutritional: [
-    { value: 'high-protein', label: 'عالي البروتين', labelEn: 'High Protein' },
-    { value: 'low-sugar', label: 'منخفض السكر', labelEn: 'Low Sugar' },
-    { value: 'calcium', label: 'غني بالكالسيوم', labelEn: 'Rich in Calcium' },
-    { value: 'fiber-rich', label: 'غني بالألياف', labelEn: 'Fiber Rich' },
-    { value: 'probiotic', label: 'بروبيوتيك', labelEn: 'Probiotic' },
-  ],
-  lifestyle: [
-    { value: 'energy-boost', label: 'يعزز الطاقة', labelEn: 'Energy Boost' },
-    { value: 'indulgent', label: 'للاستمتاع', labelEn: 'Indulgent' },
-    { value: 'balanced', label: 'متوازن', labelEn: 'Balanced' },
-    { value: 'refreshing', label: 'منعش', labelEn: 'Refreshing' },
-  ],
-};
