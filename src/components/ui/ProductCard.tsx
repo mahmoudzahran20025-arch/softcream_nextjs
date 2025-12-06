@@ -21,7 +21,7 @@ export interface UIConfig {
   card_size?: 'small' | 'medium' | 'large'
   show_images?: boolean
   show_prices?: boolean
-  
+
   // إعدادات الأيقونة
   icon?: {
     type: 'emoji' | 'icon' | 'image'
@@ -29,7 +29,7 @@ export interface UIConfig {
     animation?: 'none' | 'pulse' | 'bounce' | 'spin'
     style?: 'normal' | 'gradient' | 'glow'
   }
-  
+
   // الشارة (مدمجة من card_badge)
   badge?: string
   badge_color?: string
@@ -121,10 +121,10 @@ export default function ProductCard({ product, forceCardType, onAddToCart }: Pro
 
   // Get category configuration for styling
   const categoryConfig = getCategoryConfig(product.category)
-  
+
   // Parse ui_config for display settings (Requirement 9.4)
   const uiConfig = parseUIConfig(product.ui_config)
-  
+
   // Apply ui_config badge if product.badge is not set
   const productWithUIConfig = {
     ...product,
@@ -195,7 +195,7 @@ export type CardType = 'simple' | 'medium' | 'complex'
 export function getCardTypeFromProduct(product: Product): CardType {
   // ✅ Use template_id as SINGLE source of truth
   // ❌ NO fallback to layout_mode or product_type
-  
+
   if (!product.template_id) {
     // Default to medium (StandardCard) when template_id is missing
     // This is a safe fallback per design document error handling
@@ -215,6 +215,11 @@ export function getCardTypeFromProduct(product: Product): CardType {
     // template_3 → BYOProductCard/WizardCard (منتجات BYO معقدة)
     case 'template_3':
       return 'complex'
+
+    // template_lifestyle → StandardCard (معالج نمط الحياة)
+    // Uses StandardCard for listing, opens LifestyleWizard in modal
+    case 'template_lifestyle':
+      return 'medium'
 
     default:
       // Unknown template_id - use medium as safe fallback

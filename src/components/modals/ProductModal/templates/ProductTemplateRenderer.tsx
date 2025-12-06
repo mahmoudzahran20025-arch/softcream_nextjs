@@ -7,12 +7,13 @@ import ComplexTemplate from './builders/ComplexTemplate'
 import MediumTemplate from './composers/MediumTemplate'
 import SimpleTemplate from './selectors/SimpleTemplate'
 import CustomizationSummary from '../CustomizationSummary'
+import LifestyleWizard from './specialized/LifestyleWizard'
 
 /**
  * Layout mode type for template rendering
  * Maps to internal template rendering modes
  */
-export type LayoutMode = 'simple' | 'medium' | 'complex'
+export type LayoutMode = 'simple' | 'medium' | 'complex' | 'lifestyle'
 
 /**
  * Product type for getEffectiveLayoutMode function
@@ -55,6 +56,9 @@ export function getEffectiveLayoutMode(product: TemplateProduct): LayoutMode {
 
     case 'template_3':
       return 'complex'
+
+    case 'template_lifestyle':
+      return 'lifestyle'
 
     default:
       console.warn(`Unknown template_id: ${product.template_id}, using default simple template`)
@@ -141,6 +145,17 @@ export default function ProductTemplateRenderer({
             customizationRules={customizationRules}
             selections={selections}
             onSelectionChange={updateGroupSelections}
+          />
+        )
+
+
+
+      case 'lifestyle':
+        return (
+          <LifestyleWizard
+            product={product}
+            productConfig={productConfig}
+            onComplete={() => console.log('Lifestyle wizard complete')}
           />
         )
 
