@@ -8,4 +8,4 @@
 //   - products/types.ts (shared types)
 
 export { default } from './products';
-export * from './products/types';
+

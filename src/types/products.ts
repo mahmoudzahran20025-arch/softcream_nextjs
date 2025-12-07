@@ -271,12 +271,22 @@ export interface TemplateConfig {
 // ================================================================
 
 export interface ProductUIConfig {
-  cardBadge?: string
-  cardBadgeColor?: string
-  showNutrition?: boolean
-  showCalories?: boolean
-  highlightFeatures?: string[]
-  customStyles?: Record<string, string>
+  display_style?: 'grid' | 'list' | 'pills' | 'cards' | 'checkbox'
+  columns?: 1 | 2 | 3 | 4
+  card_size?: 'sm' | 'md' | 'lg'
+  show_images?: boolean
+  show_prices?: boolean
+  show_macros?: boolean
+  accent_color?: string
+  icon?: {
+    type: 'emoji' | 'lucide' | 'custom'
+    value: string
+    style?: 'solid' | 'gradient' | 'glow'
+    animation?: 'none' | 'pulse' | 'bounce' | 'spin'
+  }
+  badge?: string
+  badge_color?: string
+  theme?: string
 }
 
 // ================================================================

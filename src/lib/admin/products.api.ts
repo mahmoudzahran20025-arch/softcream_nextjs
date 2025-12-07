@@ -81,10 +81,11 @@ export interface OptionGroupInfo {
   nameAr: string
   nameEn: string
   icon?: string
-  defaultRequired: boolean
   defaultMin: number
   defaultMax: number
   optionsCount: number
+  ui_config?: any
+  display_style?: string
 }
 
 /**

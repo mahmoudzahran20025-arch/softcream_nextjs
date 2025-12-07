@@ -6,91 +6,8 @@ import {
   StandardProductCard,
   SimpleCard
 } from './cards'
-
-/**
- * UIConfig Interface - إعدادات العرض المتقدمة
- * ============================================
- * يتم تخزينها كـ JSON في عمود ui_config
- * 
- * Requirements: 4.2, 4.3, 4.4, 4.5, 4.6, 5.1, 5.3, 5.4, 5.5
- */
-export interface UIConfig {
-  // إعدادات العرض
-  display_style?: 'cards' | 'buttons' | 'list' | 'grid'
-  columns?: number // 1-6
-  card_size?: 'small' | 'medium' | 'large'
-  show_images?: boolean
-  show_prices?: boolean
-
-  // إعدادات الأيقونة
-  icon?: {
-    type: 'emoji' | 'icon' | 'image'
-    value: string
-    animation?: 'none' | 'pulse' | 'bounce' | 'spin'
-    style?: 'normal' | 'gradient' | 'glow'
-  }
-
-  // الشارة (مدمجة من card_badge)
-  badge?: string
-  badge_color?: string
-}
-
-/**
- * Parse ui_config from JSON string to UIConfig object
- * Returns empty object if parsing fails
- */
-export function parseUIConfig(uiConfigStr?: string): UIConfig {
-  if (!uiConfigStr) return {}
-  try {
-    return JSON.parse(uiConfigStr) as UIConfig
-  } catch {
-    console.warn('Failed to parse ui_config, using defaults')
-    return {}
-  }
-}
-
-export interface Product {
-  id: string
-  name: string
-  nameEn?: string
-  price: number
-  old_price?: number
-  discount_percentage?: number
-  image?: string
-  category?: string
-  description?: string
-  tags?: string
-  ingredients?: string
-  allergens?: string
-  calories?: number
-  protein?: number
-  carbs?: number
-  sugar?: number
-  fat?: number
-  fiber?: number
-  energy_type?: string
-  energy_score?: number
-  badge?: string
-  allowed_addons?: string
-  is_customizable?: number
-
-  // ✅ Template System Fields (النظام الموحد)
-  template_id?: string
-  template_variant?: string
-  is_template_dynamic?: number
-  ui_config?: string // JSON string - UIConfig
-
-  // ✅ Options Preview
-  options_preview?: {
-    total_groups: number
-    total_options: number
-    featured_options: Array<{
-      id: string
-      name: string
-      image?: string
-    }>
-  }
-}
+import type { Product } from '@/lib/api'
+import { parseUIConfig, type ProductUIConfig } from '@/types/products'
 
 interface ProductCardProps {
   product: Product
@@ -120,16 +37,18 @@ export default function ProductCard({ product, forceCardType, onAddToCart }: Pro
   const cardType = forceCardType ? normalizeCardType(forceCardType) : getCardTypeFromProduct(product)
 
   // Get category configuration for styling
-  const categoryConfig = getCategoryConfig(product.category)
+  const categoryConfig = product.category ? getCategoryConfig(product.category) : undefined
 
   // Parse ui_config for display settings (Requirement 9.4)
-  const uiConfig = parseUIConfig(product.ui_config)
+  // Uses centralized parser from types/products
+  const uiConfig = parseUIConfig(product.ui_config) || {}
 
   // Apply ui_config badge if product.badge is not set
-  const productWithUIConfig = {
-    ...product,
-    badge: product.badge || uiConfig.badge,
-  }
+  // We don't mutate the product object, just pass the computed config/badge logic down
+  // But for legacy props support in cards, we create a proxy object if needed, 
+  // though it's better to rely on uiConfig prop in children.
+
+  // Note: The children cards now accept uiConfig prop.
 
   // Render appropriate card based on cardType
   // Requirements 9.1, 9.2, 9.3: Automatically select correct card type based on template_id
@@ -137,18 +56,18 @@ export default function ProductCard({ product, forceCardType, onAddToCart }: Pro
     // SimpleCard - للمنتجات البسيطة (template_1)
     // Requirements 9.1: template_id='template_1' → SimpleCard
     case 'simple':
-      return <SimpleCard product={productWithUIConfig} config={categoryConfig} onAddToCart={onAddToCart} uiConfig={uiConfig} />
+      return <SimpleCard product={product} config={categoryConfig} onAddToCart={onAddToCart} uiConfig={uiConfig} />
 
     // ComplexCard - للمنتجات المعقدة BYO (template_3)
     // Requirements 9.3: template_id='template_3' → BYOProductCard
     case 'complex':
-      return <BYOProductCard product={productWithUIConfig} config={categoryConfig} uiConfig={uiConfig} />
+      return <BYOProductCard product={product} config={categoryConfig} uiConfig={uiConfig} />
 
     // MediumCard - للمنتجات المتوسطة (template_2 - default fallback)
     // Requirements 9.2: template_id='template_2' → StandardCard
     case 'medium':
     default:
-      return <StandardProductCard product={productWithUIConfig} config={categoryConfig} onAddToCart={onAddToCart} uiConfig={uiConfig} />
+      return <StandardProductCard product={product} config={categoryConfig} onAddToCart={onAddToCart} uiConfig={uiConfig} />
   }
 }
 
@@ -199,7 +118,7 @@ export function getCardTypeFromProduct(product: Product): CardType {
   if (!product.template_id) {
     // Default to medium (StandardCard) when template_id is missing
     // This is a safe fallback per design document error handling
-    console.warn(`Product ${product.id} lacks template_id, using default medium card`)
+    // console.warn(`Product ${product.id} lacks template_id, using default medium card`)
     return 'medium'
   }
 
@@ -223,8 +142,9 @@ export function getCardTypeFromProduct(product: Product): CardType {
 
     default:
       // Unknown template_id - use medium as safe fallback
-      console.warn(`Unknown template_id: ${product.template_id}, using default medium card`)
+      // console.warn(`Unknown template_id: ${product.template_id}, using default medium card`)
       return 'medium'
   }
 }
+
 

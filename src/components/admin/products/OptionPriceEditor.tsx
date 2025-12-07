@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { DollarSign, Save, X, AlertCircle } from 'lucide-react';
 
 interface Option {

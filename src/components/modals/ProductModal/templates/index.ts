@@ -1,14 +1,13 @@
-// Product Templates - Separated for easy maintenance
+// ================================================================
+// Product Templates - Unified Product Model
+// ================================================================
+// Legacy templates archived to _archived/ folder
+// All rendering now uses UnifiedProductRenderer
+// ================================================================
+
 export { default as ProductTemplateRenderer } from './ProductTemplateRenderer'
+export { default as UnifiedProductRenderer } from '../UnifiedProductRenderer'
 
-// New Complexity-Based Templates
-export { default as ComplexTemplate } from './builders/ComplexTemplate'
-export { default as MediumTemplate } from './composers/MediumTemplate'
-export { default as SimpleTemplate } from './selectors/SimpleTemplate'
-
-// Template types
-export type LayoutMode =
-  | 'complex'
-  | 'medium'
-  | 'simple'
-
+// Re-export types from ProductTemplateRenderer
+export type { LayoutMode, TemplateProduct } from './ProductTemplateRenderer'
+export { getEffectiveLayoutMode } from './ProductTemplateRenderer'

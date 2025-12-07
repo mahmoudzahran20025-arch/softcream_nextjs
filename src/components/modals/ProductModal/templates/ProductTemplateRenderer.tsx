@@ -1,13 +1,20 @@
 'use client'
 
+// ================================================================
+// ProductTemplateRenderer.tsx - Unified Product Rendering
+// ================================================================
+// UNIFIED PRODUCT MODEL: All rendering now uses UnifiedProductRenderer
+// Legacy templates archived to templates/_archived/
+// ================================================================
+
 import { motion } from 'framer-motion'
 import { Product } from '@/lib/api'
 import { useProductConfiguration } from '@/hooks/useProductConfiguration'
-import ComplexTemplate from './builders/ComplexTemplate'
-import MediumTemplate from './composers/MediumTemplate'
-import SimpleTemplate from './selectors/SimpleTemplate'
-import CustomizationSummary from '../CustomizationSummary'
-import LifestyleWizard from './specialized/LifestyleWizard'
+import UnifiedProductRenderer from '../UnifiedProductRenderer'
+
+// ================================================================
+// TYPES
+// ================================================================
 
 /**
  * Layout mode type for template rendering
@@ -18,77 +25,52 @@ export type LayoutMode = 'simple' | 'medium' | 'complex' | 'lifestyle'
 /**
  * Product type for getEffectiveLayoutMode function
  * Minimal interface for template mapping
- * 
- * ✅ Purified: Only template_id is used (no layout_mode fallback)
- * Requirements: 9.5
  */
 export interface TemplateProduct {
   template_id?: string
 }
 
 /**
- * Determine which template to render
- * ✅ Purified System: Uses template_id ONLY
- * 
- * Template ID Mapping:
- * - template_1 → simple (SimpleTemplate)
- * - template_2 → medium (MediumTemplate)
- * - template_3 → complex (ComplexTemplate)
- * 
- * This ensures consistency with ProductCard.tsx card selection logic
- * 
- * Requirements: 9.5
+ * Determine which template to render based on template_id
+ * @deprecated - Now handled by UnifiedProductRenderer via templateId
  */
 export function getEffectiveLayoutMode(product: TemplateProduct): LayoutMode {
-  // ✅ template_id is the ONLY source of truth (no layout_mode fallback)
   if (!product.template_id) {
-    console.warn(`Product lacks template_id, using default simple template`)
-    return 'simple' // Safe fallback per design doc
+    return 'simple'
   }
 
   switch (product.template_id) {
-    // Standard template IDs
     case 'template_1':
       return 'simple'
-
     case 'template_2':
       return 'medium'
-
     case 'template_3':
       return 'complex'
-
     case 'template_lifestyle':
       return 'lifestyle'
-
     default:
-      console.warn(`Unknown template_id: ${product.template_id}, using default simple template`)
       return 'simple'
   }
 }
+
+// ================================================================
+// PROPS
+// ================================================================
 
 interface ProductTemplateRendererProps {
   product: Product
   productConfig: ReturnType<typeof useProductConfiguration>
 }
 
+// ================================================================
+// MAIN COMPONENT
+// ================================================================
+
 export default function ProductTemplateRenderer({
   product,
   productConfig
 }: ProductTemplateRendererProps) {
-  const {
-    isLoading,
-    containers,
-    selectedContainer,
-    setSelectedContainer,
-    sizes,
-    selectedSize,
-    setSelectedSize,
-    customizationRules,
-    selections,
-    updateGroupSelections,
-    selectedOptions,
-    customizationTotal
-  } = productConfig
+  const { isLoading } = productConfig
 
   // Loading state
   if (isLoading) {
@@ -110,103 +92,69 @@ export default function ProductTemplateRenderer({
     )
   }
 
-  // Use the exported getEffectiveLayoutMode function
-  const layoutMode = getEffectiveLayoutMode(product)
+  // ================================================================
+  // UNIFIED RENDERER - Data-Driven UI
+  // Adapts productConfig to ProductEngineReturn interface
+  // ================================================================
 
-  // Render appropriate template based on template_id
-  const renderTemplate = () => {
-    switch (layoutMode) {
-      case 'complex':
-        return (
-          <ComplexTemplate
-            product={product}
-            containers={containers}
-            selectedContainer={selectedContainer}
-            onContainerSelect={setSelectedContainer}
-            sizes={sizes}
-            selectedSize={selectedSize}
-            onSizeSelect={setSelectedSize}
-            customizationRules={customizationRules}
-            selections={selections}
-            onSelectionChange={updateGroupSelections}
-          />
-        )
-
-      case 'medium':
-        return (
-          <MediumTemplate
-            product={product}
-            containers={containers}
-            selectedContainer={selectedContainer}
-            onContainerSelect={setSelectedContainer}
-            sizes={sizes}
-            selectedSize={selectedSize}
-            onSizeSelect={setSelectedSize}
-            customizationRules={customizationRules}
-            selections={selections}
-            onSelectionChange={updateGroupSelections}
-          />
-        )
-
-
-
-      case 'lifestyle':
-        return (
-          <LifestyleWizard
-            product={product}
-            productConfig={productConfig}
-            onComplete={() => console.log('Lifestyle wizard complete')}
-          />
-        )
-
-      case 'simple':
-      default:
-        return (
-          <SimpleTemplate
-            product={product}
-            containers={containers}
-            selectedContainer={selectedContainer}
-            onContainerSelect={setSelectedContainer}
-            sizes={sizes}
-            selectedSize={selectedSize}
-            onSizeSelect={setSelectedSize}
-            customizationRules={customizationRules}
-            selections={selections}
-            onSelectionChange={updateGroupSelections}
-          />
-        )
+  const engineAdapter = {
+    isLoading,
+    error: null,
+    config: productConfig.config,
+    uiConfig: {
+      display_style: 'cards' as const,
+      columns: 2 as const,
+      card_size: 'medium' as const,
+      show_images: true,
+      show_prices: true,
+      show_macros: productConfig.templateId === 'template_lifestyle'
+    },
+    templateId: productConfig.templateId,
+    hasContainers: productConfig.hasContainers,
+    containers: productConfig.containers,
+    selectedContainer: productConfig.selectedContainer,
+    containerObj: productConfig.containerObj,
+    hasSizes: productConfig.hasSizes,
+    sizes: productConfig.sizes,
+    selectedSize: productConfig.selectedSize,
+    sizeObj: productConfig.sizeObj,
+    hasCustomization: productConfig.hasCustomization,
+    optionGroups: productConfig.customizationRules,
+    selections: productConfig.selections,
+    selectedOptions: productConfig.selectedOptions,
+    basePrice: productConfig.config?.product?.basePrice ?? 0,
+    customizationTotal: productConfig.customizationTotal,
+    currentPrice: productConfig.totalPrice,
+    nutrition: productConfig.totalNutrition,
+    energyType: productConfig.energyType,
+    energyScore: productConfig.energyScore,
+    validationResult: productConfig.validationResult,
+    isValid: productConfig.validationResult.isValid,
+    actions: {
+      select: (groupId: string, optionId: string) => {
+        const current = productConfig.selections[groupId] || []
+        productConfig.updateGroupSelections(groupId, [...current, optionId])
+      },
+      remove: (groupId: string, optionId: string) => {
+        const current = productConfig.selections[groupId] || []
+        productConfig.updateGroupSelections(groupId, current.filter(id => id !== optionId))
+      },
+      toggle: (groupId: string, optionId: string) => {
+        const current = productConfig.selections[groupId] || []
+        if (current.includes(optionId)) {
+          productConfig.updateGroupSelections(groupId, current.filter(id => id !== optionId))
+        } else {
+          productConfig.updateGroupSelections(groupId, [...current, optionId])
+        }
+      },
+      setContainer: productConfig.setSelectedContainer,
+      setSize: productConfig.setSelectedSize,
+      reset: () => {
+        productConfig.setSelectedContainer(null)
+        productConfig.setSelectedSize(null)
+      }
     }
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="space-y-4"
-    >
-      {/* Render the appropriate template */}
-      {renderTemplate()}
-
-      {/* Selection Summary - Shared across all templates */}
-      {selectedOptions.length > 0 && (
-        <CustomizationSummary
-          selections={selectedOptions}
-          customizationTotal={customizationTotal}
-          onRemove={(optionId) => {
-            const group = customizationRules.find((g: any) =>
-              (g.options || []).some((opt: any) => opt.id === optionId)
-            )
-            if (group) {
-              const currentSelections = selections[group.groupId] || []
-              updateGroupSelections(
-                group.groupId,
-                currentSelections.filter((id: string) => id !== optionId)
-              )
-            }
-          }}
-        />
-      )}
-    </motion.div>
-  )
+  return <UnifiedProductRenderer product={product} engine={engineAdapter as any} />
 }

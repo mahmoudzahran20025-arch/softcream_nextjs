@@ -8,6 +8,7 @@ interface DynamicIconProps {
     config: IconConfig
     size?: number
     className?: string
+    color?: string // 'pink' | 'amber' | 'purple' | 'cyan' | 'emerald'
 }
 
 /**
@@ -18,7 +19,8 @@ interface DynamicIconProps {
 export default function DynamicIcon({
     config,
     size = 20,
-    className = ''
+    className = '',
+    color = 'pink'
 }: DynamicIconProps) {
     // Get animation variants
     const getAnimation = () => {
@@ -36,12 +38,25 @@ export default function DynamicIcon({
             case 'spin':
                 return {
                     rotate: 360,
-                    transition: { repeat: Infinity, duration: 3, ease: 'linear' }
+                    transition: { repeat: Infinity, duration: 3, ease: 'linear' as const }
                 }
             default:
-                return {}
+                return undefined
         }
     }
+
+    // Map color names to Tailwind classes
+    const colorMap: Record<string, { gradient: string, text: string }> = {
+        pink: { gradient: 'from-pink-500 to-rose-500', text: 'text-pink-500' },
+        amber: { gradient: 'from-amber-500 to-orange-500', text: 'text-amber-500' },
+        purple: { gradient: 'from-purple-500 to-violet-500', text: 'text-purple-500' },
+        cyan: { gradient: 'from-cyan-500 to-blue-500', text: 'text-cyan-500' },
+        emerald: { gradient: 'from-emerald-500 to-green-500', text: 'text-emerald-500' },
+        // Fallback
+        default: { gradient: 'from-slate-500 to-slate-700', text: 'text-slate-700' }
+    }
+
+    const activeColor = colorMap[color] || colorMap['default']
 
     // Get style classes
     const getStyleClasses = () => {
@@ -49,9 +64,11 @@ export default function DynamicIcon({
 
         switch (config.style) {
             case 'gradient':
-                return `${baseClasses} bg-gradient-to-br from-pink-500 to-rose-500 bg-clip-text text-transparent`
+                return `${baseClasses} bg-gradient-to-br ${activeColor.gradient} bg-clip-text text-transparent`
+            case 'solid':
+                return `${baseClasses} ${activeColor.text}`
             case 'glow':
-                return `${baseClasses} drop-shadow-lg`
+                return `${baseClasses} drop-shadow-lg ${activeColor.text}`
             default:
                 return baseClasses
         }

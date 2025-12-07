@@ -4,7 +4,7 @@
  * Validates health keywords for product submissions.
  */
 
-import { VALID_HEALTH_KEYWORDS, isValidHealthKeyword, type HealthKeyword } from './keywords';
+import { isValidHealthKeyword, type HealthKeyword } from './keywords';
 
 export interface ValidationResult {
   valid: boolean;

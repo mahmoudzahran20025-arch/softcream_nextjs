@@ -707,43 +707,59 @@ const OptionsPage: React.FC = () => {
 
       {/* Stats Cards (Requirement 3.4) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm border-r-4 border-blue-500">
-          <div className="flex items-center justify-between">
+        {/* Groups Stat */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <p className="text-gray-500 text-sm">المجموعات</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.totalGroups}</p>
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">المجـموعات</p>
+              <p className="text-3xl font-black text-gray-800">{stats.totalGroups}</p>
             </div>
-            <Layers className="w-8 h-8 text-blue-500" />
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+              <Layers className="w-6 h-6" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border-r-4 border-purple-500">
-          <div className="flex items-center justify-between">
+        {/* Options Stat */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <p className="text-gray-500 text-sm">إجمالي الخيارات</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.totalOptions}</p>
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">إجمالي الخيارات</p>
+              <p className="text-3xl font-black text-gray-800">{stats.totalOptions}</p>
             </div>
-            <Package className="w-8 h-8 text-purple-500" />
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+              <Package className="w-6 h-6" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border-r-4 border-green-500">
-          <div className="flex items-center justify-between">
+        {/* Available Stat */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <p className="text-gray-500 text-sm">متوفرة</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.availableOptions}</p>
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">مـتــاح</p>
+              <p className="text-3xl font-black text-gray-800">{stats.availableOptions}</p>
             </div>
-            <CheckCircle className="w-8 h-8 text-green-500" />
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+              <CheckCircle className="w-6 h-6" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border-r-4 border-red-500">
-          <div className="flex items-center justify-between">
+        {/* Unavailable Stat */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-red-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <p className="text-gray-500 text-sm">غير متوفرة</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.unavailableOptions}</p>
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">غـيـر مـتــاح</p>
+              <p className="text-3xl font-black text-gray-800">{stats.unavailableOptions}</p>
             </div>
-            <XCircle className="w-8 h-8 text-red-500" />
+            <div className="p-3 bg-red-50 text-red-600 rounded-xl">
+              <XCircle className="w-6 h-6" />
+            </div>
           </div>
         </div>
       </div>
@@ -808,18 +824,17 @@ const OptionsPage: React.FC = () => {
         group={uiConfigModal.group}
         onSave={async (groupId, uiConfig) => {
           // Update the group with new ui_config
-          const group = state.optionGroups.find(g => g.id === groupId);
-          if (group) {
-            await handleGroupSubmit({
-              id: group.id,
-              name_ar: group.name_ar,
-              name_en: group.name_en,
-              description_ar: group.description_ar || '',
-              description_en: group.description_en || '',
-              icon: group.icon || '📦',
-              display_order: group.display_order,
-              ui_config: uiConfig,
-            });
+          // FIX: Directly call updateOptionGroup to avoid 409 Conflict (creating instead of updating)
+          try {
+            const response = await updateOptionGroup(groupId, { ui_config: uiConfig });
+            if (response.success) {
+              await fetchOptionGroups();
+            } else {
+              throw new Error(response.error || 'فشل في تحديث إعدادات العرض');
+            }
+          } catch (error) {
+            console.error('Failed to update UI config:', error);
+            throw error; // UIConfigModal handles the error display
           }
         }}
       />

@@ -9,33 +9,9 @@ import { HealthBadges } from '../health'
 import { parseHealthKeywords } from '@/lib/health/keywords'
 import { UnavailableOverlay, DiscountBadge } from '../common'
 
-interface Product {
-  id: string
-  name: string
-  nameEn?: string
-  price: number
-  old_price?: number
-  discount_percentage?: number
-  image?: string
-  description?: string
-  calories?: number
-  protein?: number
-  energy_score?: number
-  health_keywords?: string
-  available?: number
-  template_id?: string
-  options_preview?: {
-    total_groups: number
-    total_options: number
-    featured_options: Array<{ id: string; name: string; image?: string }>
-  }
-}
-
-interface UIConfig {
-  icon?: { value: string; animation?: 'none' | 'pulse' | 'bounce' | 'spin' }
-  badge?: string
-  badge_color?: string
-}
+import type { Product } from '@/lib/api'
+import type { ProductUIConfig } from '@/types/products'
+import DynamicIcon from '../DynamicIcon'
 
 /**
  * Badge Component - Displays ui_config badge with custom color
@@ -44,9 +20,9 @@ interface UIConfig {
 function ProductBadge({ badge, badgeColor }: { badge: string; badgeColor?: string }) {
   const defaultColor = '#FF6B9D'
   const bgColor = badgeColor || defaultColor
-  
+
   return (
-    <div 
+    <div
       className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-full text-white text-[10px] font-bold shadow-sm"
       style={{ backgroundColor: bgColor }}
     >
@@ -58,22 +34,26 @@ function ProductBadge({ badge, badgeColor }: { badge: string; badgeColor?: strin
 interface BYOProductCardProps {
   product: Product
   config?: CategoryConfig
-  uiConfig?: UIConfig
+  uiConfig?: ProductUIConfig
 }
 
 /**
  * BYOProductCard - بطاقة المنتجات المعقدة (template_3)
  * تصميم موحد ومتماثل مع باقي الكاردات - مع لمسة premium
  */
-export default function BYOProductCard({ product, config: _config, uiConfig }: BYOProductCardProps) {
-  void _config
+export default function BYOProductCard({ product, config, uiConfig }: BYOProductCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const isUnavailable = product.available === 0
   const customizationCount = product.options_preview?.total_options || 20
 
+  // Calculate discount percentage if old_price exists
   const discountPct = product.old_price && product.price && product.old_price > product.price
     ? Math.round(((product.old_price - product.price) / product.old_price) * 100)
-    : (product.discount_percentage || 0)
+    : 0
+
+  // UI Config Visibility Flags (Default to true if undefined)
+  const showImages = uiConfig?.show_images !== false
+  const showPrices = uiConfig?.show_prices !== false
 
   const handleClick = () => {
     if (!isUnavailable) window.location.href = `/products/${product.id}`
@@ -89,10 +69,10 @@ export default function BYOProductCard({ product, config: _config, uiConfig }: B
       className={`relative w-full ${isUnavailable ? 'opacity-60' : 'cursor-pointer'}`}
     >
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-pink-50/50 to-slate-50 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 shadow-md hover:shadow-xl transition-shadow duration-300 border border-pink-100/50 dark:border-slate-600 h-full flex flex-col">
-        
+
         {/* Image Section - Fixed aspect ratio */}
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-pink-100/30 to-rose-100/30 dark:from-slate-700 dark:to-slate-600 group">
-          {product.image ? (
+          {product.image && showImages ? (
             <motion.div
               animate={isHovered && !isUnavailable ? { scale: 1.05 } : { scale: 1 }}
               transition={{ duration: 0.4 }}
@@ -108,7 +88,11 @@ export default function BYOProductCard({ product, config: _config, uiConfig }: B
             </motion.div>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-5xl">{uiConfig?.icon?.value || '🍦'}</span>
+              {uiConfig?.icon ? (
+                <DynamicIcon config={uiConfig.icon} size={48} />
+              ) : (
+                <span className="text-5xl">{config?.icon || '🍦'}</span>
+              )}
             </div>
           )}
 
@@ -167,32 +151,33 @@ export default function BYOProductCard({ product, config: _config, uiConfig }: B
           )}
 
           {/* Price Row */}
-          <div className="mt-auto flex items-center justify-between mb-2">
-            <div>
-              <span className="text-[9px] text-slate-400 block">يبدأ من</span>
-              <div className="flex items-baseline gap-1">
-                <span className={`text-base font-bold ${discountPct > 0 ? 'text-green-600' : 'text-[#FF6B9D]'}`}>
-                  {product.price}<span className="text-[10px] text-slate-400 mr-0.5">ج.م</span>
-                </span>
-                {product.old_price && product.old_price > product.price && (
-                  <span className="text-[10px] text-slate-400 line-through">{product.old_price}</span>
-                )}
+          {showPrices && (
+            <div className="mt-auto flex items-center justify-between mb-2">
+              <div>
+                <span className="text-[9px] text-slate-400 block">يبدأ من</span>
+                <div className="flex items-baseline gap-1">
+                  <span className={`text-base font-bold ${discountPct > 0 ? 'text-green-600' : 'text-[#FF6B9D]'}`}>
+                    {product.price}<span className="text-[10px] text-slate-400 mr-0.5">ج.م</span>
+                  </span>
+                  {product.old_price && product.old_price > product.price && (
+                    <span className="text-[10px] text-slate-400 line-through">{product.old_price}</span>
+                  )}
+                </div>
               </div>
+              <button className="text-[#FF6B9D] hover:text-[#FF5A8E] transition-colors">
+                <ChevronLeft size={18} strokeWidth={2.5} />
+              </button>
             </div>
-            <button className="text-[#FF6B9D] hover:text-[#FF5A8E] transition-colors">
-              <ChevronLeft size={18} strokeWidth={2.5} />
-            </button>
-          </div>
+          )}
 
           {/* CTA Button */}
           <motion.button
             whileTap={!isUnavailable ? { scale: 0.98 } : undefined}
             disabled={isUnavailable}
-            className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-              isUnavailable
-                ? 'bg-slate-200 text-slate-400'
-                : 'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white shadow-sm hover:shadow-md'
-            }`}
+            className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${isUnavailable
+              ? 'bg-slate-200 text-slate-400'
+              : 'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white shadow-sm hover:shadow-md'
+              }`}
           >
             <Palette size={14} />
             <span>صمم بنفسك</span>

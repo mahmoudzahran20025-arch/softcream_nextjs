@@ -32,7 +32,7 @@ const HighlightText: React.FC<{ text: string; query?: string }> = ({ text, query
   }
 
   const parts = text.split(new RegExp(`(${query})`, 'gi'));
-  
+
   return (
     <>
       {parts.map((part, index) =>
@@ -66,9 +66,9 @@ const DISPLAY_STYLE_CONFIG: Record<string, { label: string; color: string; bgCol
  */
 const DisplayStyleBadge: React.FC<{ displayMode: string }> = ({ displayMode }) => {
   const config = DISPLAY_STYLE_CONFIG[displayMode] || DISPLAY_STYLE_CONFIG.grid;
-  
+
   return (
-    <span 
+    <span
       className={`px-2 py-0.5 text-xs font-medium rounded-full ${config.bgColor} ${config.color}`}
       title={`نمط العرض: ${config.label}`}
     >
@@ -83,15 +83,15 @@ const DisplayStyleBadge: React.FC<{ displayMode: string }> = ({ displayMode }) =
  */
 const getIconConfig = (group: OptionGroupCardProps['group']): IconConfig => {
   // Parse ui_config if it's a string
-  const uiConfig: UIConfig = typeof group.ui_config === 'string' 
+  const uiConfig: UIConfig = typeof group.ui_config === 'string'
     ? parseUIConfig(group.ui_config)
     : group.ui_config || parseUIConfig();
-  
+
   // If ui_config has icon config, use it
   if (uiConfig.icon) {
     return uiConfig.icon;
   }
-  
+
   // Fallback: use group.icon as emoji
   return {
     type: 'emoji',
@@ -165,7 +165,7 @@ const OptionGroupCard: React.FC<OptionGroupCardProps> = ({
     .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
 
   return (
-    <motion.div 
+    <motion.div
       className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
       layout
       initial={{ opacity: 0, y: 10 }}
@@ -175,7 +175,7 @@ const OptionGroupCard: React.FC<OptionGroupCardProps> = ({
     >
       {/* Group Header (Requirement 1.1, 4.1) */}
       <div
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-white transition-all duration-300"
         onClick={onToggleExpand}
         role="button"
         aria-expanded={isExpanded}
@@ -185,7 +185,7 @@ const OptionGroupCard: React.FC<OptionGroupCardProps> = ({
         {showDragHandle && (
           <div
             {...dragHandleProps}
-            className="flex-shrink-0 p-1 mr-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition-colors"
+            className="flex-shrink-0 p-1 mr-2 cursor-grab active:cursor-grabbing text-gray-300 hover:text-purple-500 transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             <GripVertical size={18} />
@@ -193,35 +193,36 @@ const OptionGroupCard: React.FC<OptionGroupCardProps> = ({
         )}
 
         {/* Group Info */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           {/* DynamicIcon for icon rendering (Requirement 4.1) */}
-          <motion.div 
-            className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gray-50 rounded-lg"
-            whileHover={{ scale: 1.05 }}
+          <motion.div
+            className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-gradient-to-br from-purple-100 to-indigo-50 rounded-xl border border-purple-100 shadow-sm"
+            whileHover={{ scale: 1.05, rotate: 5 }}
             whileTap={{ scale: 0.95 }}
           >
-            <DynamicIcon 
-              config={getIconConfig(group)} 
+            <DynamicIcon
+              config={getIconConfig(group)}
               size={24}
-              className="text-gray-700"
+              className="text-purple-700"
             />
           </motion.div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-bold text-gray-800 truncate">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="text-lg font-bold text-gray-800 truncate tracking-tight">
                 <HighlightText text={group.name_ar} query={searchQuery} />
               </h3>
               {/* Display Style Badge (Requirement 4.1) */}
-              <DisplayStyleBadge 
+              {/* Display Style Badge (Requirement 4.1) */}
+              <DisplayStyleBadge
                 displayMode={
-                  typeof group.ui_config === 'string' 
-                    ? parseUIConfig(group.ui_config).displayMode 
-                    : group.ui_config?.displayMode || 'grid'
-                } 
+                  typeof group.ui_config === 'string'
+                    ? parseUIConfig(group.ui_config).display_style
+                    : group.ui_config?.display_style || 'grid'
+                }
               />
             </div>
-            <p className="text-sm text-gray-500">
-              {(group.options || []).length} خيار
+            <p className="text-sm text-gray-500 font-medium">
+              {(group.options || []).length} خيارات متاحة
             </p>
           </div>
         </div>
@@ -305,7 +306,7 @@ const OptionGroupCard: React.FC<OptionGroupCardProps> = ({
           >
             {sortedOptions.length === 0 ? (
               /* Empty Options State */
-              <motion.div 
+              <motion.div
                 className="p-6 text-center text-gray-500"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -345,7 +346,7 @@ const OptionGroupCard: React.FC<OptionGroupCardProps> = ({
             )}
 
             {/* Add Option Button */}
-            <motion.div 
+            <motion.div
               className="p-3 pr-12"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

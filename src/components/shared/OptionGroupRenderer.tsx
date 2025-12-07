@@ -1,8 +1,11 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import { parseUIConfig } from '@/lib/uiConfig'
 import DynamicIcon from '@/components/ui/DynamicIcon'
 import { OptionsGrid } from '../modals/ProductModal/templates/shared'
+import HeroSelectionRenderer from './HeroSelectionRenderer'
+import InteractiveMeter from './InteractiveMeter'
 import type { GridColumns, CardSize, AccentColor } from '../modals/ProductModal/templates/shared/types'
 
 interface OptionGroupRendererProps {
@@ -44,12 +47,12 @@ const normalizeDisplayStyle = (value: string | undefined): DisplayStyle => {
  * Pills Display Component - Compact pill-style options
  * Requirement 4.3: display_style = 'pills'
  */
-function PillsDisplay({ 
-    group, 
-    selections, 
+function PillsDisplay({
+    group,
+    selections,
     onSelectionChange,
-    accentColor 
-}: { 
+    accentColor
+}: {
     group: any
     selections: string[]
     onSelectionChange: (ids: string[]) => void
@@ -82,11 +85,10 @@ function PillsDisplay({
                     <button
                         key={option.id}
                         onClick={() => handleToggle(option.id)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border-2 ${
-                            isSelected
-                                ? `${accentColors[accentColor]} text-white`
-                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-                        }`}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border-2 ${isSelected
+                            ? `${accentColors[accentColor]} text-white`
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                            }`}
                     >
                         {option.name_ar || option.name}
                         {option.base_price > 0 && (
@@ -103,12 +105,12 @@ function PillsDisplay({
  * List Display Component - Vertical list with checkboxes
  * Requirement 4.3: display_style = 'list'
  */
-function ListDisplay({ 
-    group, 
-    selections, 
+function ListDisplay({
+    group,
+    selections,
     onSelectionChange,
-    accentColor 
-}: { 
+    accentColor
+}: {
     group: any
     selections: string[]
     onSelectionChange: (ids: string[]) => void
@@ -141,18 +143,16 @@ function ListDisplay({
                     <button
                         key={option.id}
                         onClick={() => handleToggle(option.id)}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl transition-all border ${
-                            isSelected
-                                ? 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600'
-                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                        }`}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl transition-all border ${isSelected
+                            ? 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                            }`}
                     >
                         <div className="flex items-center gap-3">
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                isSelected 
-                                    ? `${accentColors[accentColor]} border-transparent` 
-                                    : 'border-slate-300 dark:border-slate-600'
-                            }`}>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected
+                                ? `${accentColors[accentColor]} border-transparent`
+                                : 'border-slate-300 dark:border-slate-600'
+                                }`}>
                                 {isSelected && (
                                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -177,12 +177,12 @@ function ListDisplay({
  * Checkbox Display Component - Traditional checkbox style
  * Requirement 4.3: display_style = 'checkbox'
  */
-function CheckboxDisplay({ 
-    group, 
-    selections, 
+function CheckboxDisplay({
+    group,
+    selections,
     onSelectionChange,
-    accentColor 
-}: { 
+    accentColor
+}: {
     group: any
     selections: string[]
     onSelectionChange: (ids: string[]) => void
@@ -222,11 +222,10 @@ function CheckboxDisplay({
                             onChange={() => handleToggle(option.id)}
                             className="sr-only"
                         />
-                        <div className={`w-5 h-5 rounded ${group.maxSelections === 1 ? 'rounded-full' : 'rounded'} border-2 flex items-center justify-center ${
-                            isSelected 
-                                ? `${accentColors[accentColor]} border-transparent` 
-                                : 'border-slate-300 dark:border-slate-600'
-                        }`}>
+                        <div className={`w-5 h-5 rounded ${group.maxSelections === 1 ? 'rounded-full' : 'rounded'} border-2 flex items-center justify-center ${isSelected
+                            ? `${accentColors[accentColor]} border-transparent`
+                            : 'border-slate-300 dark:border-slate-600'
+                            }`}>
                             {isSelected && (
                                 <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -265,13 +264,49 @@ export default function OptionGroupRenderer({
 }: OptionGroupRendererProps) {
     // ✅ Parse UI Config from backend
     const uiConfig = parseUIConfig(group.ui_config)
-    
+
     // ✅ Get display_style from ui_config (Requirement 4.3)
-    const displayStyle = normalizeDisplayStyle(uiConfig.display_style || uiConfig.displayMode)
-    const accentColor = normalizeAccentColor(uiConfig.accentColor)
+    const displayStyle = normalizeDisplayStyle(uiConfig.display_style)
+    const accentColor = normalizeAccentColor(uiConfig.accent_color)
 
     // ✅ Render options based on display_style
+    // ✅ Render options based on section_type OR display_style
     const renderOptions = () => {
+        // 1. Handle Special Section Types (Next-Gen UI)
+        if (uiConfig.section_type) {
+            switch (uiConfig.section_type) {
+                case 'hero_selection':
+                    return (
+                        <HeroSelectionRenderer
+                            options={group.options || []}
+                            selectedIds={selections}
+                            onSelect={(id) => onSelectionChange([id])} // Hero implies single select usually, but we could support multi
+                            accentColor={accentColor}
+                        />
+                    )
+                case 'interactive_meter':
+                    return (
+                        <InteractiveMeter
+                            options={group.options || []}
+                            selectedIds={selections}
+                            onSelect={(id) => onSelectionChange([id])}
+                            accentColor={accentColor}
+                        />
+                    )
+                case 'compact_addons':
+                    // Force pills for compact addons
+                    return (
+                        <PillsDisplay
+                            group={group}
+                            selections={selections}
+                            onSelectionChange={onSelectionChange}
+                            accentColor={accentColor}
+                        />
+                    )
+            }
+        }
+
+        // 2. Fallback to Standard Display Styles
         switch (displayStyle) {
             case 'pills':
                 return (
@@ -310,9 +345,9 @@ export default function OptionGroupRenderer({
                         selections={selections}
                         onSelectionChange={onSelectionChange}
                         columns={normalizeColumns(uiConfig.columns)}
-                        cardSize={normalizeCardSize(uiConfig.cardSize)}
+                        cardSize={normalizeCardSize(uiConfig.card_size)}
                         accentColor={accentColor}
-                        showImages={uiConfig.showImages ?? true}
+                        showImages={uiConfig.show_images ?? true}
                         showDescriptions={false}
                         showNutrition={false}
                     />
@@ -320,21 +355,39 @@ export default function OptionGroupRenderer({
         }
     }
 
+    const containerVariants = {
+        hidden: { opacity: 0, y: 10 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 0.3,
+                staggerChildren: 0.05
+            }
+        }
+    }
+
     return (
-        <div className="space-y-3">
+        <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            layout
+            className="space-y-4 p-4 rounded-2xl bg-white/30 dark:bg-black/20 backdrop-blur-sm border border-white/20 dark:border-white/10"
+        >
             {/* Header with Dynamic Icon */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
                     {/* ✅ Dynamic Icon */}
                     {uiConfig.icon && (
-                        <DynamicIcon config={uiConfig.icon} size={20} />
+                        <DynamicIcon config={uiConfig.icon} size={20} color={accentColor} />
                     )}
-                    <span>{group.groupName || group.name_ar}</span>
+                    <span className="text-lg font-bold">{group.groupName || group.name_ar}</span>
                 </div>
 
                 {/* Selection Badge */}
                 {group.maxSelections > 1 && (
-                    <span className="text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
+                    <span className="text-xs text-slate-500 bg-white/50 dark:bg-white/10 px-2 py-1 rounded-full backdrop-blur-md">
                         اختر {group.minSelections === group.maxSelections
                             ? group.minSelections
                             : `${group.minSelections} - ${group.maxSelections}`}
@@ -343,7 +396,9 @@ export default function OptionGroupRenderer({
             </div>
 
             {/* ✅ Dynamic Layout based on display_style (Requirement 4.3) */}
-            {renderOptions()}
-        </div>
+            <div className="relative">
+                {renderOptions()}
+            </div>
+        </motion.div>
     )
 }

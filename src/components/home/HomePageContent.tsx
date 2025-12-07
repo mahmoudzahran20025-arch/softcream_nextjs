@@ -5,28 +5,7 @@ import HomePageClient from '@/components/home/HomePageClient'
 import ProductsProvider from '@/providers/ProductsProvider'
 import StorytellingHero from '@/components/StorytellingHero'
 import ScrollProgressButton from '@/components/ui/ScrollProgressButton'
-
-interface Product {
-  id: string
-  name: string
-  nameEn?: string
-  price: number
-  image?: string
-  category?: string
-  description?: string
-  tags?: string
-  ingredients?: string
-  allergens?: string
-  calories?: number
-  protein?: number
-  carbs?: number
-  sugar?: number
-  fat?: number
-  fiber?: number
-  energy_type?: string
-  energy_score?: number
-  badge?: string
-}
+import type { Product } from '@/lib/api'
 
 interface PageContentProps {
   initialProducts: Product[]
@@ -58,7 +37,7 @@ export default function HomePageContent({ initialProducts }: PageContentProps) {
           <Footer />
         </Suspense>
       </main>
-      
+
       {/* Scroll Progress Button */}
       <ScrollProgressButton />
     </ProductsProvider>

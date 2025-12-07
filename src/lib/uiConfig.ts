@@ -14,28 +14,30 @@ export interface LayoutConfig {
 }
 
 export interface UIConfig {
-    displayMode: 'grid' | 'list' | 'pills' | 'cards'
-    columns?: number
-    cardSize?: 'sm' | 'md' | 'lg'
-    showImages?: boolean
-    showPrices?: boolean
-    accentColor?: string
+    display_style: 'grid' | 'list' | 'pills' | 'cards' | 'checkbox'
+    section_type?: 'default' | 'hero_selection' | 'compact_addons' | 'interactive_meter'
+    columns?: 1 | 2 | 3 | 4
+    card_size?: 'sm' | 'md' | 'lg'
+    show_images?: boolean
+    show_prices?: boolean
+    show_macros?: boolean
+    accent_color?: string
     icon?: IconConfig
     layout?: LayoutConfig
-    // Badge settings (Requirements 4.1, 4.2)
     badge?: string
     badge_color?: string
-    // Display style for option groups (Requirement 4.3)
-    display_style?: 'cards' | 'pills' | 'list' | 'checkbox'
+    theme?: string
 }
 
 const DEFAULT_UI_CONFIG: UIConfig = {
-    displayMode: 'grid',
+    display_style: 'grid',
+    section_type: 'default',
     columns: 3,
-    cardSize: 'md',
-    showImages: true,
-    showPrices: true,
-    accentColor: 'pink',
+    card_size: 'md',
+    show_images: true,
+    show_prices: true,
+    show_macros: false,
+    accent_color: 'pink',
     icon: {
         type: 'emoji',
         value: '🍦',
@@ -53,20 +55,22 @@ const DEFAULT_UI_CONFIG: UIConfig = {
  * @param uiConfigJSON - JSON string from database
  * @returns Parsed UIConfig with defaults
  */
-export function parseUIConfig(uiConfigJSON?: string): UIConfig {
+export function parseUIConfig(uiConfigJSON?: string | object): UIConfig {
     if (!uiConfigJSON || uiConfigJSON === '{}') {
         return DEFAULT_UI_CONFIG
     }
 
     try {
-        const config = JSON.parse(uiConfigJSON)
+        const config = typeof uiConfigJSON === 'string' ? JSON.parse(uiConfigJSON) : uiConfigJSON
         return {
-            displayMode: config.displayMode || config.display_style || DEFAULT_UI_CONFIG.displayMode,
+            display_style: config.display_style || config.displayMode || DEFAULT_UI_CONFIG.display_style,
+            section_type: config.section_type || DEFAULT_UI_CONFIG.section_type,
             columns: config.columns || DEFAULT_UI_CONFIG.columns,
-            cardSize: config.cardSize || DEFAULT_UI_CONFIG.cardSize,
-            showImages: config.showImages ?? DEFAULT_UI_CONFIG.showImages,
-            showPrices: config.showPrices ?? DEFAULT_UI_CONFIG.showPrices,
-            accentColor: config.accentColor || DEFAULT_UI_CONFIG.accentColor,
+            card_size: config.card_size || config.cardSize || DEFAULT_UI_CONFIG.card_size,
+            show_images: config.show_images ?? config.showImages ?? DEFAULT_UI_CONFIG.show_images,
+            show_prices: config.show_prices ?? config.showPrices ?? DEFAULT_UI_CONFIG.show_prices,
+            show_macros: config.show_macros ?? config.showMacros ?? DEFAULT_UI_CONFIG.show_macros,
+            accent_color: config.accent_color || config.accentColor || DEFAULT_UI_CONFIG.accent_color,
             icon: {
                 type: config.icon?.type || DEFAULT_UI_CONFIG.icon!.type,
                 value: config.icon?.value || DEFAULT_UI_CONFIG.icon!.value,
@@ -77,11 +81,9 @@ export function parseUIConfig(uiConfigJSON?: string): UIConfig {
                 spacing: config.layout?.spacing || DEFAULT_UI_CONFIG.layout!.spacing,
                 alignment: config.layout?.alignment || DEFAULT_UI_CONFIG.layout!.alignment
             },
-            // Badge settings (Requirements 4.1, 4.2)
             badge: config.badge,
             badge_color: config.badge_color,
-            // Display style for option groups (Requirement 4.3)
-            display_style: config.display_style
+            theme: config.theme
         }
     } catch (error) {
         console.error('Failed to parse UI config:', error)

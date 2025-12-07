@@ -12,12 +12,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Settings2, 
-  Plus, 
-  Trash2, 
-  AlertCircle, 
-  Check, 
+import {
+  Settings2,
+  Plus,
+  Trash2,
+  AlertCircle,
+  Check,
   ChevronDown,
   Loader2,
   Info
@@ -80,7 +80,7 @@ interface RuleMapping {
  */
 function parseConditionalRules(jsonString: string | null): ConditionalRule | null {
   if (!jsonString) return null;
-  
+
   try {
     const parsed = JSON.parse(jsonString);
     if (parsed && typeof parsed === 'object' && parsed.trigger_group && parsed.rules) {
@@ -226,7 +226,7 @@ const RuleMappingRow: React.FC<RuleMappingRowProps> = ({
 // ===========================
 
 const ConditionalRulesEditor: React.FC<ConditionalRulesEditorProps> = ({
-  productId,
+  productId: _productId, // Reserved for future use
   targetGroupId,
   targetGroupName,
   currentRules,
@@ -253,7 +253,7 @@ const ConditionalRulesEditor: React.FC<ConditionalRulesEditorProps> = ({
     if (parsed) {
       setTriggerGroupId(parsed.trigger_group);
       setIsExpanded(true);
-      
+
       // Build mappings from rules
       const group = availableGroups.find(g => g.id === parsed.trigger_group);
       if (group?.options) {
@@ -284,20 +284,20 @@ const ConditionalRulesEditor: React.FC<ConditionalRulesEditorProps> = ({
   // Add all options from trigger group
   const handleAddAllOptions = useCallback(() => {
     if (!triggerGroup?.options) return;
-    
+
     const newMappings: RuleMapping[] = triggerGroup.options.map(option => ({
       optionId: option.id,
       optionName: option.name_ar,
       maxSelections: 1 // Default value
     }));
-    
+
     setRuleMappings(newMappings);
     setHasChanges(true);
   }, [triggerGroup]);
 
   // Update a mapping
   const handleMappingChange = useCallback((optionId: string, maxSelections: number) => {
-    setRuleMappings(prev => 
+    setRuleMappings(prev =>
       prev.map(m => m.optionId === optionId ? { ...m, maxSelections } : m)
     );
     setHasChanges(true);
@@ -314,7 +314,7 @@ const ConditionalRulesEditor: React.FC<ConditionalRulesEditorProps> = ({
     if (!triggerGroupId) {
       return 'يجب اختيار مجموعة التفعيل';
     }
-    
+
     if (ruleMappings.length === 0) {
       return 'يجب إضافة قاعدة واحدة على الأقل';
     }
@@ -533,8 +533,8 @@ const ConditionalRulesEditor: React.FC<ConditionalRulesEditorProps> = ({
               disabled={isLoading || isSaving || !hasChanges}
               className={`
                 flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded transition-colors
-                ${hasChanges 
-                  ? 'bg-pink-500 text-white hover:bg-pink-600' 
+                ${hasChanges
+                  ? 'bg-pink-500 text-white hover:bg-pink-600'
                   : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 }
               `}

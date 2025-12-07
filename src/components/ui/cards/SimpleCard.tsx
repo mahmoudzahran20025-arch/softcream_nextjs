@@ -1,5 +1,3 @@
-'use client'
-
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ShoppingCart, Check, Flame, Zap, ChevronLeft } from 'lucide-react'
@@ -10,29 +8,9 @@ import QuantitySelector from '../common/QuantitySelector'
 import { UnavailableOverlay, DiscountBadge } from '../common'
 import { HealthBadges } from '../health'
 import { parseHealthKeywords } from '@/lib/health/keywords'
-
-interface Product {
-  id: string
-  name: string
-  nameEn?: string
-  price: number
-  old_price?: number
-  discount_percentage?: number
-  image?: string
-  description?: string
-  calories?: number
-  energy_score?: number
-  badge?: string
-  health_keywords?: string
-  available?: number
-  template_id?: string
-}
-
-interface UIConfig {
-  icon?: { value: string; animation?: 'none' | 'pulse' | 'bounce' | 'spin' }
-  badge?: string
-  badge_color?: string
-}
+import type { Product } from '@/lib/api'
+import type { ProductUIConfig } from '@/types/products'
+import DynamicIcon from '../DynamicIcon'
 
 /**
  * Badge Component - Displays ui_config badge with custom color
@@ -41,9 +19,9 @@ interface UIConfig {
 function ProductBadge({ badge, badgeColor }: { badge: string; badgeColor?: string }) {
   const defaultColor = '#FF6B9D'
   const bgColor = badgeColor || defaultColor
-  
+
   return (
-    <div 
+    <div
       className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-full text-white text-[10px] font-bold shadow-sm"
       style={{ backgroundColor: bgColor }}
     >
@@ -56,7 +34,7 @@ interface SimpleCardProps {
   product: Product
   config?: CategoryConfig
   onAddToCart?: (product: Product, quantity: number) => void
-  uiConfig?: UIConfig
+  uiConfig?: ProductUIConfig
 }
 
 /**
@@ -71,9 +49,14 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
 
   const isUnavailable = product.available === 0
 
+  // Calculate discount percentage if old_price exists
   const discountPct = product.old_price && product.price && product.old_price > product.price
     ? Math.round(((product.old_price - product.price) / product.old_price) * 100)
     : 0
+
+  // UI Config Visibility Flags (Default to true if undefined)
+  const showImages = uiConfig?.show_images !== false
+  const showPrices = uiConfig?.show_prices !== false
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -102,7 +85,7 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
       >
         {/* Image Section - Fixed aspect ratio */}
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-700 dark:to-slate-800 group">
-          {product.image ? (
+          {product.image && showImages ? (
             <Image
               src={product.image}
               alt={product.name}
@@ -112,7 +95,11 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-5xl">{uiConfig?.icon?.value || config?.icon || '🍦'}</span>
+              {uiConfig?.icon ? (
+                <DynamicIcon config={uiConfig.icon} size={48} />
+              ) : (
+                <span className="text-5xl">{config?.icon || '🍦'}</span>
+              )}
             </div>
           )}
 
@@ -167,22 +154,24 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
           )}
 
           {/* Price Row */}
-          <div className="mt-auto flex items-center justify-between mb-2">
-            <div className="flex items-baseline gap-1">
-              <span className={`text-base font-bold ${discountPct > 0 ? 'text-green-600' : 'text-[#FF6B9D]'}`}>
-                {product.price}<span className="text-[10px] text-slate-400 mr-0.5">ج.م</span>
-              </span>
-              {product.old_price && product.old_price > product.price && (
-                <span className="text-[10px] text-slate-400 line-through">{product.old_price}</span>
-              )}
+          {showPrices && (
+            <div className="mt-auto flex items-center justify-between mb-2">
+              <div className="flex items-baseline gap-1">
+                <span className={`text-base font-bold ${discountPct > 0 ? 'text-green-600' : 'text-[#FF6B9D]'}`}>
+                  {product.price}<span className="text-[10px] text-slate-400 mr-0.5">ج.م</span>
+                </span>
+                {product.old_price && product.old_price > product.price && (
+                  <span className="text-[10px] text-slate-400 line-through">{product.old_price}</span>
+                )}
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleCardClick() }}
+                className="text-[#FF6B9D] hover:text-[#FF5A8E] transition-colors"
+              >
+                <ChevronLeft size={18} strokeWidth={2.5} />
+              </button>
             </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleCardClick() }}
-              className="text-[#FF6B9D] hover:text-[#FF5A8E] transition-colors"
-            >
-              <ChevronLeft size={18} strokeWidth={2.5} />
-            </button>
-          </div>
+          )}
 
           {/* Action Bar */}
           <div className="flex items-center gap-2">
@@ -190,11 +179,10 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
               whileTap={{ scale: 0.95 }}
               onClick={handleAddToCart}
               disabled={isAdding || isUnavailable}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
-                justAdded ? 'bg-emerald-500 text-white' :
-                isUnavailable ? 'bg-slate-200 text-slate-400' :
-                'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white shadow-sm'
-              }`}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${justAdded ? 'bg-emerald-500 text-white' :
+                  isUnavailable ? 'bg-slate-200 text-slate-400' :
+                    'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white shadow-sm'
+                }`}
             >
               {justAdded ? <Check size={18} /> : <ShoppingCart size={18} />}
             </motion.button>

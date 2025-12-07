@@ -13,9 +13,13 @@
 'use client';
 
 import React from 'react';
-import { Plus, Trash2, AlertCircle, AlertTriangle, GripVertical } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, AlertTriangle, GripVertical, Palette } from 'lucide-react';
 import type { OptionGroupsSectionProps, OptionGroupAssignment, OptionGroupInfo } from './types';
 import ConditionalRulesEditor from '../ConditionalRulesEditor';
+import AdvancedStyleEditor from './AdvancedStyleEditor';
+import { updateOptionGroup } from '@/lib/admin/options.api';
+import { parseUIConfig } from '@/lib/uiConfig';
+import type { UIConfig } from '@/lib/uiConfig';
 
 const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
   assignments,
@@ -25,9 +29,11 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
   warnings = [],
   productId,
 }) => {
+  const [editingVisualsGroupId, setEditingVisualsGroupId] = React.useState<string | null>(null);
+
   // Filter out groups with invalid IDs to prevent React key warnings
   const validGroups = availableGroups.filter(group => group.id != null && group.id !== '');
-  
+
   // Get groups that are not yet assigned
   const unassignedGroups = validGroups.filter(
     group => !assignments.some(a => a.groupId === group.id)
@@ -59,14 +65,14 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
     onChange(
       assignments.map(a => {
         if (a.groupId !== groupId) return a;
-        
+
         const updated = { ...a, [field]: value };
-        
+
         // Requirement 3.2: Auto-correct min_selections when is_required is set to true
         if (field === 'isRequired' && value === true && updated.minSelections === 0) {
           updated.minSelections = 1;
         }
-        
+
         return updated;
       })
     );
@@ -128,13 +134,12 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
             return (
               <div
                 key={assignment.groupId}
-                className={`bg-white rounded-xl border-2 p-4 transition-all ${
-                  groupHasError
-                    ? 'border-red-300 bg-red-50/50'
-                    : groupHasWarning
+                className={`bg-white rounded-xl border-2 p-4 transition-all ${groupHasError
+                  ? 'border-red-300 bg-red-50/50'
+                  : groupHasWarning
                     ? 'border-yellow-300 bg-yellow-50/50'
                     : 'border-gray-200 hover:border-indigo-300'
-                }`}
+                  }`}
               >
                 {/* Group Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -149,20 +154,36 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
                         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                           {groupInfo.optionsCount} خيار
                         </span>
+                        {/* Display Style Badge */}
+                        {(groupInfo.display_style || (groupInfo.ui_config && groupInfo.ui_config.display_style)) && (
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
+                            {groupInfo.display_style || groupInfo.ui_config?.display_style}
+                          </span>
+                        )}
                       </div>
                       {groupInfo.nameEn && (
                         <span className="text-xs text-gray-500">{groupInfo.nameEn}</span>
                       )}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveGroup(assignment.groupId)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                    title="إزالة المجموعة"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingVisualsGroupId(assignment.groupId)}
+                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                      title="تخصيص المظهر (Visual Style)"
+                    >
+                      <Palette size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveGroup(assignment.groupId)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      title="إزالة المجموعة"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Configuration */}
@@ -194,13 +215,12 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
                       min="0"
                       value={assignment.minSelections}
                       onChange={(e) => handleUpdateAssignment(assignment.groupId, 'minSelections', parseInt(e.target.value) || 0)}
-                      className={`w-full px-3 py-2 border-2 rounded-lg text-sm transition-all ${
-                        hasError(assignment.groupId, 'minSelections')
-                          ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                          : hasWarning(assignment.groupId, 'minSelections')
+                      className={`w-full px-3 py-2 border-2 rounded-lg text-sm transition-all ${hasError(assignment.groupId, 'minSelections')
+                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                        : hasWarning(assignment.groupId, 'minSelections')
                           ? 'border-yellow-300 focus:ring-yellow-500 focus:border-yellow-500'
                           : 'border-gray-200 focus:ring-indigo-500 focus:border-indigo-500'
-                      }`}
+                        }`}
                     />
                   </div>
 
@@ -214,13 +234,12 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
                       min="1"
                       value={assignment.maxSelections}
                       onChange={(e) => handleUpdateAssignment(assignment.groupId, 'maxSelections', parseInt(e.target.value) || 1)}
-                      className={`w-full px-3 py-2 border-2 rounded-lg text-sm transition-all ${
-                        hasError(assignment.groupId, 'maxSelections')
-                          ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                          : hasWarning(assignment.groupId, 'maxSelections')
+                      className={`w-full px-3 py-2 border-2 rounded-lg text-sm transition-all ${hasError(assignment.groupId, 'maxSelections')
+                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                        : hasWarning(assignment.groupId, 'maxSelections')
                           ? 'border-yellow-300 focus:ring-yellow-500 focus:border-yellow-500'
                           : 'border-gray-200 focus:ring-indigo-500 focus:border-indigo-500'
-                      }`}
+                        }`}
                     />
                   </div>
 
@@ -281,15 +300,15 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
                         // Requirements: 6.4 - Save conditional rules as JSON in product_options.conditional_max_selections
                         const { updateConditionalRules } = await import('@/lib/admin/options.api');
                         const result = await updateConditionalRules(productId, assignment.groupId, rules);
-                        
+
                         if (!result.success) {
                           throw new Error(result.error || 'فشل في حفظ القواعد المشروطة');
                         }
-                        
+
                         // Update the local assignment state
                         onChange(
-                          assignments.map(a => 
-                            a.groupId === assignment.groupId 
+                          assignments.map(a =>
+                            a.groupId === assignment.groupId
                               ? { ...a, conditionalMaxSelections: rules }
                               : a
                           )
@@ -363,6 +382,42 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
             ))}
         </div>
       )}
+
+      {/* Advanced Style Editor Modal */}
+      {editingVisualsGroupId && (() => {
+        const group = getGroupInfo(editingVisualsGroupId);
+        if (!group) return null;
+
+        return (
+          <AdvancedStyleEditor
+            group={group}
+            config={parseUIConfig(group.ui_config)}
+            onChange={async (newConfig: UIConfig) => {
+              // 1. Call API to save
+              try {
+                // Requirements: 3.3. Update Option Group
+                await updateOptionGroup(group.id, {
+                  ui_config: newConfig
+                });
+
+                // 2. Optimistic Update (Mutate the prop object reference for immediate preview)
+                // Note: In a perfect world we would reload, but this is a "Visual Editor"
+                if (group) {
+                  group.ui_config = newConfig;
+                  // Force re-render of badge if needed by creating a dummy state update or relying on parent
+                }
+
+                // Close editor
+                setEditingVisualsGroupId(null);
+              } catch (e) {
+                console.error("Failed to save visual config", e);
+                alert("Failed to save changes. Please try again.");
+              }
+            }}
+            onClose={() => setEditingVisualsGroupId(null)}
+          />
+        );
+      })()}
     </div>
   );
 };

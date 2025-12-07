@@ -2,11 +2,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  getUsers, 
-  getUserDetails, 
-  getUsersStats, 
-  updateUser, 
+import {
+  getUsers,
+  getUserDetails,
+  getUsersStats,
   addLoyaltyPoints,
   type User,
   type UsersStatsResponse
@@ -50,8 +49,8 @@ const TierBadge: React.FC<{ tier: string }> = ({ tier }) => {
 // Stats Card Component
 // ==========================================
 
-const StatsCard: React.FC<{ title: string; value: string | number; icon: string; color: string }> = ({ 
-  title, value, icon, color 
+const StatsCard: React.FC<{ title: string; value: string | number; icon: string; color: string }> = ({
+  title, value, icon, color
 }) => (
   <div className={`bg-white rounded-xl p-4 shadow-sm border-r-4 ${color}`}>
     <div className="flex items-center justify-between">
@@ -122,7 +121,7 @@ const UserDetailsModal: React.FC<{
     );
   }
 
-  const { user, addresses, recentOrders, couponUsage } = userData || {};
+  const { user, addresses: _addresses, recentOrders, couponUsage } = userData || {};
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -234,7 +233,7 @@ const UserDetailsModal: React.FC<{
 // Main Component
 // ==========================================
 
-const UsersPage: React.FC<UsersPageProps> = ({ onRefresh }) => {
+const UsersPage: React.FC<UsersPageProps> = ({ onRefresh: _onRefresh }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<UsersStatsResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -248,7 +247,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onRefresh }) => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const [usersRes, statsRes] = await Promise.all([
         getUsers({ page, limit: 20, search, tier: tierFilter, sortBy, sortOrder: 'DESC' }),
         getUsersStats()

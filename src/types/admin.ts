@@ -212,6 +212,8 @@ export interface OptionGroupInfo {
   defaultMin?: number
   defaultMax?: number
   optionsCount: number
+  ui_config?: UIConfig | any
+  display_style?: string
   options?: Array<{
     id: string
     name: string
@@ -413,12 +415,13 @@ export const INITIAL_OPTION_GROUP_FORM_DATA: OptionGroupFormData = {
   icon: '📦',
   display_order: 0,
   ui_config: {
-    displayMode: 'grid',
+    display_style: 'grid',
     columns: 3,
-    cardSize: 'md',
-    showImages: true,
-    showPrices: true,
-    accentColor: 'pink',
+    card_size: 'md',
+    show_images: true,
+    show_prices: true,
+    show_macros: false,
+    accent_color: 'pink',
     icon: {
       type: 'emoji',
       value: '🍦',

@@ -15,7 +15,6 @@ import {
   type Product,
   type BYOOptionGroup
 } from '@/lib/admin';
-import type { ProductsPageProps } from './types';
 import type {
   OptionGroupInfo,
   OptionGroupAssignment,
@@ -31,6 +30,12 @@ import BulkAssignModal from './BulkAssignModal';
 interface ToastNotification {
   type: 'success' | 'error';
   message: string;
+}
+
+export interface ProductsPageProps {
+  onRefresh?: () => void;
+  onUpdate?: (product: Product) => void;
+  onDelete?: (productId: string) => void;
 }
 
 const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDelete }) => {
@@ -107,6 +112,9 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
           nameAr: group.name_ar,
           nameEn: group.name_en,
           icon: group.icon,
+          // ✅ FIX: Include ui_config and display_style for Admin UI Rendering (Phase 9)
+          ui_config: (group as any).ui_config,
+          display_style: (group as any).ui_config?.display_style || (group as any).ui_config?.displayMode,
           optionsCount: group.options?.length || 0,
           options: group.options?.map(opt => ({
             id: opt.id,
@@ -213,14 +221,14 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
 
         // Reload products from server to get fresh data
         await loadProducts();
-        
+
         // Update editingProduct with new data so form reflects changes
         const updatedProduct = { ...editingProduct, ...productData } as Product;
         setEditingProduct(updatedProduct);
-        
+
         onUpdate?.(updatedProduct);
         showToast('success', 'تم تحديث المنتج بنجاح');
-        
+
         // Close form after successful update
         setShowCreateModal(false);
         setEditingProduct(null);
@@ -236,7 +244,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         });
         showToast('success', 'تم إنشاء المنتج بنجاح');
         await loadProducts();
-        
+
         // Close form after successful creation
         setShowCreateModal(false);
         setEditingProduct(null);
@@ -436,7 +444,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
       const matchesTemplate = templateFilter === 'all' || product.template_id === templateFilter;
 
       // Availability filter
-      const matchesAvailability = availabilityFilter === 'all' || 
+      const matchesAvailability = availabilityFilter === 'all' ||
         (availabilityFilter === 'available' && product.available === 1) ||
         (availabilityFilter === 'unavailable' && product.available === 0);
 
@@ -468,8 +476,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
           <button
             onClick={toggleSelectionMode}
             className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all text-sm sm:text-base ${selectionMode
-                ? 'bg-purple-100 text-purple-700 border border-purple-300'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+              ? 'bg-purple-100 text-purple-700 border border-purple-300'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
               }`}
           >
             <CheckSquare size={18} />
@@ -658,8 +666,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-50 animate-in slide-in-from-bottom-4 duration-300">
           <div
             className={`flex items-center gap-3 p-4 rounded-xl shadow-lg border-2 ${toast.type === 'success'
-                ? 'bg-green-50 border-green-200 text-green-800'
-                : 'bg-red-50 border-red-200 text-red-800'
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-red-50 border-red-200 text-red-800'
               }`}
           >
             <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'
@@ -672,8 +680,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
             <button
               onClick={() => setToast(null)}
               className={`flex-shrink-0 p-1 rounded-lg transition-colors ${toast.type === 'success'
-                  ? 'hover:bg-green-100 text-green-600'
-                  : 'hover:bg-red-100 text-red-600'
+                ? 'hover:bg-green-100 text-green-600'
+                : 'hover:bg-red-100 text-red-600'
                 }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

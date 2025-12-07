@@ -15,6 +15,7 @@ import type {
   ContainerType as SharedContainerType,
   ProductSize as SharedProductSize,
   NutritionInfo,
+  ProductUIConfig,
 } from '@/types/products'
 
 const API_URL = API_CONFIG.BASE_URL
@@ -317,6 +318,7 @@ export interface ProductConfiguration extends SharedProductConfiguration {
     templateId: string  // ✅ Backend returns templateId (not productType)
     isCustomizable: boolean
     baseNutrition: NutritionInfo
+    uiConfig?: ProductUIConfig
   }
 }
 
