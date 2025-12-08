@@ -97,17 +97,20 @@ export default function ProductTemplateRenderer({
   // Adapts productConfig to ProductEngineReturn interface
   // ================================================================
 
+  // ✅ FIX: Use actual ui_config from backend instead of hardcoded values
+  const backendUIConfig = productConfig.config?.product?.uiConfig || {}
+  
   const engineAdapter = {
     isLoading,
     error: null,
     config: productConfig.config,
     uiConfig: {
-      display_style: 'cards' as const,
-      columns: 2 as const,
-      card_size: 'medium' as const,
-      show_images: true,
-      show_prices: true,
-      show_macros: productConfig.templateId === 'template_lifestyle'
+      display_style: (backendUIConfig.display_style || 'cards') as 'cards' | 'grid' | 'list' | 'pills',
+      columns: (backendUIConfig.columns || 2) as 1 | 2 | 3 | 4,
+      card_size: (backendUIConfig.card_size || 'medium') as 'sm' | 'md' | 'lg',
+      show_images: backendUIConfig.show_images ?? true,
+      show_prices: backendUIConfig.show_prices ?? true,
+      show_macros: backendUIConfig.show_macros ?? (productConfig.templateId === 'template_lifestyle')
     },
     templateId: productConfig.templateId,
     hasContainers: productConfig.hasContainers,

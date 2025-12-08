@@ -1,7 +1,7 @@
 // Shared Components for Templates
 export { default as OptionCard } from './OptionCard'
 export { default as OptionsGrid } from './OptionsGrid'
-export { default as StepSection } from './StepSection'
+// StepSection moved to _archived (unused)
 
 // Utilities
 export { 

@@ -153,25 +153,38 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
    * Requirements: 1.5 - Save product and all assignments in a single transaction
    * Requirements: 2.4 - Update product data and product_options atomically
    */
+  /**
+   * Handle unified form submission
+   * Requirements: 1.5 - Save product and all assignments in a single transaction
+   * Requirements: 2.4 - Update product data and product_options atomically
+   * 
+   * ✅ FIX: Explicitly include all fields in the payload, even empty ones
+   * This allows the backend to properly clear/delete field values when user removes them
+   * Using a separate payload object that includes null values for clearing
+   */
   const handleUnifiedSubmit = async (data: UnifiedProductData) => {
     try {
-      const productData = {
+      // Build product data payload - include ALL fields explicitly
+      // Empty strings are sent as empty strings, backend will handle conversion to NULL
+      const productData: Record<string, unknown> = {
         id: data.product.id,
         name: data.product.name,
-        nameEn: data.product.nameEn || undefined,
+        // ✅ FIX: Always include these fields, even when empty
+        nameEn: data.product.nameEn || null,
         category: data.product.category,
-        categoryEn: data.product.categoryEn || undefined,
+        categoryEn: data.product.categoryEn || null,
         price: parseFloat(data.product.price) || 0,
-        description: data.product.description || undefined,
-        descriptionEn: data.product.descriptionEn || undefined,
-        image: data.product.image || undefined,
-        badge: data.product.badge || undefined,
+        description: data.product.description || null,
+        descriptionEn: data.product.descriptionEn || null,
+        // ✅ FIX: Send null explicitly when image is removed
+        image: data.product.image || null,
+        // ✅ FIX: Send null explicitly when badge is removed
+        badge: data.product.badge || null,
         available: data.product.available,
         // Template field - single source of truth (replaces product_type and card_style)
         template_id: data.product.template_id || 'template_1',
         // Discount fields
-        // Note: discount_percentage is calculated automatically in frontend from old_price and price
-        old_price: data.product.old_price ? parseFloat(data.product.old_price) : undefined,
+        old_price: data.product.old_price ? parseFloat(data.product.old_price) : null,
         // Nutrition fields
         calories: parseInt(data.product.calories) || 0,
         protein: parseFloat(data.product.protein) || 0,
@@ -180,11 +193,18 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         sugar: parseFloat(data.product.sugar) || 0,
         fiber: parseFloat(data.product.fiber) || 0,
         energy_score: parseInt(data.product.energy_score) || 0,
-        energy_type: data.product.energy_type as 'mental' | 'physical' | 'balanced' | 'none' | undefined,
+        energy_type: data.product.energy_type || 'none',
         health_keywords: data.product.health_keywords?.length > 0
           ? JSON.stringify(data.product.health_keywords)
-          : undefined,
-        health_benefit_ar: data.product.health_benefit_ar || undefined
+          : null,
+        health_benefit_ar: data.product.health_benefit_ar || null,
+        // ✅ FIX: Include ui_config in the payload
+        ui_config: data.product.ui_config || null,
+        // ✅ FIX: Include metadata fields
+        tags: data.product.tags || null,
+        ingredients: data.product.ingredients || null,
+        nutrition_facts: data.product.nutrition_facts || null,
+        allergens: data.product.allergens || null,
       };
 
       /**

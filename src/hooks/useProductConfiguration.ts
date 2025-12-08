@@ -51,24 +51,50 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
   }, [isOpen, productId])
 
   // Set defaults when config loads (only once)
+  // ✅ FIX: Only auto-select if the option is REQUIRED
   useEffect(() => {
     if (config && !selectedContainer && !selectedSize) {
-      // Set default container
+      // Set default container ONLY if required
       if (config.hasContainers && config.containers.length > 0) {
-        const defaultContainer = config.containers.find(c => c.isDefault) || config.containers[0]
-        setSelectedContainer(defaultContainer.id)
+        const containersRule = config.customizationRules?.find((r: any) => r.groupId === 'containers')
+        // Only auto-select if containers are required OR there's only one option
+        if (containersRule?.isRequired || config.containers.length === 1) {
+          const defaultContainer = config.containers.find(c => c.isDefault) || config.containers[0]
+          setSelectedContainer(defaultContainer.id)
+        }
       }
-      // Set default size
+      // Set default size ONLY if required
       if (config.hasSizes && config.sizes.length > 0) {
-        const defaultSize = config.sizes.find(s => s.isDefault) || config.sizes[0]
-        setSelectedSize(defaultSize.id)
+        const sizesRule = config.customizationRules?.find((r: any) => r.groupId === 'sizes')
+        // Only auto-select if sizes are required OR there's only one option
+        if (sizesRule?.isRequired || config.sizes.length === 1) {
+          const defaultSize = config.sizes.find(s => s.isDefault) || config.sizes[0]
+          setSelectedSize(defaultSize.id)
+        }
       }
     }
   }, [config]) // Only depend on config, not on selectedContainer/selectedSize
 
 
   // Get available sizes for selected container
+  // ✅ FIX: Also check for sizes in option_groups (customizationRules)
   const availableSizes = useMemo(() => {
+    // First check if sizes come from option_groups
+    const sizesFromOptionGroups = config?.customizationRules?.find((r: any) => r.groupId === 'sizes')
+    if (sizesFromOptionGroups?.options?.length > 0) {
+      // Transform option_group options to size format
+      return sizesFromOptionGroups.options.map((opt: any) => ({
+        id: opt.id,
+        name: opt.name_ar || opt.name,
+        nameAr: opt.name_ar,
+        nameEn: opt.name_en,
+        priceModifier: opt.price || opt.base_price || 0,
+        isDefault: false,
+        containerId: null
+      }))
+    }
+
+    // Fallback to legacy sizes array
     if (!config?.hasSizes || !config.sizes) return []
 
     if (!selectedContainer) {
@@ -100,10 +126,20 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
   }, [config, selectedContainer])
 
   // Get selected size object
+  // ✅ FIX: Also check selections from option_groups for sizes
   const sizeObj = useMemo(() => {
+    // First check if size is selected via option_groups
+    const sizesGroupSelections = selections['sizes'] || []
+    if (sizesGroupSelections.length > 0) {
+      const selectedSizeId = sizesGroupSelections[0]
+      const sizeFromGroup = availableSizes.find(s => s.id === selectedSizeId)
+      if (sizeFromGroup) return sizeFromGroup
+    }
+    
+    // Fallback to legacy selectedSize
     if (!selectedSize) return null
     return availableSizes.find(s => s.id === selectedSize) || null
-  }, [availableSizes, selectedSize])
+  }, [availableSizes, selectedSize, selections])
 
   // ================================================================
   // Conditional Options Support (Requirements 1.1, 1.2, 1.3, 1.4)

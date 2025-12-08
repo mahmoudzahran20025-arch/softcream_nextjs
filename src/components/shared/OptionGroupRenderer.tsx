@@ -367,33 +367,43 @@ export default function OptionGroupRenderer({
         }
     }
 
+    // ✅ FIX: Show header only for non-grid/cards display styles
+    // OptionsGrid already renders its own header, so we skip it for cards/grid
+    const showHeader = displayStyle !== 'cards' && displayStyle !== 'grid'
+    
     return (
         <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             layout
-            className="space-y-4 p-4 rounded-2xl bg-white/30 dark:bg-black/20 backdrop-blur-sm border border-white/20 dark:border-white/10"
+            className="space-y-3"
         >
-            {/* Header with Dynamic Icon */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
-                    {/* ✅ Dynamic Icon */}
-                    {uiConfig.icon && (
-                        <DynamicIcon config={uiConfig.icon} size={20} color={accentColor} />
-                    )}
-                    <span className="text-lg font-bold">{group.groupName || group.name_ar}</span>
-                </div>
+            {/* Header - Only for pills/list/checkbox (OptionsGrid has its own header) */}
+            {showHeader && (
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
+                        {/* ✅ Dynamic Icon */}
+                        {uiConfig.icon && (
+                            <DynamicIcon config={uiConfig.icon} size={20} color={accentColor} />
+                        )}
+                        {/* Fallback to group icon */}
+                        {!uiConfig.icon && group.groupIcon && (
+                            <span className="text-xl">{group.groupIcon}</span>
+                        )}
+                        <span className="text-lg font-bold">{group.groupName || group.name_ar}</span>
+                    </div>
 
-                {/* Selection Badge */}
-                {group.maxSelections > 1 && (
-                    <span className="text-xs text-slate-500 bg-white/50 dark:bg-white/10 px-2 py-1 rounded-full backdrop-blur-md">
-                        اختر {group.minSelections === group.maxSelections
-                            ? group.minSelections
-                            : `${group.minSelections} - ${group.maxSelections}`}
-                    </span>
-                )}
-            </div>
+                    {/* Selection Badge */}
+                    {group.maxSelections > 1 && (
+                        <span className="text-xs text-slate-500 bg-white/50 dark:bg-white/10 px-2 py-1 rounded-full backdrop-blur-md">
+                            اختر {group.minSelections === group.maxSelections
+                                ? group.minSelections
+                                : `${group.minSelections} - ${group.maxSelections}`}
+                        </span>
+                    )}
+                </div>
+            )}
 
             {/* ✅ Dynamic Layout based on display_style (Requirement 4.3) */}
             <div className="relative">

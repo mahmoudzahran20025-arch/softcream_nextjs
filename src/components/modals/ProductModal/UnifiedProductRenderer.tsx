@@ -88,16 +88,10 @@ const TEMPLATE_IDS = {
  */
 interface LifestyleWizardLayoutProps {
     engine: ProductEngineReturn
-    LayoutComponent: React.ComponentType<LayoutProps>
-    uiConfig: UIConfig
 }
 
-function LifestyleWizardLayout({ engine, LayoutComponent, uiConfig }: LifestyleWizardLayoutProps) {
+function LifestyleWizardLayout({ engine }: LifestyleWizardLayoutProps) {
     const {
-        containers,
-        selectedContainer,
-        sizes,
-        selectedSize,
         optionGroups,
         selections,
         selectedOptions,
@@ -105,8 +99,6 @@ function LifestyleWizardLayout({ engine, LayoutComponent, uiConfig }: LifestyleW
         nutrition,
         energyType,
         energyScore,
-        hasContainers,
-        hasSizes,
         hasCustomization,
         actions
     } = engine
@@ -157,64 +149,9 @@ function LifestyleWizardLayout({ engine, LayoutComponent, uiConfig }: LifestyleW
                 energyScore={energyScore}
             />
 
-            {/* Containers Selector with emerald theme */}
-            {hasContainers && containers.length > 1 && (
-                <div className="space-y-2">
-                    <h4 className="text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
-                        <span>🍵</span> اختر الوعاء
-                    </h4>
-                    <LayoutComponent columns={uiConfig.columns || 2} cardSize={uiConfig.card_size}>
-                        {containers.map(container => (
-                            <motion.button
-                                key={container.id}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => actions.setContainer(container.id)}
-                                className={`p-3 rounded-xl border-2 transition-all ${selectedContainer === container.id
-                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 ring-2 ring-emerald-500/30'
-                                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
-                                    }`}
-                            >
-                                {container.image && (
-                                    <img src={container.image} alt={container.name} className="w-12 h-12 mx-auto mb-2 object-contain" />
-                                )}
-                                <div className="text-sm font-bold text-slate-800 dark:text-white">{container.nameAr || container.name}</div>
-                                {container.priceModifier > 0 && (
-                                    <div className="text-xs text-emerald-600">+{container.priceModifier} ج.م</div>
-                                )}
-                            </motion.button>
-                        ))}
-                    </LayoutComponent>
-                </div>
-            )}
-
-            {/* Sizes Selector with emerald theme */}
-            {hasSizes && sizes.length > 1 && (
-                <div className="space-y-2">
-                    <h4 className="text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
-                        <span>📏</span> اختر الحجم
-                    </h4>
-                    <LayoutComponent columns={uiConfig.columns || 2} cardSize={uiConfig.card_size}>
-                        {sizes.map(size => (
-                            <motion.button
-                                key={size.id}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => actions.setSize(size.id)}
-                                className={`p-3 rounded-xl border-2 transition-all ${selectedSize === size.id
-                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 ring-2 ring-emerald-500/30'
-                                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
-                                    }`}
-                            >
-                                <div className="text-sm font-bold text-slate-800 dark:text-white">{size.nameAr || size.name}</div>
-                                {size.priceModifier > 0 && (
-                                    <div className="text-xs text-emerald-600">+{size.priceModifier} ج.م</div>
-                                )}
-                            </motion.button>
-                        ))}
-                    </LayoutComponent>
-                </div>
-            )}
+            {/* ✅ FIX: Removed separate Containers/Sizes selectors for Lifestyle template
+                All options (including containers/sizes) now come from option_groups
+                This prevents duplicate display */}
 
             {/* Customization Groups with emerald theme */}
             {hasCustomization && optionGroups.map(group => (
@@ -314,10 +251,6 @@ export default function UnifiedProductRenderer({ product: _product, engine }: Un
         isLoading,
         templateId,
         uiConfig,
-        containers,
-        selectedContainer,
-        sizes,
-        selectedSize,
         optionGroups,
         selections,
         selectedOptions,
@@ -325,8 +258,6 @@ export default function UnifiedProductRenderer({ product: _product, engine }: Un
         nutrition,
         energyType,
         energyScore,
-        hasContainers,
-        hasSizes,
         hasCustomization,
         actions
     } = engine
@@ -351,15 +282,8 @@ export default function UnifiedProductRenderer({ product: _product, engine }: Un
         )
     }
 
-    // Determine layout based on ui_config
-    const LayoutComponent = (() => {
-        switch (uiConfig.display_style) {
-            case 'list': return ListLayout
-            case 'grid': return GridLayout
-            case 'cards':
-            default: return CardsLayout
-        }
-    })()
+    // ✅ FIX: LayoutComponent removed - all options now rendered via OptionGroupRenderer
+    // which handles its own layout based on ui_config from each option_group
 
     // ================================================================
     // TEMPLATE-SPECIFIC OVERRIDES
@@ -369,11 +293,7 @@ export default function UnifiedProductRenderer({ product: _product, engine }: Un
     // Lifestyle Template: Use specialized emerald-themed layout
     if (templateId === TEMPLATE_IDS.LIFESTYLE) {
         return (
-            <LifestyleWizardLayout
-                engine={engine}
-                LayoutComponent={LayoutComponent}
-                uiConfig={uiConfig}
-            />
+            <LifestyleWizardLayout engine={engine} />
         )
     }
 
@@ -401,62 +321,12 @@ export default function UnifiedProductRenderer({ product: _product, engine }: Un
                 />
             )}
 
-            {/* Containers Selector */}
-            {hasContainers && containers.length > 1 && (
-                <div className="space-y-2">
-                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">اختر الوعاء</h4>
-                    <LayoutComponent columns={uiConfig.columns || 2} cardSize={uiConfig.card_size}>
-                        {containers.map(container => (
-                            <motion.button
-                                key={container.id}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => actions.setContainer(container.id)}
-                                className={`p-3 rounded-xl border-2 transition-all ${selectedContainer === container.id
-                                    ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/20'
-                                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
-                                    }`}
-                            >
-                                {uiConfig.show_images && container.image && (
-                                    <img src={container.image} alt={container.name} className="w-12 h-12 mx-auto mb-2 object-contain" />
-                                )}
-                                <div className="text-sm font-bold text-slate-800 dark:text-white">{container.nameAr || container.name}</div>
-                                {uiConfig.show_prices && container.priceModifier > 0 && (
-                                    <div className="text-xs text-pink-600">+{container.priceModifier} ج.م</div>
-                                )}
-                            </motion.button>
-                        ))}
-                    </LayoutComponent>
-                </div>
-            )}
-
-            {/* Sizes Selector */}
-            {hasSizes && sizes.length > 1 && (
-                <div className="space-y-2">
-                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">اختر الحجم</h4>
-                    <LayoutComponent columns={uiConfig.columns || 2} cardSize={uiConfig.card_size}>
-                        {sizes.map(size => (
-                            <motion.button
-                                key={size.id}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => actions.setSize(size.id)}
-                                className={`p-3 rounded-xl border-2 transition-all ${selectedSize === size.id
-                                    ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/20'
-                                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
-                                    }`}
-                            >
-                                <div className="text-sm font-bold text-slate-800 dark:text-white">{size.nameAr || size.name}</div>
-                                {uiConfig.show_prices && size.priceModifier > 0 && (
-                                    <div className="text-xs text-pink-600">+{size.priceModifier} ج.م</div>
-                                )}
-                            </motion.button>
-                        ))}
-                    </LayoutComponent>
-                </div>
-            )}
+            {/* ✅ FIX: Removed separate Containers/Sizes selectors
+                Containers and Sizes now come ONLY from option_groups via customizationRules
+                This prevents duplicate display when sizes/containers are defined as option_groups */}
 
             {/* Customization Groups - Uses existing OptionGroupRenderer */}
+            {/* This now handles ALL option groups including sizes and containers */}
             {hasCustomization && optionGroups.map(group => (
                 <OptionGroupRenderer
                     key={group.groupId}
