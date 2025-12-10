@@ -73,6 +73,12 @@ export interface OptionFormModalProps {
   groupId: string;
   editingOption: Option | null;
   onSubmit: (data: OptionFormData) => Promise<void>;
+  /** Group's nutrition display config for preview - Requirement 3.1 */
+  groupNutritionConfig?: {
+    show: boolean;
+    format: 'compact' | 'detailed' | 'badges';
+    fields: ('calories' | 'protein' | 'carbs' | 'fat')[];
+  };
 }
 
 export interface DeleteConfirmModalProps {

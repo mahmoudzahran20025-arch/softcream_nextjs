@@ -800,13 +800,27 @@ const OptionsPage: React.FC = () => {
         onSubmit={handleGroupSubmit}
       />
 
-      {/* Option Form Modal - Requirements 5.1, 6.1 */}
+      {/* Option Form Modal - Requirements 5.1, 6.1, 3.1 */}
       <OptionFormModal
         isOpen={state.showOptionModal}
         onClose={handleCloseOptionModal}
         groupId={state.selectedGroupId || ''}
         editingOption={state.editingOption}
         onSubmit={handleOptionSubmit}
+        groupNutritionConfig={
+          state.selectedGroupId
+            ? (() => {
+                const group = state.optionGroups.find(g => g.id === state.selectedGroupId);
+                if (group?.ui_config) {
+                  const config = typeof group.ui_config === 'string' 
+                    ? JSON.parse(group.ui_config) 
+                    : group.ui_config;
+                  return config?.nutrition;
+                }
+                return undefined;
+              })()
+            : undefined
+        }
       />
 
       {/* Delete Confirm Modal - Requirements 4.1, 4.2, 7.1 */}

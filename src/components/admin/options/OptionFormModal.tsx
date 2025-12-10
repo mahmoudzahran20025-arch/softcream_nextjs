@@ -1,19 +1,21 @@
 /**
  * OptionFormModal - Create/Edit Option Modal
- * Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 6.1, 6.2, 6.3, 6.4
+ * Requirements: 1.1, 3.1, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 6.1, 6.2, 6.3, 6.4
  * 
  * Modal form for creating new options or editing existing ones.
  * Handles validation, form state, nutrition fields, submission, and API error display.
+ * Enhanced with prominent description fields and nutrition preview.
  */
 
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Loader2, ImageIcon, AlertCircle } from 'lucide-react';
+import { X, Loader2, ImageIcon, AlertCircle, Eye, FileText } from 'lucide-react';
 import type { OptionFormModalProps, OptionFormData } from './types';
 import { INITIAL_OPTION_FORM_DATA } from './types';
 import { getOptionErrorMessage, translateApiError } from '@/lib/admin/errorMessages';
 import { toast } from '@/components/ui/Toast';
+import NutritionBadge, { hasNutritionData } from '@/components/shared/NutritionBadge';
 
 /**
  * Validation errors interface
@@ -59,6 +61,7 @@ const OptionFormModal: React.FC<OptionFormModalProps> = ({
   groupId,
   editingOption,
   onSubmit,
+  groupNutritionConfig,
 }) => {
   // ===========================
   // State Management
@@ -382,6 +385,59 @@ const OptionFormModal: React.FC<OptionFormModalProps> = ({
             </div>
           </div>
 
+          {/* Description Section - PROMINENT POSITION - Requirements: 1.1 */}
+          <div className="bg-purple-50 rounded-xl p-4 space-y-4 border-2 border-purple-200">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-purple-600" />
+              <h4 className="font-semibold text-gray-700 text-sm">الوصف التفصيلي</h4>
+              <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">مهم للعرض</span>
+            </div>
+            
+            {/* Helper text explaining usage - Requirement 1.1 */}
+            <p className="text-xs text-purple-700 bg-purple-100 p-2 rounded-lg">
+              💡 الوصف يظهر للعملاء عند عرض الخيارات في أنماط العرض المختلفة (Cards, List). 
+              أضف وصفاً جذاباً يساعد العميل على اتخاذ قراره.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Arabic Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                  الوصف بالعربية
+                </label>
+                <textarea
+                  name="description_ar"
+                  value={formData.description_ar || ''}
+                  onChange={handleInputChange}
+                  placeholder="مثال: نكهة الفانيليا الكلاسيكية الغنية والكريمية..."
+                  rows={3}
+                  className="w-full px-4 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  يظهر تحت اسم الخيار في بطاقات العرض
+                </p>
+              </div>
+
+              {/* English Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                  الوصف بالإنجليزية
+                </label>
+                <textarea
+                  name="description_en"
+                  value={formData.description_en || ''}
+                  onChange={handleInputChange}
+                  placeholder="Example: Rich and creamy classic vanilla flavor..."
+                  rows={3}
+                  className="w-full px-4 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Shown below option name in display cards
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Price & Image Section - Requirement 5.3 */}
           <div className="bg-blue-50 rounded-xl p-4 space-y-4">
             <h4 className="font-semibold text-gray-700 text-sm">السعر والصورة</h4>
@@ -484,48 +540,85 @@ const OptionFormModal: React.FC<OptionFormModalProps> = ({
             </div>
           </div>
 
-          {/* Description Section - Requirement 5.3 */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-4">
-            <h4 className="font-semibold text-gray-700 text-sm">الوصف (اختياري)</h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Arabic Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">
-                  الوصف بالعربية
-                </label>
-                <textarea
-                  name="description_ar"
-                  value={formData.description_ar || ''}
-                  onChange={handleInputChange}
-                  placeholder="وصف الخيار بالعربية..."
-                  rows={2}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
-                />
-              </div>
-
-              {/* English Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">
-                  الوصف بالإنجليزية
-                </label>
-                <textarea
-                  name="description_en"
-                  value={formData.description_en || ''}
-                  onChange={handleInputChange}
-                  placeholder="Option description in English..."
-                  rows={2}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Nutrition Section - Requirement 5.4 */}
+          {/* Nutrition Section with Preview - Requirements: 3.1, 5.4 */}
           <div className="bg-green-50 rounded-xl p-4 space-y-4">
-            <h4 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
-              🥗 القيم الغذائية (اختياري)
-            </h4>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h4 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
+                🥗 القيم الغذائية (اختياري)
+              </h4>
+              
+              {/* Group nutrition status indicator */}
+              {groupNutritionConfig?.show ? (
+                <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full">
+                  ✓ مفعّل في المجموعة
+                </span>
+              ) : (
+                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                  غير مفعّل في المجموعة
+                </span>
+              )}
+            </div>
+            
+            {/* Helper text for nutrition */}
+            <p className="text-xs text-green-700 bg-green-100 p-2 rounded-lg">
+              💡 القيم الغذائية تظهر للعملاء عند تفعيل خيار &quot;عرض القيم الغذائية&quot; في إعدادات المجموعة.
+            </p>
+            
+            {/* Nutrition Display Preview based on Group Settings - Requirement 3.1 */}
+            {hasNutritionData({
+              calories: formData.calories,
+              protein: formData.protein,
+              carbs: formData.carbs,
+              fat: formData.fat
+            }) && (
+              <div className="bg-white rounded-lg p-3 border border-green-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-semibold text-gray-700">معاينة العرض للعملاء</span>
+                </div>
+                
+                {groupNutritionConfig?.show ? (
+                  <div className="space-y-2">
+                    {/* Preview with group's format settings */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-gray-500">
+                        النمط: {groupNutritionConfig.format === 'compact' ? 'مختصر' : 
+                               groupNutritionConfig.format === 'badges' ? 'شارات' : 'تفصيلي'}
+                      </span>
+                      <span className="text-xs text-gray-400">|</span>
+                      <span className="text-xs text-gray-500">
+                        الحقول: {groupNutritionConfig.fields?.map(f => 
+                          f === 'calories' ? 'سعرات' :
+                          f === 'protein' ? 'بروتين' :
+                          f === 'carbs' ? 'كربوهيدرات' : 'دهون'
+                        ).join('، ') || 'سعرات'}
+                      </span>
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <NutritionBadge
+                        nutrition={{
+                          calories: formData.calories,
+                          protein: formData.protein,
+                          carbs: formData.carbs,
+                          fat: formData.fat
+                        }}
+                        format={groupNutritionConfig.format || 'compact'}
+                        fields={groupNutritionConfig.fields || ['calories']}
+                        showTooltip={false}
+                        size="md"
+                        language="ar"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-3 text-gray-500 text-sm">
+                    <p>⚠️ عرض القيم الغذائية غير مفعّل في إعدادات المجموعة</p>
+                    <p className="text-xs mt-1">فعّل الخيار من ⚙️ إعدادات العرض لعرض القيم للعملاء</p>
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {/* Calories */}

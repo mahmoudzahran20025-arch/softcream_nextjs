@@ -661,29 +661,33 @@ export class StorageManager {
         console.warn('⚠️ Order not found:', orderId)
         return false
       }
-      
+
       const isFinalStatus = ORDER_STATUSES.FINAL.includes(trackingData.status)
-      
+
       orders[orderIndex] = {
         ...orders[orderIndex],
         status: trackingData.status || orders[orderIndex].status,
         progress: trackingData.progress,
         last_updated_by: trackingData.last_updated_by,
         timeline: trackingData.timeline,
+        estimatedMinutes: trackingData.estimatedMinutes ?? orders[orderIndex].estimatedMinutes,
+        canCancelUntil: trackingData.canCancelUntil ?? orders[orderIndex].canCancelUntil,
         lastUpdated: new Date().toISOString(),
         isFinal: isFinalStatus // Mark as final to prevent further polling
       }
-      
+
       const success = this.local.set(STORAGE_KEYS.USER_ORDERS, orders)
-      
+
       if (success) {
         console.log('🎯 Tracking data updated:', orderId, {
           status: trackingData.status,
           progress: trackingData.progress,
           last_updated_by: trackingData.last_updated_by,
+          estimatedMinutes: trackingData.estimatedMinutes,
+          canCancelUntil: trackingData.canCancelUntil,
           isFinal: isFinalStatus
         })
-        
+
         // ✅ Only trigger event if not final status (reduce noise)
         if (!isFinalStatus) {
           this.eventManager.triggerUpdate({
@@ -695,7 +699,7 @@ export class StorageManager {
           console.log('🏁 Final status - no event triggered')
         }
       }
-      
+
       return success
     } catch (e) {
       console.error('❌ Failed to update tracking:', e)

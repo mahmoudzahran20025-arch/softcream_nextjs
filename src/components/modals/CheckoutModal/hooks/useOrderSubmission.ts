@@ -127,12 +127,20 @@ export const useOrderSubmission = ({ onClose, onCheckoutSuccess }: OrderSubmissi
                             serverPrices?.deliveryInfo?.branchName || 
                             (deliveryMethod === 'delivery' ? branchName : null)
 
+      const createdAtIso = new Date(serverOrderData.timestamp || Date.now()).toISOString()
+      const canCancelUntil = serverOrderData.canCancelUntil
+        || (serverOrderData as any).can_cancel_until
+        || new Date((serverOrderData.timestamp || Date.now()) + 5 * 60 * 1000).toISOString()
+      const estimatedMinutes = serverOrderData.estimatedMinutes
+        ?? (serverOrderData as any).estimated_minutes
+        ?? (deliveryMethod === 'pickup' ? 12 : 30)
+
       const orderToSave = {
         id: orderId,
         status: serverStatus,
-        createdAt: new Date().toISOString(),
-        canCancelUntil: serverOrderData.canCancelUntil || result.canCancelUntil || new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-        estimatedMinutes: serverOrderData.estimatedMinutes || result.estimatedMinutes || (deliveryMethod === 'pickup' ? 12 : 30),
+        createdAt: createdAtIso,
+        canCancelUntil,
+        estimatedMinutes,
         items: (serverOrderData.items || serverPrices?.items || cart).map((item: any) => {
           const product = productsMap[item.productId || item.id]
           return {

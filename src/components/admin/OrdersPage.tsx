@@ -93,6 +93,14 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ orders, onUpdateStatus }) => {
     return date.toLocaleDateString('ar-EG');
   };
 
+  const getEtaMinutes = (order: Order) => {
+    return (order as any).eta_minutes ?? (order as any).estimatedMinutes ?? 0;
+  };
+
+  const getCanCancelUntil = (order: Order) => {
+    return (order as any).can_cancel_until ?? (order as any).canCancelUntil ?? null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -175,7 +183,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ orders, onUpdateStatus }) => {
                       )}
                       <div className="flex items-center gap-2">
                         <Clock size={16} />
-                        <span>⏱️ {order.eta_minutes} دقيقة</span>
+                        <span>⏱️ {getEtaMinutes(order)} دقيقة</span>
                       </div>
                     </div>
                   </div>
@@ -290,8 +298,8 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ orders, onUpdateStatus }) => {
                   <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
                     <span>⏱️ منذ: {order.elapsedMinutes || 0} دقيقة</span>
                     <span>📍 الحالة: {order.status}</span>
-                    {order.eta_minutes && (
-                      <span>🚚 التوصيل: {order.eta_minutes} دقيقة</span>
+                    {getEtaMinutes(order) > 0 && (
+                      <span>🚚 التوصيل: {getEtaMinutes(order)} دقيقة</span>
                     )}
                   </div>
                 </div>
@@ -344,7 +352,8 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ orders, onUpdateStatus }) => {
                     <div className="flex-1 text-center text-sm text-gray-500">
                       {(() => {
                         const createdTime = new Date(order.timestamp);
-                        const cancelUntil = order.can_cancel_until ? new Date(order.can_cancel_until) : new Date(createdTime.getTime() + 5 * 60 * 1000);
+                        const rawCancelUntil = getCanCancelUntil(order);
+                        const cancelUntil = rawCancelUntil ? new Date(rawCancelUntil) : new Date(createdTime.getTime() + 5 * 60 * 1000);
                         const remaining = Math.max(0, Math.floor((cancelUntil.getTime() - Date.now()) / 1000));
                         
                         if (remaining > 0) {

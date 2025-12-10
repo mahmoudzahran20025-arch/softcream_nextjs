@@ -1,9 +1,9 @@
 /**
  * GroupFormModal - Create/Edit Option Group Basic Info Modal
- * Requirements: 4.1, 4.2
+ * Requirements: 1.2, 2.1, 2.2, 4.1, 4.2
  * 
  * Modal form for creating new option groups or editing BASIC INFO only:
- * - id, name_ar, name_en, icon, display_order
+ * - id, name_ar, name_en, description_ar, description_en, icon, display_order
  * 
  * NOTE: UI Config (display style, columns, colors) is handled by UIConfigModal
  * which is opened via the ⚙️ button in OptionGroupCard.
@@ -12,12 +12,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Loader2, AlertCircle, Info } from 'lucide-react';
+import { X, Loader2, AlertCircle, Info, Eye } from 'lucide-react';
 import type { GroupFormModalProps, OptionGroupFormData } from './types';
 import { INITIAL_GROUP_FORM_DATA, ICON_OPTIONS } from './types';
 import { getOptionErrorMessage, translateApiError } from '@/lib/admin/errorMessages';
-import { parseUIConfig } from '@/lib/uiConfig';
+import { parseUIConfig, mergeUIConfig } from '@/lib/uiConfig';
+import type { IconConfig } from '@/lib/uiConfig';
 import { toast } from '@/components/ui/Toast';
+import LucideIconPicker, { renderLucideIcon } from './LucideIconPicker';
 
 /**
  * Validation errors interface
@@ -27,6 +29,8 @@ interface ValidationErrors {
   name_ar?: string;
   name_en?: string;
   icon?: string;
+  description_ar?: string;
+  description_en?: string;
 }
 
 /**
@@ -150,6 +154,36 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
     if (errors.icon) {
       setErrors(prev => ({ ...prev, icon: undefined }));
     }
+  };
+
+  /**
+   * Handle Lucide icon selection - stores in ui_config.icon
+   * Requirements: 2.1, 2.2
+   */
+  const handleLucideIconSelect = (iconName: string) => {
+    const newIconConfig: IconConfig = {
+      type: 'lucide',
+      value: iconName,
+      fallback: 'Circle',
+      style: 'solid',
+      animation: 'none'
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      ui_config: mergeUIConfig(prev.ui_config || parseUIConfig(null), { icon: newIconConfig })
+    }));
+  };
+
+  /**
+   * Get current Lucide icon name from ui_config
+   */
+  const getCurrentLucideIcon = (): string => {
+    const iconConfig = formData.ui_config?.icon;
+    if (iconConfig?.type === 'lucide' && iconConfig.value) {
+      return iconConfig.value;
+    }
+    return 'Package'; // Default
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -340,11 +374,93 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
                 )}
               </div>
 
-              {/* Icon Picker */}
+              {/* Arabic Description - Requirements: 1.2 */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  الأيقونة *
+                  الوصف بالعربية (اختياري)
                 </label>
+                <textarea
+                  name="description_ar"
+                  value={formData.description_ar || ''}
+                  onChange={handleInputChange}
+                  placeholder="اضف المزيد :: اختر نكهاتك براحتك"
+                  rows={2}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  يظهر كعنوان فرعي تحت اسم المجموعة (مثال: &quot;اضف المزيد :: اختر نكهاتك براحتك&quot;)
+                </p>
+              </div>
+
+              {/* English Description - Requirements: 1.2 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  الوصف بالإنجليزية (اختياري)
+                </label>
+                <textarea
+                  name="description_en"
+                  value={formData.description_en || ''}
+                  onChange={handleInputChange}
+                  placeholder="Add more :: Choose your flavors freely"
+                  rows={2}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                />
+              </div>
+
+              {/* Subtitle Preview - Requirements: 1.2 */}
+              {(formData.description_ar || formData.description_en) && (
+                <div className="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Eye size={16} className="text-pink-500" />
+                      معاينة العنوان الفرعي
+                    </span>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      {formData.ui_config?.icon?.type === 'lucide' ? (
+                        <span className="text-pink-500">
+                          {renderLucideIcon(getCurrentLucideIcon(), 'Circle', { size: 20 })}
+                        </span>
+                      ) : (
+                        <span className="text-xl">{formData.icon}</span>
+                      )}
+                      <span className="font-bold text-gray-800">
+                        {formData.name_ar || 'اسم المجموعة'}
+                      </span>
+                    </div>
+                    {formData.description_ar && (
+                      <p className="text-sm text-gray-600 mr-7">
+                        {formData.description_ar}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Lucide Icon Picker - Requirements: 2.1, 2.2 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  أيقونة Lucide (حديثة)
+                </label>
+                <LucideIconPicker
+                  value={getCurrentLucideIcon()}
+                  onChange={handleLucideIconSelect}
+                  category="food"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  أيقونات حديثة ومتسقة التصميم - تُحفظ في إعدادات العرض
+                </p>
+              </div>
+
+              {/* Legacy Emoji Icon Picker - for backward compatibility */}
+              <div className="border-t border-gray-100 pt-4 mt-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  أيقونة Emoji (قديمة) *
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  للتوافق مع الإصدارات السابقة - يُفضل استخدام أيقونات Lucide أعلاه
+                </p>
                 <div className="relative">
                   <button
                     type="button"
@@ -354,7 +470,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
                     } hover:border-pink-300 transition-colors`}
                   >
                     <span className="text-2xl">{formData.icon}</span>
-                    <span className="text-gray-500 text-sm">اختر أيقونة</span>
+                    <span className="text-gray-500 text-sm">اختر أيقونة Emoji</span>
                   </button>
                   
                   {showIconPicker && (

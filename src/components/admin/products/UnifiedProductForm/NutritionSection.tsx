@@ -184,8 +184,8 @@ const NutritionSection: React.FC<NutritionSectionProps> = ({
           <span>🏷️</span> معلومات إضافية (JSON)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Note: Tags field removed - it's now in ProductDetailsSection with better UX */}
           {[
-            { key: 'tags', label: '🏷️ الوسوم', placeholder: '["classic","creamy"]' },
             { key: 'ingredients', label: '🥛 المكونات', placeholder: '["fresh milk","vanilla"]' },
             { key: 'nutrition_facts', label: '📊 الحقائق الغذائية', placeholder: '{"vitamins":{}}' },
             { key: 'allergens', label: '⚠️ مسببات الحساسية', placeholder: '["milk"]' },

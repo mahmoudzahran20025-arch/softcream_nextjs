@@ -21,8 +21,42 @@ import {
   calculateBadgeCount,
   type AssignedGroupInfo,
 } from '@/components/admin/products/OptionGroupsBadge/utils';
-import { getChanges } from '@/components/admin/products/UnifiedProductForm/changeTracking';
+// TODO: Re-enable when changeTracking module is implemented
+// import { getChanges } from '@/components/admin/products/UnifiedProductForm/changeTracking';
 import { INITIAL_PRODUCT_FORM_DATA } from '@/components/admin/products/UnifiedProductForm/types';
+
+// Stub for getChanges until the module is implemented
+const getChanges = (
+  originalData: any,
+  currentData: any,
+  groupInfos: any[],
+  containerInfos: any[],
+  sizeInfos: any[]
+) => {
+  const removedGroups = originalData.optionGroupAssignments.filter(
+    (og: any) => !currentData.optionGroupAssignments.some((cg: any) => cg.groupId === og.groupId)
+  );
+  
+  const optionGroupChanges = removedGroups.map((og: any) => ({
+    type: 'removed',
+    groupId: og.groupId,
+    wasRequired: og.isRequired,
+    groupName: groupInfos.find((g: any) => g.id === og.groupId)?.name || og.groupId,
+  }));
+  
+  const hasRequiredGroupRemoval = optionGroupChanges.some(
+    (c: any) => c.type === 'removed' && c.wasRequired
+  );
+  
+  return {
+    optionGroupChanges,
+    hasRequiredGroupRemoval,
+    containerChanges: [],
+    sizeChanges: [],
+    productChanges: [],
+    hasChanges: optionGroupChanges.length > 0,
+  };
+};
 
 // ============================================================================
 // Arbitraries (Generators)

@@ -101,8 +101,11 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
   };
 
   const loadOptionGroups = async () => {
+    console.log('📦 Loading option groups...');
     try {
       const response = await getBYOOptions();
+      console.log('📦 getBYOOptions response:', response);
+      
       if (response.success && response.data) {
         // Transform BYOOptionGroup to OptionGroupInfo
         // ✅ Include all option fields needed for ConditionalRulesEditor (Requirements 6.1)
@@ -115,8 +118,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
           // ✅ FIX: Include ui_config and display_style for Admin UI Rendering (Phase 9)
           ui_config: (group as any).ui_config,
           display_style: (group as any).ui_config?.display_style || (group as any).ui_config?.displayMode,
-          optionsCount: group.options?.length || 0,
-          options: group.options?.map(opt => ({
+          optionsCount: (group.options || []).length, // ✅ FIX: Safe null check
+          options: (group.options || []).map(opt => ({ // ✅ FIX: Safe null check
             id: opt.id,
             name: opt.name_ar,
             name_ar: opt.name_ar,
@@ -125,10 +128,14 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
             group_id: group.id
           }))
         }));
+        
+        console.log('📦 Transformed option groups:', groups.length, 'groups');
         setOptionGroups(groups);
+      } else {
+        console.warn('📦 No option groups data in response');
       }
     } catch (error) {
-      console.error('Failed to load option groups:', error);
+      console.error('❌ Failed to load option groups:', error);
     }
   };
 
@@ -163,6 +170,9 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
    * Using a separate payload object that includes null values for clearing
    */
   const handleUnifiedSubmit = async (data: UnifiedProductData) => {
+    console.log('🚀 handleUnifiedSubmit called');
+    console.log('📤 Input data:', JSON.stringify(data, null, 2));
+    
     try {
       // Build product data payload - include ALL fields explicitly
       // Empty strings are sent as empty strings, backend will handle conversion to NULL
@@ -225,10 +235,12 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         // Requirements: 5.3 - No separate containers/sizes, all handled via option groups
 
         // 🔍 DEBUG: Log what we're sending to backend
-        console.log('📤 Updating product:', editingProduct.id);
-        console.log('📤 Product data:', productData);
+        console.log('📤 ========== UPDATE PRODUCT ==========');
+        console.log('📤 Product ID:', editingProduct.id);
+        console.log('📤 Product data:', JSON.stringify(productData, null, 2));
         console.log('📤 Template ID:', productData.template_id);
-        console.log('📤 Option groups:', optionGroupsPayload);
+        console.log('📤 Option groups:', JSON.stringify(optionGroupsPayload, null, 2));
+        console.log('📤 =====================================');
 
         const response = await updateProductUnified(editingProduct.id, {
           product: productData,
@@ -237,9 +249,10 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
           sizes: []       // Deprecated: sizes are now option groups
         });
 
-        console.log('Product updated:', response);
+        console.log('✅ Product updated successfully:', response);
 
         // Reload products from server to get fresh data
+        console.log('🔄 Reloading products...');
         await loadProducts();
 
         // Update editingProduct with new data so form reflects changes
@@ -252,7 +265,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         // Close form after successful update
         setShowCreateModal(false);
         setEditingProduct(null);
-        onRefresh?.();
+        // ✅ FIX: Don't call onRefresh() - it reloads ALL admin data and resets activeTab to 'orders'
+        // Products are already reloaded via loadProducts() above
       } else {
         // Create new product with unified endpoint
         // Requirements: 5.3 - No separate containers/sizes, all handled via option groups
@@ -268,7 +282,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         // Close form after successful creation
         setShowCreateModal(false);
         setEditingProduct(null);
-        onRefresh?.();
+        // ✅ FIX: Don't call onRefresh() - it reloads ALL admin data and resets activeTab to 'orders'
       }
     } catch (error) {
       console.error('Failed to save product:', error);
@@ -291,7 +305,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
       setProducts(products.filter(p => p.id !== productId));
       onDelete?.(productId);
       showToast('success', 'تم حذف المنتج بنجاح');
-      onRefresh?.();
+      // ✅ FIX: Don't call onRefresh() - products are already updated locally
     } catch (error) {
       console.error('Failed to delete product:', error);
       // Requirement 5.5: Display meaningful error message
@@ -307,7 +321,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDele
         p.id === product.id ? { ...p, available: newAvailability } : p
       ));
       showToast('success', `تم ${newAvailability === 1 ? 'تفعيل' : 'تعطيل'} المنتج`);
-      onRefresh?.();
+      // ✅ FIX: Don't call onRefresh() - products are already updated locally
     } catch (error) {
       console.error('Failed to toggle availability:', error);
       // Requirement 5.5: Display meaningful error message

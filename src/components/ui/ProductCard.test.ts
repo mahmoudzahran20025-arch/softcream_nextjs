@@ -14,7 +14,9 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { getCardTypeFromProduct, parseUIConfig, type Product } from './ProductCard'
+import { getCardTypeFromProduct } from './ProductCard'
+import { parseUIConfig } from '@/lib/uiConfig'
+import type { Product } from '@/lib/api'
 
 describe('getCardTypeFromProduct', () => {
   // Helper to create minimal product
@@ -77,19 +79,25 @@ describe('parseUIConfig', () => {
     expect(result.badge_color).toBe('#FF0000')
   })
 
-  it('should return empty object for undefined ui_config', () => {
+  it('should return default config for undefined ui_config', () => {
     const result = parseUIConfig(undefined)
-    expect(result).toEqual({})
+    // parseUIConfig returns DEFAULT_UI_CONFIG for undefined input
+    expect(result.display_mode).toBe('default')
+    expect(result.fallback_style).toBe('cards')
   })
 
-  it('should return empty object for empty string', () => {
+  it('should return default config for empty string', () => {
     const result = parseUIConfig('')
-    expect(result).toEqual({})
+    // parseUIConfig returns DEFAULT_UI_CONFIG for empty string
+    expect(result.display_mode).toBe('default')
+    expect(result.fallback_style).toBe('cards')
   })
 
-  it('should return empty object for invalid JSON', () => {
+  it('should return default config for invalid JSON', () => {
     const result = parseUIConfig('invalid json {')
-    expect(result).toEqual({})
+    // parseUIConfig returns DEFAULT_UI_CONFIG for invalid JSON
+    expect(result.display_mode).toBe('default')
+    expect(result.fallback_style).toBe('cards')
   })
 
   it('should parse icon configuration', () => {

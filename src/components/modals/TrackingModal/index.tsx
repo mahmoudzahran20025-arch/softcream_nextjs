@@ -74,7 +74,7 @@ export default function TrackingModal({ isOpen, onClose, order, onEditOrder }: T
         </button>
 
         {/* 🎨 Header مبسط */}
-        <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-6 rounded-t-3xl">
+        <div className="relative bg-gradient-to-r from-pink-600 via-rose-500 to-amber-400 p-6 rounded-t-3xl">
           <div className="flex items-center gap-4 text-white">
             <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
               <Package className="w-7 h-7" />

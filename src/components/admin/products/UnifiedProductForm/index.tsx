@@ -276,6 +276,11 @@ const UnifiedProductForm: React.FC<UnifiedProductFormProps> = ({
 
   // Handle product details change
   const handleProductChange = useCallback((productData: ProductFormData) => {
+    console.log('🔄 UnifiedProductForm handleProductChange:', {
+      template_id: productData.template_id,
+      name: productData.name,
+    });
+    
     setUnifiedData(prev => ({
       ...prev,
       product: productData, // Use template_id from productData (user selection)

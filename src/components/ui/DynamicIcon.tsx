@@ -12,9 +12,58 @@ interface DynamicIconProps {
 }
 
 /**
+ * Check if a Lucide icon name is valid
+ * Requirements: 2.4, 2.5
+ * Note: Lucide icons can be either functions (in some bundler configs) or objects (React.forwardRef components)
+ */
+export function isValidLucideIcon(iconName: string): boolean {
+    const icon = (LucideIcons as any)[iconName];
+    // Check if it's a valid React component (function or object with $$typeof)
+    return icon != null && (typeof icon === 'function' || (typeof icon === 'object' && icon.$$typeof != null));
+}
+
+/**
+ * Get Lucide icon component with fallback chain
+ * Requirements: 2.4, 2.5
+ * 
+ * Fallback order:
+ * 1. Primary icon (config.value)
+ * 2. Fallback icon (config.fallback)
+ * 3. Circle (ultimate fallback)
+ */
+export function getLucideIconComponent(config: IconConfig): LucideIcons.LucideIcon {
+    // Try primary icon
+    if (isValidLucideIcon(config.value)) {
+        return (LucideIcons as any)[config.value];
+    }
+    
+    // Log warning for invalid primary icon
+    console.warn(`Invalid Lucide icon: "${config.value}", attempting fallback`);
+    
+    // Try fallback icon
+    if (config.fallback && isValidLucideIcon(config.fallback)) {
+        return (LucideIcons as any)[config.fallback];
+    }
+    
+    // Log warning if fallback also invalid
+    if (config.fallback) {
+        console.warn(`Fallback icon "${config.fallback}" also invalid, using Circle`);
+    }
+    
+    // Ultimate fallback to Circle
+    return LucideIcons.Circle;
+}
+
+/**
  * DynamicIcon Component
  * Renders icons based on configuration from backend
  * Supports: emojis, Lucide icons, custom SVG/images
+ * 
+ * Requirements: 2.3, 2.4, 2.5
+ * - Renders Lucide icon by name
+ * - Falls back to fallback icon if primary invalid
+ * - Falls back to Circle if all else fails
+ * - Logs warning for invalid icons
  */
 export default function DynamicIcon({
     config,
@@ -87,14 +136,9 @@ export default function DynamicIcon({
         )
     }
 
-    // Lucide Icons
+    // Lucide Icons - with fallback chain (Requirements: 2.3, 2.4, 2.5)
     if (config.type === 'lucide') {
-        const IconComponent = (LucideIcons as any)[config.value]
-
-        if (!IconComponent) {
-            console.warn(`Lucide icon "${config.value}" not found`)
-            return <span className={className}>🍦</span>
-        }
+        const IconComponent = getLucideIconComponent(config);
 
         return (
             <motion.div animate={getAnimation()} className={className}>

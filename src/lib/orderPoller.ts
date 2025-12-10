@@ -12,6 +12,7 @@ interface OrderTrackingData {
   last_updated_by?: string
   timeline?: Array<{ status: string; timestamp: string; updated_by: string }>
   estimatedMinutes?: number
+  canCancelUntil?: string | null
 }
 
 type SubscriberCallback = (data: OrderTrackingData) => void
@@ -170,7 +171,8 @@ class OrderPoller {
           progress: trackingData.progress ?? trackingData.progress_percentage ?? null,
           last_updated_by: trackingData.last_updated_by || 'system',
           timeline: trackingData.timeline,
-          estimatedMinutes: trackingData.estimatedMinutes ?? trackingData.total_estimated_minutes
+          estimatedMinutes: trackingData.estimatedMinutes ?? trackingData.total_estimated_minutes,
+          canCancelUntil: trackingData.canCancelUntil ?? trackingData.can_cancel_until ?? null
         }
         
         // Notify all subscribers

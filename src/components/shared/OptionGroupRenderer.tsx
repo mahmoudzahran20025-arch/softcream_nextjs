@@ -1,33 +1,36 @@
 'use client'
 
+/**
+ * OptionGroupRenderer - Metadata-Driven Option Group Component
+ * ============================================================
+ * Renders option groups dynamically based on ui_config from backend
+ * 
+ * Requirements:
+ * - 8.5: Use extended parseUIConfig function, pass config to OptionRenderer
+ * - 5.2: Check canRenderMode before rendering, apply fallback when needed
+ * - 6.1, 6.2, 6.3: Use calculateLayout for column determination
+ * - 1.3: Display group description as subtitle under group title
+ */
+
 import { motion } from 'framer-motion'
-import { parseUIConfig } from '@/lib/uiConfig'
+import { parseUIConfig, type UIConfig } from '@/lib/uiConfig'
+// Note: calculateLayout is used inside DisplayModeRenderer for adaptive layout (Requirements: 6.1, 6.2, 6.3)
 import DynamicIcon from '@/components/ui/DynamicIcon'
-import { OptionsGrid } from '../modals/ProductModal/templates/shared'
 import HeroSelectionRenderer from './HeroSelectionRenderer'
 import InteractiveMeter from './InteractiveMeter'
-import type { GridColumns, CardSize, AccentColor } from '../modals/ProductModal/templates/shared/types'
+import DisplayModeRenderer, { canRenderMode, getEffectiveMode } from './DisplayModeRenderer'
+import type { AccentColor } from '../modals/ProductModal/templates/shared/types'
 
 interface OptionGroupRendererProps {
     group: any  // Option group from backend with ui_config
     selections: string[]
     onSelectionChange: (ids: string[]) => void
+    /** Language for display - defaults to 'ar' */
+    language?: 'ar' | 'en'
 }
 
 // Display style type from ui_config (Requirement 4.3)
 type DisplayStyle = 'cards' | 'pills' | 'list' | 'checkbox' | 'grid'
-
-// Helper to validate and normalize columns value
-const normalizeColumns = (value: number | undefined): GridColumns => {
-    if (value === 2 || value === 3 || value === 4) return value
-    return 3 // default
-}
-
-// Helper to validate and normalize cardSize value
-const normalizeCardSize = (value: string | undefined): CardSize => {
-    if (value === 'sm' || value === 'md' || value === 'lg') return value
-    return 'md' // default
-}
 
 // Helper to validate and normalize accentColor value
 const normalizeAccentColor = (value: string | undefined): AccentColor => {
@@ -41,6 +44,27 @@ const normalizeDisplayStyle = (value: string | undefined): DisplayStyle => {
         return value
     }
     return 'cards' // default
+}
+
+/**
+ * Get group description based on language
+ * Requirements: 1.3 - Display group description as subtitle
+ */
+function getGroupDescription(group: any, language: 'ar' | 'en'): string | undefined {
+    if (language === 'ar') {
+        return group.description_ar || group.descriptionAr
+    }
+    return group.description_en || group.descriptionEn || group.description_ar || group.descriptionAr
+}
+
+/**
+ * Get group name based on language
+ */
+function getGroupName(group: any, language: 'ar' | 'en'): string {
+    if (language === 'ar') {
+        return group.groupName || group.name_ar || group.nameAr || group.name || ''
+    }
+    return group.name_en || group.nameEn || group.groupName || group.name_ar || group.name || ''
 }
 
 /**
@@ -251,43 +275,122 @@ function CheckboxDisplay({
  * Renders option groups dynamically based on ui_config from backend
  * No hard-coded styling or layout - everything driven by data
  * 
- * Requirement 4.3: Supports display_style from ui_config
- * - 'cards' (default): Grid of option cards
- * - 'pills': Compact pill-style buttons
- * - 'list': Vertical list with selection indicators
- * - 'checkbox': Traditional checkbox/radio style
+ * Requirements:
+ * - 8.5: Use extended parseUIConfig function
+ * - 5.2: Check canRenderMode before rendering, apply fallback
+ * - 6.1, 6.2, 6.3: Use calculateLayout for adaptive columns
+ * - 1.3: Display group description as subtitle
+ * - 4.3: Supports display_style from ui_config
  */
 export default function OptionGroupRenderer({
     group,
     selections,
-    onSelectionChange
+    onSelectionChange,
+    language = 'ar'
 }: OptionGroupRendererProps) {
-    // ✅ Parse UI Config from backend
-    const uiConfig = parseUIConfig(group.ui_config)
+    // ✅ Task 17.1: Parse UI Config using extended parseUIConfig function
+    // Requirements: 8.5 - Use extended parseUIConfig with defaults merging
+    const uiConfig: UIConfig = parseUIConfig(group.ui_config)
 
     // ✅ Get display_style from ui_config (Requirement 4.3)
-    const displayStyle = normalizeDisplayStyle(uiConfig.display_style)
+    const displayStyle = normalizeDisplayStyle(uiConfig.display_style || uiConfig.fallback_style)
     const accentColor = normalizeAccentColor(uiConfig.accent_color)
+    
+    // ✅ Task 17.4: Get group description for subtitle display
+    // Requirements: 1.3 - Display description_ar under group title
+    const groupDescription = getGroupDescription(group, language)
+    const groupName = getGroupName(group, language)
 
-    // ✅ Render options based on display_style
-    // ✅ Render options based on section_type OR display_style
+    // ✅ Render options based on display_mode (new system) or section_type (legacy)
     const renderOptions = () => {
-        // 1. Handle Special Section Types (Next-Gen UI)
+        const options = group.options || []
+        const maxSelections = group.maxSelections || group.max_selections || 1
+        
+        // ✅ Task 17.2: Check canRenderMode before rendering, apply fallback when needed
+        // Requirements: 5.2 - Fallback to fallback_style when mode cannot render
+        const displayMode = uiConfig.display_mode || 'default'
+        const fallbackStyle = uiConfig.fallback_style || 'cards'
+        
+        // Get effective mode with fallback check
+        const { mode: effectiveMode, useFallback } = getEffectiveMode(displayMode, fallbackStyle, options)
+        
+        // ✅ Task 17.3: Adaptive layout integration
+        // Requirements: 6.1, 6.2, 6.3 - calculateLayout is used inside DisplayModeRenderer
+        // The columns config is passed through to DisplayModeRenderer which handles layout calculation
+        
+        // Create enhanced uiConfig with layout info
+        const enhancedConfig: UIConfig = {
+            ...uiConfig,
+            display_mode: effectiveMode,
+            // If fallback was used, ensure fallback_style is applied
+            ...(useFallback && { display_mode: 'default' }),
+            // Pass through columns config for DisplayModeRenderer to use
+            columns: uiConfig.columns
+        }
+        
+        // 1. Check if we should use the new display_mode system
+        // Requirements: 4.2, 4.3, 4.4, 4.5, 5.2
+        if (effectiveMode && effectiveMode !== 'default') {
+            // Use new DisplayModeRenderer for non-default modes
+            return (
+                <DisplayModeRenderer
+                    options={options}
+                    uiConfig={enhancedConfig}
+                    selectedIds={selections}
+                    maxSelections={maxSelections}
+                    onSelectionChange={onSelectionChange}
+                    language={language}
+                    accentColor={accentColor}
+                />
+            )
+        }
+
+        // 2. Handle Legacy Section Types (backward compatibility)
         if (uiConfig.section_type) {
             switch (uiConfig.section_type) {
                 case 'hero_selection':
+                    // Check if hero mode can render - Requirements: 5.2
+                    if (canRenderMode('hero_flavor', options)) {
+                        return (
+                            <DisplayModeRenderer
+                                options={options}
+                                uiConfig={{ ...enhancedConfig, display_mode: 'hero_flavor' }}
+                                selectedIds={selections}
+                                maxSelections={maxSelections}
+                                onSelectionChange={onSelectionChange}
+                                language={language}
+                                accentColor={accentColor}
+                            />
+                        )
+                    }
+                    // Fallback to legacy renderer
                     return (
                         <HeroSelectionRenderer
-                            options={group.options || []}
+                            options={options}
                             selectedIds={selections}
-                            onSelect={(id) => onSelectionChange([id])} // Hero implies single select usually, but we could support multi
+                            onSelect={(id) => onSelectionChange([id])}
                             accentColor={accentColor}
                         />
                     )
                 case 'interactive_meter':
+                    // Check if smart meter can render - Requirements: 5.2
+                    if (canRenderMode('smart_meter', options)) {
+                        return (
+                            <DisplayModeRenderer
+                                options={options}
+                                uiConfig={{ ...enhancedConfig, display_mode: 'smart_meter' }}
+                                selectedIds={selections}
+                                maxSelections={maxSelections}
+                                onSelectionChange={onSelectionChange}
+                                language={language}
+                                accentColor={accentColor}
+                            />
+                        )
+                    }
+                    // Fallback to legacy renderer
                     return (
                         <InteractiveMeter
-                            options={group.options || []}
+                            options={options}
                             selectedIds={selections}
                             onSelect={(id) => onSelectionChange([id])}
                             accentColor={accentColor}
@@ -306,7 +409,8 @@ export default function OptionGroupRenderer({
             }
         }
 
-        // 2. Fallback to Standard Display Styles
+        // 3. Fallback to Standard Display Styles (legacy fallback_style or display_style)
+        // Apply adaptive layout classes from calculateLayout - Requirements: 6.1, 6.2, 6.3
         switch (displayStyle) {
             case 'pills':
                 return (
@@ -338,18 +442,17 @@ export default function OptionGroupRenderer({
             case 'cards':
             case 'grid':
             default:
-                // Default to OptionsGrid (cards style)
+                // Use new DisplayModeRenderer for default mode with fallback_style
+                // Layout is calculated inside DisplayModeRenderer using calculateLayout
                 return (
-                    <OptionsGrid
-                        group={group}
-                        selections={selections}
+                    <DisplayModeRenderer
+                        options={options}
+                        uiConfig={enhancedConfig}
+                        selectedIds={selections}
+                        maxSelections={maxSelections}
                         onSelectionChange={onSelectionChange}
-                        columns={normalizeColumns(uiConfig.columns)}
-                        cardSize={normalizeCardSize(uiConfig.card_size)}
+                        language={language}
                         accentColor={accentColor}
-                        showImages={uiConfig.show_images ?? true}
-                        showDescriptions={false}
-                        showNutrition={false}
                     />
                 )
         }
@@ -382,22 +485,33 @@ export default function OptionGroupRenderer({
             {/* Header - Only for pills/list/checkbox (OptionsGrid has its own header) */}
             {showHeader && (
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
-                        {/* ✅ Dynamic Icon */}
-                        {uiConfig.icon && (
-                            <DynamicIcon config={uiConfig.icon} size={20} color={accentColor} />
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
+                            {/* ✅ Dynamic Icon */}
+                            {uiConfig.icon && (
+                                <DynamicIcon config={uiConfig.icon} size={20} color={accentColor} />
+                            )}
+                            {/* Fallback to group icon */}
+                            {!uiConfig.icon && group.groupIcon && (
+                                <span className="text-xl">{group.groupIcon}</span>
+                            )}
+                            <span className="text-lg font-bold">{groupName}</span>
+                        </div>
+                        
+                        {/* ✅ Task 17.4: Display group description as subtitle */}
+                        {/* Requirements: 1.3 - Show description_ar under group title */}
+                        {/* Supports format like "اضف المزيد :: اختر نكهاتك براحتك" */}
+                        {groupDescription && (
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 mr-7">
+                                {groupDescription}
+                            </p>
                         )}
-                        {/* Fallback to group icon */}
-                        {!uiConfig.icon && group.groupIcon && (
-                            <span className="text-xl">{group.groupIcon}</span>
-                        )}
-                        <span className="text-lg font-bold">{group.groupName || group.name_ar}</span>
                     </div>
 
                     {/* Selection Badge */}
                     {group.maxSelections > 1 && (
-                        <span className="text-xs text-slate-500 bg-white/50 dark:bg-white/10 px-2 py-1 rounded-full backdrop-blur-md">
-                            اختر {group.minSelections === group.maxSelections
+                        <span className="text-xs text-slate-500 bg-white/50 dark:bg-white/10 px-2 py-1 rounded-full backdrop-blur-md self-start">
+                            {language === 'ar' ? 'اختر' : 'Choose'} {group.minSelections === group.maxSelections
                                 ? group.minSelections
                                 : `${group.minSelections} - ${group.maxSelections}`}
                         </span>

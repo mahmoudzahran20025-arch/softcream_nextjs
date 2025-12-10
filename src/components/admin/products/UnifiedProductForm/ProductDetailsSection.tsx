@@ -73,7 +73,18 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
 
   const handleChange = (field: string, value: string | number | string[]) => {
     console.log('🔄 ProductDetailsSection handleChange:', { field, value });
-    onChange({ ...formData, [field]: value });
+    
+    // 🔍 DEBUG: Track template changes specifically
+    if (field === 'template_id') {
+      console.log('🎨 Template changed to:', value);
+      console.log('📍 Current location:', typeof window !== 'undefined' ? window.location.pathname : 'SSR');
+    }
+    
+    try {
+      onChange({ ...formData, [field]: value });
+    } catch (error) {
+      console.error('❌ Error in handleChange:', error);
+    }
   };
 
   return (
@@ -187,7 +198,12 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
             <button
               key={template.id}
               type="button"
-              onClick={() => handleChange('template_id', template.id)}
+              onClick={(e) => {
+                e.preventDefault(); // ✅ FIX: Prevent any form submission
+                e.stopPropagation(); // ✅ FIX: Stop event bubbling
+                console.log('🎨 Template button clicked:', template.id);
+                handleChange('template_id', template.id);
+              }}
               className={`p-4 rounded-xl border-2 text-right transition-all ${formData.template_id === template.id
                 ? 'border-indigo-500 bg-indigo-50 shadow-md'
                 : 'border-gray-200 bg-white hover:border-indigo-300'

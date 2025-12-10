@@ -134,7 +134,7 @@ export const useOrderTracking = ({ isOpen, order }: UseOrderTrackingProps) => {
         last_updated_by: data.last_updated_by,
         timeline: data.timeline,
         estimatedMinutes: data.estimatedMinutes || prev.estimatedMinutes,
-        canCancelUntil: prev.canCancelUntil
+        canCancelUntil: data.canCancelUntil || prev.canCancelUntil
       } : null)
       
       // Update storage
@@ -142,7 +142,9 @@ export const useOrderTracking = ({ isOpen, order }: UseOrderTrackingProps) => {
         status: newStatus,
         progress: data.progress,
         last_updated_by: data.last_updated_by,
-        timeline: data.timeline
+        timeline: data.timeline,
+        estimatedMinutes: data.estimatedMinutes,
+        canCancelUntil: data.canCancelUntil
       })
 
       // Show toast on status change

@@ -212,12 +212,11 @@ const OptionGroupCard: React.FC<OptionGroupCardProps> = ({
                 <HighlightText text={group.name_ar} query={searchQuery} />
               </h3>
               {/* Display Style Badge (Requirement 4.1) */}
-              {/* Display Style Badge (Requirement 4.1) */}
               <DisplayStyleBadge
                 displayMode={
                   typeof group.ui_config === 'string'
-                    ? parseUIConfig(group.ui_config).display_style
-                    : group.ui_config?.display_style || 'grid'
+                    ? (parseUIConfig(group.ui_config).display_style ?? 'grid')
+                    : (group.ui_config?.display_style ?? 'grid')
                 }
               />
             </div>

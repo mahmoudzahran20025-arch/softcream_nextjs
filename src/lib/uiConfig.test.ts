@@ -104,12 +104,13 @@ describe('UI Config Parser - Property Tests', () => {
           fc.constantFrom(null, undefined, '', '{}'),
           (input) => {
             const result = parseUIConfig(input as string | undefined)
-            // Should return default config
-            expect(result.displayMode).toBe('grid')
-            expect(result.columns).toBe(3)
-            expect(result.cardSize).toBe('md')
-            expect(result.showImages).toBe(true)
-            expect(result.showPrices).toBe(true)
+            // Should return default config with new field names
+            expect(result.display_mode).toBe('default')
+            expect(result.fallback_style).toBe('cards')
+            expect(result.columns).toBe('auto')
+            expect(result.card_size).toBe('md')
+            expect(result.show_images).toBe(true)
+            expect(result.show_prices).toBe(true)
           }
         ),
         { numRuns: 100 }
@@ -122,8 +123,8 @@ describe('UI Config Parser - Property Tests', () => {
           const result = parseUIConfig(invalidJson)
           // Should return default config without throwing
           expect(result).toBeDefined()
-          expect(result.displayMode).toBe('grid')
-          expect(result.columns).toBe(3)
+          expect(result.display_mode).toBe('default')
+          expect(result.columns).toBe('auto')
         }),
         { numRuns: 100 }
       )
@@ -207,13 +208,14 @@ describe('UI Config Parser - Property Tests', () => {
             const jsonStr = JSON.stringify(config)
             const result = parseUIConfig(jsonStr)
             
-            // Missing fields should have defaults
-            expect(result.displayMode).toBe('grid')
-            expect(result.columns).toBe(3)
-            expect(result.cardSize).toBe('md')
-            expect(result.showImages).toBe(true)
-            expect(result.showPrices).toBe(true)
-            expect(result.accentColor).toBe('pink')
+            // Missing fields should have defaults (new field names)
+            expect(result.display_mode).toBe('default')
+            expect(result.fallback_style).toBe('cards')
+            expect(result.columns).toBe('auto')
+            expect(result.card_size).toBe('md')
+            expect(result.show_images).toBe(true)
+            expect(result.show_prices).toBe(true)
+            expect(result.accent_color).toBe('pink')
             
             // Badge should be preserved
             expect(result.badge).toBe(config.badge)
@@ -231,13 +233,12 @@ describe('UI Config Parser - Property Tests', () => {
           const jsonStr = JSON.stringify(cleanConfig)
           const result = parseUIConfig(jsonStr)
           
-          // Core fields should be preserved
-          expect(result.displayMode).toBe(config.displayMode)
+          // Core fields should be preserved (using snake_case)
           expect(result.columns).toBe(config.columns)
-          expect(result.cardSize).toBe(config.cardSize)
-          expect(result.showImages).toBe(config.showImages)
-          expect(result.showPrices).toBe(config.showPrices)
-          expect(result.accentColor).toBe(config.accentColor)
+          expect(result.card_size).toBe(config.cardSize)
+          expect(result.show_images).toBe(config.showImages)
+          expect(result.show_prices).toBe(config.showPrices)
+          expect(result.accent_color).toBe(config.accentColor)
           
           // Icon should be preserved
           expect(result.icon?.type).toBe(config.icon.type)
