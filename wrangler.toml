@@ -1,0 +1,24 @@
+# Cloudflare Pages configuration
+# This file configures the Next.js deployment to Cloudflare Pages
+
+name = "soft-cream-nextjs"
+compatibility_date = "2025-10-11"
+compatibility_flags = ["nodejs_compat"]
+
+# Build configuration
+[build]
+command = "npx @cloudflare/next-on-pages"
+# The output directory is automatically detected by next-on-pages
+
+# Environment variables for production
+[vars]
+NEXT_PUBLIC_API_URL = "https://softcream-api.mahmoud-zahran20025.workers.dev"
+
+# Preview deployments configuration
+[env.preview]
+# Preview uses the same API for now
+# You can add a preview API URL here if needed
+
+# Production environment
+[env.production]
+# Production-specific settings

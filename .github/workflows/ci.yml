@@ -76,7 +76,7 @@ jobs:
 
       - name: Build for Cloudflare Pages
         run: |
-          npm install @cloudflare/next-on-pages --save-dev
+          npm install @cloudflare/next-on-pages --save-dev --legacy-peer-deps
           npx @cloudflare/next-on-pages
         env:
           NODE_ENV: production
@@ -118,7 +118,7 @@ jobs:
 
       - name: Build for Cloudflare Pages
         run: |
-          npm install @cloudflare/next-on-pages --save-dev
+          npm install @cloudflare/next-on-pages --save-dev --legacy-peer-deps
           npx @cloudflare/next-on-pages
         env:
           NODE_ENV: production
