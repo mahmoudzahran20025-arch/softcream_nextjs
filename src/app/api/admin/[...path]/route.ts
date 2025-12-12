@@ -3,6 +3,7 @@ import { getSession, hasPermission } from '@/lib/auth'
 
 // Allow all methods (GET, POST, PUT, DELETE)
 export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 // Define the params type correctly for Next.js 15
 type Props = {
