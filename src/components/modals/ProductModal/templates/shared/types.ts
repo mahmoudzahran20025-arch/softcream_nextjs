@@ -1,9 +1,10 @@
-'use client'
-
 // ============================================
 // Shared Types for Product Templates
 // ============================================
+// Active types used by current components
+// ============================================
 
+// Nutrition values interface - used by OptionCard, NutritionBadge
 export interface NutritionValues {
   calories?: number
   protein?: number
@@ -13,6 +14,7 @@ export interface NutritionValues {
   fiber?: number
 }
 
+// Option interface - used by OptionsGrid, OptionCard
 export interface Option {
   id: string
   name_ar: string
@@ -24,6 +26,7 @@ export interface Option {
   nutrition?: NutritionValues
 }
 
+// Customization group interface - used by OptionGroupRenderer
 export interface CustomizationGroup {
   groupId: string
   groupName: string
@@ -33,24 +36,6 @@ export interface CustomizationGroup {
   minSelections: number
   maxSelections: number
   options: Option[]
-}
-
-// Base props shared by all templates
-export interface BaseTemplateProps {
-  product: any
-  sizes: any[]
-  selectedSize: any
-  onSizeSelect: (size: any) => void
-  customizationRules: CustomizationGroup[]
-  selections: Record<string, string[]>
-  onSelectionChange: (groupId: string, ids: string[]) => void
-}
-
-// Extended props for BYO template (includes containers)
-export interface BYOTemplateProps extends BaseTemplateProps {
-  containers: any[]
-  selectedContainer: any
-  onContainerSelect: (container: any) => void
 }
 
 // Accent colors available for templates

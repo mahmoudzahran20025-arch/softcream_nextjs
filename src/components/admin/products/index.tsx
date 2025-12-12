@@ -38,7 +38,7 @@ export interface ProductsPageProps {
   onDelete?: (productId: string) => void;
 }
 
-const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh, onUpdate, onDelete }) => {
+const ProductsPage: React.FC<ProductsPageProps> = ({ onRefresh: _onRefresh, onUpdate, onDelete }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');

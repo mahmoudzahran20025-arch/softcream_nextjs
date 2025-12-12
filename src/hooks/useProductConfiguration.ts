@@ -81,7 +81,7 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
   const availableSizes = useMemo(() => {
     // First check if sizes come from option_groups
     const sizesFromOptionGroups = config?.customizationRules?.find((r: any) => r.groupId === 'sizes')
-    if (sizesFromOptionGroups?.options?.length > 0) {
+    if (sizesFromOptionGroups?.options && sizesFromOptionGroups.options.length > 0) {
       // Transform option_group options to size format
       return sizesFromOptionGroups.options.map((opt: any) => ({
         id: opt.id,
@@ -90,7 +90,8 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
         nameEn: opt.name_en,
         priceModifier: opt.price || opt.base_price || 0,
         isDefault: false,
-        containerId: null
+        containerId: null,
+        nutritionMultiplier: opt.nutritionMultiplier || 1
       }))
     }
 

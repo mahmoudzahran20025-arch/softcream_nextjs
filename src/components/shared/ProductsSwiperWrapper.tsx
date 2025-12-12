@@ -3,33 +3,11 @@
 import { Swiper, SwiperSlide } from 'swiper/react'
 import ProductCard from '@/components/ui/ProductCard'
 import { productSwiperConfig } from '@/config/swiperConfig'
+import type { Product } from '@/lib/api'
 
 import 'swiper/css'
 import 'swiper/css/free-mode'
 import 'swiper/css/pagination'
-
-interface Product {
-  id: string
-  name: string
-  nameEn?: string
-  price: number
-  image?: string
-  category?: string
-  description?: string
-  tags?: string
-  ingredients?: string
-  allergens?: string
-  calories?: number
-  protein?: number
-  carbs?: number
-  sugar?: number
-  fat?: number
-  fiber?: number
-  energy_type?: string
-  energy_score?: number
-  badge?: string
-  template_id?: string
-}
 
 interface ProductsSwiperWrapperProps {
   products: Product[]

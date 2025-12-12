@@ -1,3 +1,5 @@
+'use client'
+
 import { Suspense } from 'react'
 import ProductsGrid from '@/components/shared/ProductsGrid'
 import Footer from '@/components/server/Footer'

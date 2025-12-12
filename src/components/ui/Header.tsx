@@ -16,87 +16,90 @@ export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: Hea
   const { toggleTheme, isDark } = useTheme()
   const { language, toggleLanguage, isRTL } = useLanguage()
   const { getCartCount } = useCart()
-  
+
   // Fix hydration error: only show count on client side
   const [displayCount, setDisplayCount] = useState(0)
   const [mounted, setMounted] = useState(false)
-  
+
   useEffect(() => {
     setMounted(true)
     setDisplayCount(getCartCount())
   }, [getCartCount])
 
-  const brandText = "SOFTCREAM"
+
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40 min-h-[70px]">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-2 max-w-7xl mx-auto">
-          
+
           {/* Menu Button - Toggle Sidebar */}
           <button
             onClick={onOpenSidebar}
-            className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-lg"
+            className="p-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-lg border border-pink-100 dark:border-gray-700 hover:border-pink-300 group"
             aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-6 h-6 text-[#FF4979] dark:text-[#FF6B9D] group-hover:scale-110 transition-transform" />
           </button>
 
           {/* 🎨 BRAND LOGO - Professional Design */}
           <div className="flex-1 flex justify-center items-center">
             <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-              
+
               {/* Logo Image - Enhanced Glow */}
-              <div className="h-12 w-auto flex-shrink-0">
-                <img 
-                  src="https://i.ibb.co/GfqnJKpV/softcreamlogo.png"
-                  alt="Soft Cream" 
-                  className="h-full w-auto object-contain animate-pulse-glow transition-transform hover:scale-110 drop-shadow-2xl" 
-                  style={{
-                    filter: 'drop-shadow(0 4px 20px rgba(255, 107, 157, 0.6))'
-                  }}
+              <div className="h-14 w-14 flex-shrink-0 relative group">
+                <div className="absolute inset-0 bg-pink-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                <img
+                  src="/asset/softcreamlogo.jpg"
+                  alt="Soft Cream"
+                  className="relative h-full w-full object-contain rounded-full shadow-lg ring-2 ring-white/50 dark:ring-white/10 md:transition-transform md:duration-500 md:group-hover:scale-110 md:group-hover:rotate-6"
                 />
               </div>
 
-              {/* Brand Text - Animated Letters */}
-              <div className="flex items-center gap-0.5" dir="ltr">
-                {Array.from(brandText).map((letter, i) => (
-                  <span
-                    key={i}
-                    className="font-bold text-xl md:text-2xl animate-text-wave-fast uppercase tracking-tight transition-all hover:scale-125 cursor-default"
-                    style={{
-                      animationDelay: `${i * 0.05}s`,
-                      display: 'inline-block'
-                    }}
-                  >
-                    {letter}
+              {/* Brand Text - Typographic Logo (Iteration V) */}
+              <div className="hidden min-[380px]:flex flex-col items-start justify-center select-none" dir="ltr">
+                <div className="leading-none flex items-center gap-0.5">
+                  <span className="text-2xl md:text-3xl font-bold tracking-tighter text-slate-900 dark:text-white">
+                    SOFT
                   </span>
-                ))}
+                  <span className="text-2xl md:text-3xl font-black tracking-tighter text-[#FF4979]">
+                    CREAM
+                  </span>
+                  {/* Modern Accent Dot */}
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#FF4979] mb-1 ml-0.5 animate-pulse"></div>
+                </div>
+                <span className="text-[10px] mobile-s:text-[8px] font-semibold tracking-[0.35em] text-slate-400 dark:text-slate-500 uppercase mt-0.5 ml-0.5">
+                  Ice Cream & Dessert
+                </span>
               </div>
             </div>
           </div>
-          
+
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
             {/* Language Toggle */}
             <button
               onClick={toggleLanguage}
-              className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-lg flex items-center gap-1"
+              className="p-3 bg-white dark:bg-gray-800 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-lg border border-pink-100 dark:border-gray-700 hover:border-pink-300 flex items-center gap-1 group"
               aria-label="Toggle language"
               title={language === 'ar' ? 'English' : 'العربية'}
             >
-              <Globe className="w-5 h-5" />
-              <span className="text-xs font-bold">{language === 'ar' ? 'EN' : 'AR'}</span>
+              <Globe className="w-5 h-5 text-[#FF4979] dark:text-[#FF6B9D] group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-200 group-hover:text-[#FF4979] transition-colors">{language === 'ar' ? 'EN' : 'AR'}</span>
             </button>
 
-            {/* Theme Toggle */}
+            {/* Theme Toggle - Hidden on small screens */}
             <button
               onClick={toggleTheme}
-              className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-lg"
+              className="hidden sm:flex p-3 bg-white dark:bg-gray-800 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-lg border border-pink-100 dark:border-gray-700 hover:border-pink-300 group"
               aria-label="Toggle theme"
               title={isDark ? 'Light Mode' : 'Dark Mode'}
             >
-              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {isDark ? (
+                <Sun className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" />
+              ) : (
+                <Moon className="w-5 h-5 text-[#FF4979] group-hover:scale-110 transition-transform" />
+              )}
             </button>
 
             {/* Cart Button - Brand Pink */}

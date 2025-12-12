@@ -1,141 +1,0 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Customization - Debug</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-4xl mx-auto">
-        <h1 class="text-3xl font-bold mb-6 text-center">🔍 اختبار نظام التخصيص - Debug</h1>
-        
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 class="text-xl font-bold mb-4">اختبار المنتجات</h2>
-            
-            <div class="space-y-4">
-                <div>
-                    <h3 class="font-bold mb-2">1. فانيليا كلاسيك (ID: 1)</h3>
-                    <button onclick="testProduct('1')" class="bg-blue-500 text-white px-4 py-2 rounded mr-2">
-                        اختبار API
-                    </button>
-                    <a href="http://localhost:3001?product=1" target="_blank" class="bg-green-500 text-white px-4 py-2 rounded inline-block">
-                        فتح في الموقع
-                    </a>
-                    <pre id="result-1" class="mt-2 bg-gray-50 p-4 rounded text-sm overflow-auto max-h-64"></pre>
-                </div>
-                
-                <div>
-                    <h3 class="font-bold mb-2">2. كوب سوفت سيرف (ID: soft_serve_cup)</h3>
-                    <button onclick="testProduct('soft_serve_cup')" class="bg-blue-500 text-white px-4 py-2 rounded mr-2">
-                        اختبار API
-                    </button>
-                    <a href="http://localhost:3001?product=soft_serve_cup" target="_blank" class="bg-green-500 text-white px-4 py-2 rounded inline-block">
-                        فتح في الموقع
-                    </a>
-                    <pre id="result-soft_serve_cup" class="mt-2 bg-gray-50 p-4 rounded text-sm overflow-auto max-h-64"></pre>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-6">
-            <h2 class="text-xl font-bold mb-4 text-yellow-800">📝 ما يجب أن تراه في الموقع:</h2>
-            <ul class="space-y-2 text-sm">
-                <li class="flex items-start gap-2">
-                    <span class="text-green-600 font-bold">✓</span>
-                    <span>قسم بعنوان "اصنع الآيس كريم الخاص بك" ✨</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-green-600 font-bold">✓</span>
-                    <span>3 مجموعات: النكهات 🍦، الصوصات 🍫، الإضافات 🍪</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-green-600 font-bold">✓</span>
-                    <span>خيارات قابلة للنقر مع تأثيرات بصرية</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-green-600 font-bold">✓</span>
-                    <span>السعر يتحدث عند اختيار الخيارات</span>
-                </li>
-            </ul>
-            
-            <div class="mt-4 p-4 bg-red-50 border border-red-300 rounded">
-                <h3 class="font-bold text-red-800 mb-2">❌ إذا لم تر قسم التخصيص:</h3>
-                <ol class="list-decimal list-inside space-y-1 text-sm text-red-700">
-                    <li>افتح Developer Tools (F12)</li>
-                    <li>اذهب إلى Console</li>
-                    <li>ابحث عن رسالة: "🎨 Fetching customization rules..."</li>
-                    <li>تحقق من وجود أخطاء</li>
-                </ol>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const API_URL = 'https://softcream-api.mahmoud-zahran20025.workers.dev';
-
-        async function testProduct(productId) {
-            const resultEl = document.getElementById(`result-${productId}`);
-            resultEl.textContent = 'جاري الاختبار...';
-            
-            const results = [];
-            
-            try {
-                // Test 1: Get Product
-                results.push('=== Test 1: Get Product ===');
-                const productRes = await fetch(`${API_URL}/products/${productId}`);
-                const productData = await productRes.json();
-                
-                if (productData.data) {
-                    results.push(`✅ Product found: ${productData.data.name}`);
-                    results.push(`   is_customizable: ${productData.data.is_customizable}`);
-                    
-                    if (productData.data.is_customizable === 1) {
-                        results.push('   ✓ Product is customizable!');
-                    } else {
-                        results.push('   ✗ Product is NOT customizable!');
-                        results.push('   Run: .\\make-product-customizable.ps1 -ProductId "' + productId + '"');
-                    }
-                } else {
-                    results.push('❌ Product not found');
-                }
-                
-                // Test 2: Get Customization Rules
-                results.push('\n=== Test 2: Get Customization Rules ===');
-                const rulesRes = await fetch(`${API_URL}/products/${productId}/customization-rules?lang=ar`);
-                const rulesData = await rulesRes.json();
-                
-                if (rulesData.data && rulesData.data.length > 0) {
-                    results.push(`✅ Found ${rulesData.data.length} customization groups`);
-                    
-                    rulesData.data.forEach(group => {
-                        results.push(`\n${group.groupIcon} ${group.groupName}:`);
-                        results.push(`   - Required: ${group.isRequired ? 'Yes' : 'No'}`);
-                        results.push(`   - Min/Max: ${group.minSelections}-${group.maxSelections}`);
-                        results.push(`   - Options: ${group.options.length}`);
-                    });
-                    
-                    results.push('\n✓ API is working correctly!');
-                    results.push('✓ Now open the product in the website');
-                } else {
-                    results.push('❌ No customization rules found');
-                    results.push('   Check database: product_options table');
-                }
-                
-                resultEl.textContent = results.join('\n');
-                
-            } catch (error) {
-                resultEl.textContent = `❌ Error: ${error.message}\n\n${results.join('\n')}`;
-                console.error(error);
-            }
-        }
-
-        // Auto-test on load
-        window.addEventListener('load', () => {
-            console.log('🧪 Auto-testing products...');
-            testProduct('1');
-            setTimeout(() => testProduct('soft_serve_cup'), 1000);
-        });
-    </script>
-</body>
-</html>

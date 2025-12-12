@@ -1,41 +1,46 @@
-import { Suspense } from 'react'
 import HomePageContent from '@/components/home/HomePageContent'
-import { getProducts } from '@/lib/api'
+import { API_CONFIG } from '@/config/constants'
 
 export const metadata = {
   title: 'Home - Soft Cream',
   description: 'اكتشف مجموعة السوفت كريم الغنية بالطاقة الطبيعية',
 }
 
-export const revalidate = 0 // Disable ISR cache temporarily for testing new categories
+// ✅ Enable ISR with 60 second revalidation
+export const revalidate = 60
 
-// ✅ Separate data fetching component for better error handling and loading states
-async function ProductsData() {
+// ✅ Simple fetch without AbortController (Node.js 22 compatibility)
+async function fetchProducts(): Promise<any[]> {
+  const url = `${API_CONFIG.BASE_URL}/products`
+  
   try {
-    // Add timeout to prevent hanging requests
-    const products = await Promise.race([
-      getProducts(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
-      )
-    ]) as any[]
-
-    return <HomePageContent initialProducts={products || []} />
-  } catch (error) {
-    console.error('Failed to fetch products:', error)
-    // Return empty state instead of crashing
-    return <HomePageContent initialProducts={[]} />
+    console.log('📡 Fetching products:', url)
+    
+    // Use globalThis.fetch to ensure we're using the correct fetch
+    const response = await globalThis.fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      next: { revalidate: 60 },
+    } as RequestInit)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    
+    const result = await response.json()
+    console.log('✅ Products fetched successfully, count:', Array.isArray(result.data) ? result.data.length : 'N/A')
+    return result.data || result || []
+    
+  } catch (error: any) {
+    console.error('❌ Failed to fetch products:', error.message)
+    // Return empty array to allow page to render
+    return []
   }
 }
 
 export default async function HomePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    }>
-      <ProductsData />
-    </Suspense>
-  )
+  const products = await fetchProducts()
+  return <HomePageContent initialProducts={products} />
 }

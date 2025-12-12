@@ -6,6 +6,7 @@ import { SearchX, IceCream } from 'lucide-react'
 import { useProductsData } from '@/providers/ProductsProvider'
 import { useCategoryTracking } from '@/providers/CategoryTrackingProvider'
 import ProductCardSkeleton from '@/components/ui/skeletons/ProductCardSkeleton'
+import type { Product } from '@/lib/api'
 
 // Lazy load Swiper (heavy library ~50KB)
 const ProductsSwiper = dynamic(
@@ -21,28 +22,6 @@ const ProductsSwiper = dynamic(
     ),
   }
 )
-
-interface Product {
-  id: string
-  name: string
-  nameEn?: string
-  price: number
-  image?: string
-  category?: string
-  description?: string
-  tags?: string
-  ingredients?: string
-  allergens?: string
-  calories?: number
-  protein?: number
-  carbs?: number
-  sugar?: number
-  fat?: number
-  fiber?: number
-  energy_type?: string
-  energy_score?: number
-  badge?: string
-}
 
 interface ProductsGridProps {
   isLoading?: boolean

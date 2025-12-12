@@ -4,54 +4,13 @@
 // ProductTemplateRenderer.tsx - Unified Product Rendering
 // ================================================================
 // UNIFIED PRODUCT MODEL: All rendering now uses UnifiedProductRenderer
-// Legacy templates archived to templates/_archived/
+// All products use the same data-driven rendering path
 // ================================================================
 
 import { motion } from 'framer-motion'
 import { Product } from '@/lib/api'
 import { useProductConfiguration } from '@/hooks/useProductConfiguration'
 import UnifiedProductRenderer from '../UnifiedProductRenderer'
-
-// ================================================================
-// TYPES
-// ================================================================
-
-/**
- * Layout mode type for template rendering
- * Maps to internal template rendering modes
- */
-export type LayoutMode = 'simple' | 'medium' | 'complex' | 'lifestyle'
-
-/**
- * Product type for getEffectiveLayoutMode function
- * Minimal interface for template mapping
- */
-export interface TemplateProduct {
-  template_id?: string
-}
-
-/**
- * Determine which template to render based on template_id
- * @deprecated - Now handled by UnifiedProductRenderer via templateId
- */
-export function getEffectiveLayoutMode(product: TemplateProduct): LayoutMode {
-  if (!product.template_id) {
-    return 'simple'
-  }
-
-  switch (product.template_id) {
-    case 'template_1':
-      return 'simple'
-    case 'template_2':
-      return 'medium'
-    case 'template_3':
-      return 'complex'
-    case 'template_lifestyle':
-      return 'lifestyle'
-    default:
-      return 'simple'
-  }
-}
 
 // ================================================================
 // PROPS

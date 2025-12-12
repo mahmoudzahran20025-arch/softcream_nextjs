@@ -12,19 +12,19 @@ interface HeaderCompactProps {
   onBack?: () => void
 }
 
-export default function HeaderCompact({ 
-  onOpenSidebar, 
+export default function HeaderCompact({
+  onOpenSidebar,
   onOpenCart,
   showBackButton = false,
   onBack
 }: HeaderCompactProps) {
   const { getCartCount } = useCart()
   const router = useRouter()
-  
+
   // Fix hydration error: only show count on client side
   const [displayCount, setDisplayCount] = useState(0)
   const [mounted, setMounted] = useState(false)
-  
+
   useEffect(() => {
     setMounted(true)
     setDisplayCount(getCartCount())
@@ -44,7 +44,7 @@ export default function HeaderCompact({
     <header className="bg-white dark:bg-gray-800 shadow-md min-h-[70px]">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-2 max-w-7xl mx-auto">
-          
+
           {/* Left: Menu or Back Button */}
           {showBackButton ? (
             <button
@@ -67,13 +67,13 @@ export default function HeaderCompact({
           {/* Center: BRAND LOGO */}
           <div className="flex-1 flex justify-center items-center">
             <div className="flex items-center gap-2">
-              
+
               {/* Logo Image */}
               <div className="h-10 w-auto flex-shrink-0">
-                <img 
-                  src="https://i.ibb.co/GfqnJKpV/softcreamlogo.png"
-                  alt="Soft Cream" 
-                  className="h-full w-auto object-contain animate-pulse-glow transition-transform hover:scale-110 drop-shadow-2xl" 
+                <img
+                  src="/asset/softcreamlogo.jpg"
+                  alt="Soft Cream"
+                  className="h-full w-auto object-contain animate-pulse-glow transition-transform hover:scale-110 drop-shadow-2xl rounded-full"
                   style={{
                     filter: 'drop-shadow(0 4px 20px rgba(255, 107, 157, 0.6))'
                   }}
@@ -97,7 +97,7 @@ export default function HeaderCompact({
               </div>
             </div>
           </div>
-          
+
           {/* Right: Cart Button Only */}
           <button
             onClick={onOpenCart}

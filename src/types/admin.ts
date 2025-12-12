@@ -415,6 +415,8 @@ export const INITIAL_OPTION_GROUP_FORM_DATA: OptionGroupFormData = {
   icon: '📦',
   display_order: 0,
   ui_config: {
+    display_mode: 'default',
+    fallback_style: 'grid',
     display_style: 'grid',
     columns: 3,
     card_size: 'md',

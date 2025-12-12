@@ -7,7 +7,7 @@ import {
   SimpleCard
 } from './cards'
 import type { Product } from '@/lib/api'
-import { parseUIConfig, type ProductUIConfig } from '@/types/products'
+import { parseUIConfig } from '@/types/products'
 
 interface ProductCardProps {
   product: Product

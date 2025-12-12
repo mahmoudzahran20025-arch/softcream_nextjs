@@ -8,7 +8,7 @@ import { useLanguage } from '@/providers/LanguageProvider'
 import { useWindowEvent } from '@/hooks/useWindowEvent'
 import { storage } from '@/lib/storage.client'
 import {
-  X, ShoppingCart, Package, Moon, Sun, Globe, Phone, Clock, Sparkles, 
+  X, ShoppingCart, Package, Moon, Sun, Globe, Phone, Clock, Sparkles,
   ShoppingBag, User, ChevronRight, Utensils, Heart
 } from 'lucide-react'
 
@@ -23,11 +23,11 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
   const { getCartCount } = useCart()
   const { theme, toggleTheme } = useTheme()
   const { language, toggleLanguage, t } = useLanguage()
-  
+
   const [userData, setUserData] = useState<any>(null)
   const [activeOrdersCount, setActiveOrdersCount] = useState(0)
   const [customerProfile, setCustomerProfile] = useState<any>(null)
-  
+
   const cartCount = getCartCount()
 
   // Load user data, customer profile, and orders count
@@ -55,7 +55,7 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
       setUserData(data)
     }
   }
-  
+
   // ✅ NEW: Load customer profile for personalized greeting
   const updateCustomerProfile = () => {
     if (typeof window !== 'undefined') {
@@ -110,14 +110,14 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
 
   const handleNavClick = (sectionId: string) => {
     onClose()
-    
+
     setTimeout(() => {
       if (typeof window !== 'undefined') {
         const element = document.getElementById(sectionId)
         if (element) {
-          element.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
+          element.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
           })
         }
       }
@@ -127,29 +127,29 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
   const isRTL = language === 'ar'
 
   const navItems = [
-    { 
-      icon: Package, 
-      label: language === 'ar' ? 'الرئيسية' : 'Home', 
-      id: 'home', 
+    {
+      icon: Package,
+      label: language === 'ar' ? 'الرئيسية' : 'Home',
+      id: 'home',
       href: '/',
       onClick: () => {
         onClose()
       }
     },
-    { 
-      icon: Sparkles, 
-      label: language === 'ar' ? 'المنتجات' : 'Products', 
-      id: 'products', 
+    {
+      icon: Sparkles,
+      label: language === 'ar' ? 'المنتجات' : 'Products',
+      id: 'products',
       href: '/products',
       highlight: true,
       onClick: () => {
         onClose()
       }
     },
-    { 
-      icon: Package, 
-      label: t('navMenu') || 'المنيو', 
-      id: 'menu', 
+    {
+      icon: Package,
+      label: t('navMenu') || 'المنيو',
+      id: 'menu',
       onClick: () => {
         onClose()
         // ✅ Scroll to first category section
@@ -161,7 +161,7 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
               const headerOffset = 200 // Header + FilterBar
               const elementPosition = firstCategory.getBoundingClientRect().top
               const offsetPosition = elementPosition + window.pageYOffset - headerOffset
-              
+
               window.scrollTo({
                 top: offsetPosition,
                 behavior: 'smooth'
@@ -171,38 +171,38 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
         }, 300)
       }
     },
-    { 
-      icon: ShoppingCart, 
-      label: t('navCart') || 'السلة', 
-      id: 'cart', 
-      badge: cartCount, 
-      onClick: handleCartClick 
+    {
+      icon: ShoppingCart,
+      label: t('navCart') || 'السلة',
+      id: 'cart',
+      badge: cartCount,
+      onClick: handleCartClick
     },
-    { 
-      icon: ShoppingBag, 
-      label: language === 'ar' ? 'طلباتي' : 'My Orders', 
-      id: 'orders', 
-      badge: activeOrdersCount, 
-      badgeColor: 'bg-green-500', 
-      onClick: handleOrdersClick 
+    {
+      icon: ShoppingBag,
+      label: language === 'ar' ? 'طلباتي' : 'My Orders',
+      id: 'orders',
+      badge: activeOrdersCount,
+      badgeColor: 'bg-green-500',
+      onClick: handleOrdersClick
     },
-    { 
-      icon: Utensils, 
-      label: language === 'ar' ? 'خدمة الكاتيرينج' : 'Catering Service', 
-      id: 'catering', 
-      onClick: () => handleNavClick('catering') 
+    {
+      icon: Utensils,
+      label: language === 'ar' ? 'خدمة الكاتيرينج' : 'Catering Service',
+      id: 'catering',
+      onClick: () => handleNavClick('catering')
     },
-    { 
-      icon: Clock, 
-      label: t('footerNavHours') || 'ساعات العمل', 
-      id: 'footer-hours', 
-      onClick: () => handleNavClick('footer-hours') 
+    {
+      icon: Clock,
+      label: t('footerNavHours') || 'ساعات العمل',
+      id: 'footer-hours',
+      onClick: () => handleNavClick('footer-hours')
     },
-    { 
-      icon: Phone, 
-      label: t('footerNavContact') || 'تواصل معنا', 
-      id: 'footer-contact', 
-      onClick: () => handleNavClick('footer-contact') 
+    {
+      icon: Phone,
+      label: t('footerNavContact') || 'تواصل معنا',
+      id: 'footer-contact',
+      onClick: () => handleNavClick('footer-contact')
     }
   ]
 
@@ -219,14 +219,13 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-72 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ${
-          isOpen ? 'translate-x-0' : isRTL ? 'translate-x-full' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-72 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : isRTL ? 'translate-x-full' : '-translate-x-full'
+          }`}
         style={{ fontFamily: 'Cairo, sans-serif' }}
         role="dialog"
         aria-modal="true"
       >
-        
+
         {/* Header */}
         <div className="flex-shrink-0 p-5 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
@@ -241,9 +240,9 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
             {/* Logo */}
             <div className="flex items-center gap-2">
               <img
-                src="https://i.ibb.co/GfqnJKpV/softcreamlogo.png"
+                src="/asset/softcreamlogo.jpg"
                 alt="Logo"
-                className="w-10 h-10 object-contain"
+                className="w-10 h-10 object-contain rounded-full"
               />
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <h2 className="text-base font-black bg-gradient-to-r from-[#A3164D] to-purple-600 bg-clip-text text-transparent">
@@ -266,7 +265,7 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
                   <Heart className="w-6 h-6 text-white" />
                 )}
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 {/* ✅ Priority: userData > customerProfile > generic greeting */}
                 {userData?.name ? (
@@ -302,43 +301,38 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
           {navItems.map((item) => {
             const content = (
               <>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
-                  item.highlight
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${item.highlight
                     ? 'bg-gradient-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/30'
                     : 'bg-gradient-to-br from-pink-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 group-hover:from-[#FF6B9D] group-hover:to-[#A3164D] group-hover:shadow-md'
-                }`}>
-                  <item.icon className={`w-5 h-5 transition-colors ${
-                    item.highlight
+                  }`}>
+                  <item.icon className={`w-5 h-5 transition-colors ${item.highlight
                       ? 'text-white'
                       : 'text-[#A3164D] dark:text-pink-300 group-hover:text-white'
-                  }`} />
+                    }`} />
                 </div>
-                
-                <span className={`text-sm font-bold flex-1 ${isRTL ? 'text-right' : 'text-left'} ${
-                  item.highlight
+
+                <span className={`text-sm font-bold flex-1 ${isRTL ? 'text-right' : 'text-left'} ${item.highlight
                     ? 'text-pink-900 dark:text-pink-200'
                     : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'
-                }`}>
+                  }`}>
                   {item.label}
                 </span>
-                
+
                 {item.badge && item.badge > 0 && (
                   <span className={`${item.badgeColor || 'bg-gradient-to-r from-[#FF6B9D] to-[#A3164D]'} text-white text-xs font-bold rounded-full min-w-[22px] h-5 px-2 flex items-center justify-center shadow-md`}>
                     {item.badge}
                   </span>
                 )}
-                
-                <ChevronRight className={`w-4 h-4 text-pink-300 dark:text-pink-400 transition-all flex-shrink-0 ${
-                  isRTL ? 'rotate-180' : ''
-                } group-hover:text-[#FF6B9D] ${isRTL ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
+
+                <ChevronRight className={`w-4 h-4 text-pink-300 dark:text-pink-400 transition-all flex-shrink-0 ${isRTL ? 'rotate-180' : ''
+                  } group-hover:text-[#FF6B9D] ${isRTL ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
               </>
             )
 
-            const className = `w-full flex items-center gap-3 p-3.5 rounded-2xl transition-colors duration-150 group relative ${
-              item.highlight
+            const className = `w-full flex items-center gap-3 p-3.5 rounded-2xl transition-colors duration-150 group relative ${item.highlight
                 ? 'bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 border border-pink-200 dark:border-pink-700'
                 : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`
+              }`
 
             // If item has href, use Link
             if ('href' in item && item.href) {

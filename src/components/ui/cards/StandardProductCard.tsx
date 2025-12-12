@@ -72,7 +72,7 @@ export default function StandardProductCard({ product, config, onAddToCart, uiCo
   }
   const energyConfig = getEnergyConfig()
 
-  const featuredOptions = product.options_preview?.featured_options?.slice(0, 3) || []
+  const featuredOptions: Array<{ id: string; name: string; image?: string }> = product.options_preview?.featured_options?.slice(0, 3) || []
   const remainingCount = (product.options_preview?.total_options || 0) - 3
 
   const handleAddToCart = (e: React.MouseEvent) => {

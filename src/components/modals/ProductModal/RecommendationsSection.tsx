@@ -5,16 +5,7 @@ import { motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
 import { SimpleCard } from '@/components/ui/cards'
 import { getCategoryConfig } from '@/config/categories'
-
-interface Product {
-    id: string
-    name: string
-    price: number
-    old_price?: number
-    image?: string
-    category?: string
-    template_id?: string // ✅ Unified System - single source of truth
-}
+import type { Product } from '@/lib/api'
 
 interface RecommendationsSectionProps {
     productId: string
