@@ -3,12 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-interface LoginPageProps {
-  // onLogin is deprecated but kept for compatibility if needed temporarily
-  onLogin?: (token: string) => void;
-}
-
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+const LoginPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get('from') || '/admin';

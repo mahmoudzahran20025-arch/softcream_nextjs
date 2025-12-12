@@ -230,18 +230,18 @@ import { getBranches as _getBranches } from './branches.api'
 import { OrdersPolling as _OrdersPolling } from './polling'
 
 // Default export for backward compatibility
-export default {
+const adminApi = {
   // Auth
   getAdminToken: _getAdminToken,
   setAdminToken: _setAdminToken,
   clearAdminToken: _clearAdminToken,
-  
+
   // Orders
   getOrders: _getOrders,
   getOrderById: _getOrderById,
   updateOrderStatus: _updateOrderStatus,
   getTodayStats: _getTodayStats,
-  
+
   // Coupons
   getCoupons: _getCoupons,
   createCoupon: _createCoupon,
@@ -249,27 +249,30 @@ export default {
   getCouponStats: _getCouponStats,
   deleteCoupon: _deleteCoupon,
   updateCoupon: _updateCoupon,
-  
+
   // Analytics
   getDashboardAnalytics: _getDashboardAnalytics,
   getSalesByPeriod: _getSalesByPeriod,
-  
+
   // Products
   getProducts: _getProducts,
   updateProductAvailability: _updateProductAvailability,
   createProduct: _createProduct,
   updateProduct: _updateProduct,
   deleteProduct: _deleteProduct,
-  
+
   // Branches
   getBranches: _getBranches,
-  
+
   // Polling
   OrdersPolling: _OrdersPolling,
-  
+
   // Tracking
   getOrderTracking: _getOrderTracking,
   overrideOrderStatus: _overrideOrderStatus,
   batchUpdateTracking: _batchUpdateTracking,
   getTrackingStatistics: _getTrackingStatistics
 }
+
+export default adminApi
+
