@@ -53,7 +53,9 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
   // Set defaults when config loads (only once)
   // ✅ FIX: Only auto-select if the option is REQUIRED
   useEffect(() => {
-    if (config && !selectedContainer && !selectedSize) {
+    if (!isOpen || !config) return
+
+    if (!selectedContainer && !selectedSize) {
       // Set default container ONLY if required
       if (config.hasContainers && config.containers.length > 0) {
         const containersRule = config.customizationRules?.find((r: any) => r.groupId === 'containers')
@@ -73,7 +75,7 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
         }
       }
     }
-  }, [config]) // Only depend on config, not on selectedContainer/selectedSize
+  }, [config, isOpen, selectedContainer, selectedSize])
 
 
   // Get available sizes for selected container
@@ -136,7 +138,7 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
       const sizeFromGroup = availableSizes.find(s => s.id === selectedSizeId)
       if (sizeFromGroup) return sizeFromGroup
     }
-    
+
     // Fallback to legacy selectedSize
     if (!selectedSize) return null
     return availableSizes.find(s => s.id === selectedSize) || null
@@ -157,10 +159,10 @@ export function useProductConfiguration({ productId, isOpen }: UseProductConfigu
       // Parse conditional rules if present (from backend API)
       conditionalRules: group.conditionalRules
         ? parseConditionalRules(
-            typeof group.conditionalRules === 'string'
-              ? group.conditionalRules
-              : JSON.stringify(group.conditionalRules)
-          )
+          typeof group.conditionalRules === 'string'
+            ? group.conditionalRules
+            : JSON.stringify(group.conditionalRules)
+        )
         : null
     }))
   }, [config?.customizationRules])

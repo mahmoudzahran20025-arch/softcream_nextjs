@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
+import ErrorBoundary from '@/components/shared/ErrorBoundary'
 import ProductHeader from '@/components/modals/ProductModal/ProductHeader'
 import NutritionInfo from '@/components/modals/ProductModal/NutritionInfo'
 import ActionFooter from '@/components/modals/ProductModal/ActionFooter'
@@ -185,10 +187,13 @@ function RichProductPageContent({ product, allProducts }: Props) {
               {/* Product Image ... */}
               <div className="relative h-[600px] md:aspect-[3/4] lg:aspect-[4/5] md:h-auto rounded-2xl overflow-hidden bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-800 dark:to-slate-700 group md:sticky md:top-24">
                 {displayProduct.image ? (
-                  <img
+                  <Image
                     src={displayProduct.image}
                     alt={displayProduct.name}
-                    className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                    fill
+                    className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    priority
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-600 text-6xl">
@@ -328,7 +333,9 @@ export default function RichProductPage(props: Props) {
   return (
     <ProductsProvider initialProducts={allProducts}>
       <CategoryTrackingProvider>
-        <RichProductPageContent {...props} allProducts={allProducts} />
+        <ErrorBoundary>
+          <RichProductPageContent {...props} allProducts={allProducts} />
+        </ErrorBoundary>
       </CategoryTrackingProvider>
     </ProductsProvider>
   )
