@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 const LoginPage: React.FC = () => {
-  const router = useRouter();
+
   const searchParams = useSearchParams();
   const from = searchParams.get('from') || '/admin';
 
