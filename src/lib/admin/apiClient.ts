@@ -20,7 +20,7 @@ export function getAdminToken(): string | null {
 }
 
 // Deprecated: Login is handled via /api/auth/login
-export function setAdminToken(token: string): void {
+export function setAdminToken(_token: string): void {
   // No-op
 }
 
