@@ -1,16 +1,19 @@
-// ================================================================
-// src/components/admin/LoginPage.tsx
-// ================================================================
 'use client';
 
 import React, { useState } from 'react';
-import { setAdminToken } from '@/lib/admin';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface LoginPageProps {
-  onLogin: (token: string) => void;
+  // onLogin is deprecated but kept for compatibility if needed temporarily
+  onLogin?: (token: string) => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from') || '/admin';
+
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,14 +23,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setIsLoading(true);
     setError('');
 
-    // In production: validate with backend
-    if (password === 'admin123') {
-      // Use the secure admin token that matches backend
-      const token = 'sc_admin_eca6f7927c384d75b9cf9e5fc00e06f8';
-      setAdminToken(token);
-      onLogin(token);
-    } else {
-      setError('كلمة المرور غير صحيحة');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'فشل تسجيل الدخول');
+      }
+
+      // Success
+      // Force a hard refresh/navigation to ensure cookies are picked up
+      window.location.href = from;
+
+    } catch (err: any) {
+      setError(err.message);
       setIsLoading(false);
     }
   };
@@ -42,10 +56,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
             Soft Cream Admin
           </h1>
-          <p className="text-gray-600 mt-2">تسجيل الدخول إلى لوحة التحكم</p>
+          <p className="text-gray-600 mt-2">تسجيل الدخول الآمن</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              اسم المستخدم
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="اسم المستخدم"
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               كلمة المرور
@@ -54,30 +83,30 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="أدخل كلمة المرور"
+              placeholder="كلمة المرور"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
               required
               disabled={isLoading}
             />
-            {error && (
-              <p className="text-red-600 text-sm mt-2">❌ {error}</p>
-            )}
-            <p className="text-xs text-gray-500 mt-2">
-              للتجربة استخدم: <code className="bg-gray-100 px-2 py-1 rounded">admin123</code>
-            </p>
           </div>
+
+          {error && (
+            <p className="text-red-600 text-sm mt-2 text-center font-bold">❌ {error}</p>
+          )}
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+            className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex justify-center items-center"
           >
-            {isLoading ? 'جاري التحقق...' : 'دخول'}
+            {isLoading ? (
+              <span className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            ) : 'دخول'}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          <p>© 2025 Soft Cream. جميع الحقوق محفوظة</p>
+          <p>نظام الحماية v2.0 &copy; 2025</p>
         </div>
       </div>
     </div>

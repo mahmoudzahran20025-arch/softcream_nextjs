@@ -1,13 +1,12 @@
-// src/app/admin/page.tsx
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { 
-  getOrders, 
-  getCoupons, 
+import { useRouter } from 'next/navigation';
+import {
+  getOrders,
+  getCoupons,
   getTodayStats,
-  getAdminToken,
   type Order,
   type Coupon
 } from '@/lib/admin';
@@ -27,8 +26,10 @@ const AdminApp = dynamic(() => import('@/components/admin/AdminApp'), {
 });
 
 export default function AdminPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState({
     orders: [] as Order[],
@@ -36,6 +37,27 @@ export default function AdminPage() {
     stats: null as any,
     analytics: null as any
   });
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/check');
+      const authData = await res.json();
+
+      if (res.ok && authData.authenticated) {
+        setIsAuthenticated(true);
+        setCurrentUser(authData.user);
+        return true;
+      } else {
+        setIsAuthenticated(false);
+        router.push('/admin/login');
+        return false;
+      }
+    } catch (e) {
+      console.error('Auth check failed', e);
+      setIsAuthenticated(false);
+      return false;
+    }
+  }, [router]);
 
   const loadInitialData = useCallback(async () => {
     try {
@@ -117,17 +139,16 @@ export default function AdminPage() {
 
   // Check authentication first before loading data
   useEffect(() => {
-    const token = getAdminToken();
-    const hasToken = !!token;
-    setIsAuthenticated(hasToken);
-    
-    // Only load data if authenticated
-    if (hasToken) {
-      loadInitialData();
-    } else {
-      setIsLoading(false);
-    }
-  }, [loadInitialData]);
+    const init = async () => {
+      const isAuth = await checkAuth();
+      if (isAuth) {
+        await loadInitialData();
+      } else {
+        setIsLoading(false);
+      }
+    };
+    init();
+  }, [checkAuth, loadInitialData]);
 
   // Setup real-time updates and event listeners (only when authenticated)
   useEffect(() => {
@@ -166,7 +187,7 @@ export default function AdminPage() {
     const handleOrdersUpdated = (event: any) => {
       const { orderId, action } = event.detail || {};
       console.log(`📢 Admin: Order ${orderId} ${action} - refreshing data`);
-      loadInitialData();
+      refreshOrders(); // Use lighter refresh
     };
 
     if (typeof window !== 'undefined') {
@@ -186,13 +207,14 @@ export default function AdminPage() {
         window.removeEventListener('ordersUpdated', handleOrdersUpdated);
       }
     };
-  }, [isAuthenticated, loadInitialData, refreshOrders]);
+  }, [isAuthenticated, refreshOrders]);
 
-  // Handle login from AdminApp
+  // Handle login from AdminApp (Callback if we kept the old prop, but we probably won't use it)
   const handleAuthenticated = useCallback(() => {
-    setIsAuthenticated(true);
-    loadInitialData();
-  }, [loadInitialData]);
+    checkAuth().then((isAuth) => {
+      if (isAuth) loadInitialData();
+    });
+  }, [checkAuth, loadInitialData]);
 
   if (error && !isLoading) {
     return (
@@ -216,7 +238,7 @@ export default function AdminPage() {
     );
   }
 
-  if (isLoading && isAuthenticated) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
         <div className="text-center">
@@ -231,14 +253,19 @@ export default function AdminPage() {
     );
   }
 
+  if (!isAuthenticated) {
+    return null; // or loading, but router.push happens in checkAuth
+  }
+
   return (
-    <AdminApp 
-      initialData={data} 
+    <AdminApp
+      initialData={data}
       onRefresh={loadInitialData}
       onRefreshOrders={refreshOrders}
       onRefreshCoupons={refreshCoupons}
       onRefreshStats={refreshStats}
       onAuthenticated={handleAuthenticated}
+      user={currentUser}
     />
   );
 }

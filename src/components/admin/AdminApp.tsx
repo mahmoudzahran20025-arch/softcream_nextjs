@@ -1,16 +1,14 @@
-// src/components/admin/AdminApp.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   updateOrderStatusWithTracking,
-  createCoupon, 
+  createCoupon,
   toggleCoupon,
-  getAdminToken,
   clearAdminToken,
   type Order,
   type Coupon,
-  type Product 
+  type Product
 } from '@/lib/admin';
 
 import Header from './Header';
@@ -22,7 +20,6 @@ import CustomizationSettingsPage from './CustomizationSettingsPage';
 import CouponsPage from './CouponsPage';
 import AnalyticsPage from './AnalyticsPage';
 import SettingsPage from './SettingsPage';
-import LoginPage from './LoginPage';
 import UsersPage from './UsersPage';
 
 interface AdminAppProps {
@@ -36,34 +33,26 @@ interface AdminAppProps {
   onRefreshCoupons?: () => Promise<void>;
   onRefreshStats?: () => Promise<void>;
   onAuthenticated?: () => void;
+  user?: {
+    username: string;
+    role: string;
+    name?: string;
+  };
 }
 
-const AdminApp: React.FC<AdminAppProps> = ({ 
-  initialData, 
+const AdminApp: React.FC<AdminAppProps> = ({
+  initialData,
   onRefresh,
   onRefreshOrders,
   onRefreshCoupons,
   onRefreshStats,
-  onAuthenticated
+  user
 }) => {
   const [activeTab, setActiveTab] = useState('orders');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [orders, setOrders] = useState<Order[]>(initialData.orders);
   const [coupons, setCoupons] = useState<Coupon[]>(initialData.coupons);
   const [stats, setStats] = useState(initialData.stats);
-
-  // ✅ FIX: DISABLED automatic polling - use manual refresh only
-  // Too many requests! Let user refresh manually instead.
-  // useEffect(() => {
-  //   const ordersPolling = new OrdersPolling((newOrders: Order[]) => {
-  //     setOrders(newOrders);
-  //   });
-  //   ordersPolling.start();
-  //   return () => {
-  //     ordersPolling.stop();
-  //   };
-  // }, []);
 
   // Update data when initialData changes
   useEffect(() => {
@@ -72,66 +61,34 @@ const AdminApp: React.FC<AdminAppProps> = ({
     setStats(initialData.stats);
   }, [initialData]);
 
-  // Check authentication on mount
-  useEffect(() => {
-    const token = getAdminToken();
-    if (token) {
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  const handleLogin = (_token: string) => {
-    setIsAuthenticated(true);
-    // Notify parent to load data now that we're authenticated
-    if (onAuthenticated) {
-      onAuthenticated();
-    }
-  };
-
   const handleLogout = () => {
-    clearAdminToken();
-    setIsAuthenticated(false);
+    clearAdminToken(); // Calls /api/auth/logout
     if (typeof window !== 'undefined') {
-      window.location.href = '/';
+      window.location.href = '/admin/login';
     }
   };
 
   // Handle order status update with tracking
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      // Get admin token to extract admin ID
-      const token = getAdminToken();
-      let adminId = 'unknown';
-      
-      // Try to extract admin ID from JWT token (if available)
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          adminId = payload.sub || payload.adminId || 'admin';
-        } catch (e) {
-          console.warn('Could not extract admin ID from token');
-          adminId = 'admin';
-        }
-      }
-      
+      const adminName = user?.name || user?.username || 'admin';
+
       // Optimistic update: Update local state immediately
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === orderId 
-            ? { ...order, status: newStatus, last_updated_by: `admin:${adminId}` }
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { ...order, status: newStatus, last_updated_by: adminName }
             : order
         )
       );
-      
-      // Use the new tracking API with admin identification
+
+      // Use the new tracking API (Server will handle identifying the user via cookie)
       const response = await updateOrderStatusWithTracking(orderId, newStatus, {
-        updated_by: `admin:${adminId}`
+        updated_by: adminName
       });
-      
+
       if (response.success) {
-        alert(`تم تحديث حالة الطلب إلى ${newStatus} بنجاح`);
-        
-        // Refresh only orders (not all data)
+        // Refresh only orders
         if (onRefreshOrders) {
           await onRefreshOrders();
         } else {
@@ -139,9 +96,9 @@ const AdminApp: React.FC<AdminAppProps> = ({
         }
       } else {
         // Revert optimistic update on failure
-        setOrders(prevOrders => 
-          prevOrders.map(order => 
-            order.id === orderId 
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
+            order.id === orderId
               ? initialData.orders.find(o => o.id === orderId) || order
               : order
           )
@@ -150,10 +107,10 @@ const AdminApp: React.FC<AdminAppProps> = ({
       }
     } catch (error) {
       console.error('Error updating order status:', error);
-      // Revert optimistic update on error
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === orderId 
+      // Revert optimistic update
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
             ? initialData.orders.find(o => o.id === orderId) || order
             : order
         )
@@ -187,10 +144,10 @@ const AdminApp: React.FC<AdminAppProps> = ({
     try {
       const { updateCoupon } = await import('@/lib/admin');
       const result = await updateCoupon(code, data);
-      
+
       if (result.success) {
         // Update local state with the returned data
-        setCoupons(coupons.map(c => 
+        setCoupons(coupons.map(c =>
           c.code === code ? result.data : c
         ));
         alert('✅ تم تحديث الكوبون بنجاح');
@@ -210,7 +167,7 @@ const AdminApp: React.FC<AdminAppProps> = ({
     try {
       const { deleteCoupon } = await import('@/lib/admin');
       const result = await deleteCoupon(code);
-      
+
       if (result.success) {
         // Remove from local state
         setCoupons(coupons.filter(c => c.code !== code));
@@ -230,7 +187,7 @@ const AdminApp: React.FC<AdminAppProps> = ({
   const handleToggleCoupon = async (code: string) => {
     try {
       const result = await toggleCoupon(code);
-      setCoupons(coupons.map(c => 
+      setCoupons(coupons.map(c =>
         c.code === code ? result.coupon : c
       ));
       alert('✅ تم تحديث حالة الكوبون');
@@ -240,14 +197,10 @@ const AdminApp: React.FC<AdminAppProps> = ({
     }
   };
 
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50" dir="rtl">
-      <Header 
-        sidebarOpen={sidebarOpen} 
+      <Header
+        sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         onLogout={handleLogout}
         onRefresh={onRefresh}
@@ -256,29 +209,29 @@ const AdminApp: React.FC<AdminAppProps> = ({
         onRefreshCoupons={onRefreshCoupons}
         onRefreshStats={onRefreshStats}
       />
-      
+
       <div className="flex relative">
-        <Sidebar 
+        <Sidebar
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           stats={stats}
         />
-        
+
         {/* Main Content - Full width on mobile */}
         <main className="flex-1 p-3 sm:p-4 md:p-6 min-w-0 w-full">
           {activeTab === 'dashboard' && (
             <DashboardPage stats={stats} orders={orders} />
           )}
           {activeTab === 'orders' && (
-            <OrdersPage 
-              orders={orders} 
+            <OrdersPage
+              orders={orders}
               onUpdateStatus={handleUpdateOrderStatus}
             />
           )}
           {activeTab === 'products' && (
-            <ProductsPage 
+            <ProductsPage
               onRefresh={onRefresh}
               onUpdate={handleUpdateProduct}
               onDelete={handleDeleteProduct}
@@ -288,7 +241,7 @@ const AdminApp: React.FC<AdminAppProps> = ({
             <CustomizationSettingsPage />
           )}
           {activeTab === 'coupons' && (
-            <CouponsPage 
+            <CouponsPage
               coupons={coupons}
               onCreate={handleCreateCoupon}
               onToggle={handleToggleCoupon}

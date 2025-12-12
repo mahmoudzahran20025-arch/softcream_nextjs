@@ -1,30 +1,34 @@
 /**
  * Admin API Client - Core HTTP Request Handler
  * 
- * Handles authentication, request deduplication, and base URL configuration
+ * Handles authentication via Secure Proxy (Cookies)
+ * No client-side token storage.
  */
 
 import { debug } from '@/lib/debug'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://softcream-api.mahmoud-zahran20025.workers.dev'
+// Point to the local Next.js Proxy
+const API_BASE_URL = '/api/admin'
 
 // ===========================
-// Authentication
+// Authentication (Proxy Managed)
 // ===========================
 
+// Deprecated: Token is now HTTP-only cookie
 export function getAdminToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem('admin_token')
+  return null
 }
 
+// Deprecated: Login is handled via /api/auth/login
 export function setAdminToken(token: string): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem('admin_token', token)
+  // No-op
 }
 
 export function clearAdminToken(): void {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem('admin_token')
+  // Call logout endpoint
+  if (typeof window !== 'undefined') {
+    fetch('/api/auth/logout', { method: 'POST' }).catch(console.error)
+  }
 }
 
 // ===========================
@@ -53,7 +57,7 @@ export async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { method = 'GET', body, requiresAuth = true } = options
+  const { method = 'GET', body } = options
 
   // Create request key for deduplication (only for GET requests)
   const requestKey = method === 'GET' ? `${method}:${endpoint}` : null
@@ -76,13 +80,8 @@ export async function apiRequest<T>(
     'Content-Type': 'application/json',
   }
 
-  // Add admin token if required
-  if (requiresAuth) {
-    const token = getAdminToken()
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-  }
+  // NOTE: No Authorization header needed here. 
+  // The browser automatically sends the 'admin_session' cookie to /api/admin/*
 
   const config: RequestInit = {
     method,
@@ -96,28 +95,40 @@ export async function apiRequest<T>(
   // Create the request promise
   const requestPromise = (async () => {
     try {
-      // Construct URL properly
-      const [path, queryString] = endpoint.split('?')
-      
-      let finalUrl
-      if (queryString) {
-        finalUrl = `${API_BASE_URL}?path=${path}&${queryString}`
-      } else {
-        finalUrl = `${API_BASE_URL}?path=${path}`
-      }
+      // Construct Proxy URL
+      // Endpoint typically starts with /, e.g. /orders
+      // API_BASE_URL is /api/admin
+      // Result: /api/admin/orders
+
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
+      const finalUrl = `${API_BASE_URL}/${cleanEndpoint}`
 
       debug.api(`${method} ${finalUrl}`)
 
       const response = await fetch(finalUrl, config)
-      
+
       if (!response.ok) {
+        // Handle RBAC errors specifically
+        if (response.status === 401) {
+          // Unauthorized - Redirect to login usually handled by middleware, but for AJAX:
+          if (typeof window !== 'undefined') {
+            window.location.href = '/admin/login'
+          }
+        }
+
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         debug.error('API Error', { status: response.status, error: errorData })
-        throw new Error(errorData.error || `HTTP ${response.status}`)
+        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`)
       }
 
-      const data = await response.json()
-      return data
+      // Check content type before parsing JSON
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json()
+      } else {
+        return {} as T
+      }
+
     } catch (error) {
       debug.error('API Request Error', error)
       throw error
