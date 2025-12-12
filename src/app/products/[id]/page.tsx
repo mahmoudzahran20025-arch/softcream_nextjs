@@ -5,24 +5,20 @@ import { generateProductMetadata, generateProductJsonLd } from '@/lib/seo'
 import ProductPageClient from '@/app/products/[id]/ProductPageClient'
 import RichProductPage from '@/app/products/[id]/RichProductPage'
 
+export const runtime = 'edge';
+
+
 interface Props {
   params: Promise<{ id: string }>
   searchParams: Promise<{ lang?: 'ar' | 'en'; view?: 'modal' | 'full' }>
 }
 
-export async function generateStaticParams() {
-  try {
-    const products = await getProducts()
-    return products.map((product) => ({ id: product.id }))
-  } catch (error) {
-    return []
-  }
-}
+
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { id } = await params
   const { lang } = await searchParams
-  
+
   try {
     const product = await getProductForSEO(id)
     if (!product) return { title: 'المنتج غير موجود' }
@@ -35,19 +31,19 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function ProductPage({ params, searchParams }: Props) {
   const { id } = await params
   const { lang, view } = await searchParams
-  
+
   try {
     const product = await getProductForSEO(id)
     if (!product) notFound()
-    
+
     const allProducts = await getProducts()
     const jsonLd = generateProductJsonLd(product)
-    
+
     // Determine which view to show
     // Default: Rich Product Page (full page with grid)
     // Modal view: For backward compatibility (when opened from home page modal)
     const useRichView = view !== 'modal'
-    
+
     return (
       <>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
