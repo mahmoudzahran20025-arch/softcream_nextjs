@@ -32,7 +32,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   // ===========================
   // Event Handlers
   // ===========================
-  
+
   const handleConfirm = async () => {
     setIsDeleting(true);
     try {
@@ -54,7 +54,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   // ===========================
   // Render Helpers
   // ===========================
-  
+
   const isGroup = target?.type === 'group';
   const hasOptions = isGroup && target?.optionsCount && target.optionsCount > 0;
   const isProcessing = isDeleting || isLoading;
@@ -62,7 +62,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   // ===========================
   // Render
   // ===========================
-  
+
   if (!isOpen || !target) return null;
 
   return (
@@ -101,7 +101,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             هل أنت متأكد من حذف {isGroup ? 'مجموعة' : 'خيار'}
           </p>
           <p className="text-xl font-bold text-gray-900">
-            "{target.name}"؟
+            &quot;{target.name}&quot;؟
           </p>
         </div>
 

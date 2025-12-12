@@ -3,11 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
 
-  // ✅ Turbopack configuration (Next.js 16 default)
-  turbopack: {
-    root: '.', // Set workspace root to current directory
-  },
-
   // ✅ Performance optimizations
   // Note: swcMinify is enabled by default in Next.js 13+ and removed in Next.js 16
   compiler: {

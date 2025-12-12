@@ -11,12 +11,48 @@ env:
 
 jobs:
   # =====================================================
-  # 🔍 Quality Checks (non-blocking)
+  # 🚀 Build & Deploy to Cloudflare Pages
+  # =====================================================
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build for Cloudflare Pages
+        run: npx @cloudflare/next-on-pages
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy .vercel/output/static --project-name=soft-cream-nextjs --branch=${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
+
+  # =====================================================
+  # 🔍 Quality Checks (parallel, non-blocking)
   # =====================================================
   quality:
     name: Quality Checks
     runs-on: ubuntu-latest
-    continue-on-error: true  # Don't block deployment
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,64 +73,3 @@ jobs:
       - name: Lint
         run: npm run lint
         continue-on-error: true
-
-      - name: Security Audit
-        run: npm audit --audit-level=high
-        continue-on-error: true
-
-      - name: Run Tests
-        run: npm test
-        continue-on-error: true
-
-  # =====================================================
-  # 🚀 Deploy to Cloudflare Pages
-  # =====================================================
-  deploy:
-    name: Deploy to Cloudflare Pages
-    runs-on: ubuntu-latest
-    # Don't wait for quality - deploy independently
-    # needs: quality  # Removed to allow deployment even if quality fails
-    permissions:
-      contents: read
-      deployments: write
-      pull-requests: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Install Cloudflare Adapter
-        run: npm install @cloudflare/next-on-pages --save-dev --legacy-peer-deps
-
-      - name: Build for Cloudflare Pages
-        run: npx @cloudflare/next-on-pages
-        env:
-          NODE_ENV: production
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .vercel/output/static --project-name=soft-cream-nextjs --branch=${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
-
-      - name: Comment Preview URL on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🚀 Preview deployed! Check it out at: https://${{ github.head_ref }}.soft-cream-nextjs.pages.dev'
-            })

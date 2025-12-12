@@ -377,7 +377,7 @@ const OptionsPage: React.FC = () => {
         لا توجد نتائج
       </h3>
       <p className="text-gray-500">
-        لم يتم العثور على مجموعات أو خيارات تطابق "{state.searchQuery}"
+        لم يتم العثور على مجموعات أو خيارات تطابق &quot;{state.searchQuery}&quot;
       </p>
     </div>
   );
@@ -810,15 +810,15 @@ const OptionsPage: React.FC = () => {
         groupNutritionConfig={
           state.selectedGroupId
             ? (() => {
-                const group = state.optionGroups.find(g => g.id === state.selectedGroupId);
-                if (group?.ui_config) {
-                  const config = typeof group.ui_config === 'string' 
-                    ? JSON.parse(group.ui_config) 
-                    : group.ui_config;
-                  return config?.nutrition;
-                }
-                return undefined;
-              })()
+              const group = state.optionGroups.find(g => g.id === state.selectedGroupId);
+              if (group?.ui_config) {
+                const config = typeof group.ui_config === 'string'
+                  ? JSON.parse(group.ui_config)
+                  : group.ui_config;
+                return config?.nutrition;
+              }
+              return undefined;
+            })()
             : undefined
         }
       />

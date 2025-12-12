@@ -120,29 +120,25 @@ export default function EditOrderModal({ isOpen, onClose, order, onSuccess }: Ed
   const updateItemQuantity = (index: number, delta: number) => {
     const newItems = [...editedItems]
     const newQuantity = newItems[index].quantity + delta
-    
+
     if (newQuantity <= 0) {
       // Remove item if quantity becomes 0
       newItems.splice(index, 1)
     } else {
-      newItems[index].quantity = newQuantity
-      newItems[index].total = newItems[index].price * newQuantity
+      newItems[index].quantity = newQuantity;
+      newItems[index].total = newItems[index].price * newQuantity;
     }
-    
-    setEditedItems(newItems)
-  }
+
+    setEditedItems(newItems);
+  };
 
   // تم الاحتفاظ بهذه الدالة للاستخدام المستقبلي - قد تُستخدم لحذف مباشر للعنصر
-  // TypeScript: تم إضافة void لإخماد تحذير "unused variable"
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const removeItem = (index: number) => {
-    const newItems = [...editedItems]
-    newItems.splice(index, 1)
-    setEditedItems(newItems)
-  }
-  
-  // استخدام void لإخماد تحذير TypeScript
-  void removeItem
+    const newItems = [...editedItems];
+    newItems.splice(index, 1);
+    setEditedItems(newItems);
+  };
+  void removeItem;
 
   const addProduct = (productId: string) => {
     const product = products.find(p => p.id === productId)
@@ -226,13 +222,13 @@ export default function EditOrderModal({ isOpen, onClose, order, onSuccess }: Ed
       // Backend returns: {success: true, data: {orderId, status, items, totals}}
       // But api.ts extracts: {orderId, status, items, totals}
       console.log('🔍 Edit API Response full:', result)
-      
+
       // Success if we have orderId (means data was extracted) OR explicit success flag
       const isSuccess = result.orderId || (result.success === true && !result.error)
-      
+
       if (isSuccess) {
         console.log('✅ Order updated successfully (orderId present or success=true)')
-        
+
         // Update local storage
         if (newTotals) {
           storage.updateOrderItems(order.id, editedItems, newTotals)
@@ -267,7 +263,7 @@ export default function EditOrderModal({ isOpen, onClose, order, onSuccess }: Ed
       showToast({
         type: 'error',
         title: language === 'ar' ? 'فشل التعديل' : 'Update Failed',
-        message: language === 'ar' 
+        message: language === 'ar'
           ? `فشل تعديل الطلب: ${error.message || 'خطأ غير معروف'}`
           : `Failed to update order: ${error.message || 'Unknown error'}`,
         duration: 4000
@@ -412,7 +408,7 @@ export default function EditOrderModal({ isOpen, onClose, order, onSuccess }: Ed
                 </div>
                 {order.total !== newTotals.total && (
                   <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                    {language === 'ar' ? 'الفرق' : 'Difference'}: 
+                    {language === 'ar' ? 'الفرق' : 'Difference'}:
                     <span className={newTotals.total > order.total ? 'text-red-600' : 'text-green-600'}>
                       {newTotals.total > order.total ? '+' : ''}{(newTotals.total - order.total).toFixed(2)} ج.م
                     </span>
