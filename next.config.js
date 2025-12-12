@@ -62,30 +62,62 @@ const nextConfig = {
 
   // Headers for security and performance
   async headers() {
+    const isProd = process.env.NODE_ENV === 'production';
+
     return [
       {
         source: '/:path*',
         headers: [
+          // ✅ DNS & Performance
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on'
           },
+          // ✅ Clickjacking Protection
           {
             key: 'X-Frame-Options',
             value: 'SAMEORIGIN'
           },
+          // ✅ MIME Sniffing Protection
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
           },
+          // ✅ XSS Protection (legacy but still useful)
           {
             key: 'X-XSS-Protection',
             value: '1; mode=block'
           },
+          // ✅ Referrer Policy
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin'
           },
+          // ✅ HSTS - Force HTTPS (production only)
+          ...(isProd ? [{
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload'
+          }] : []),
+          // ✅ Content Security Policy
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: https: blob:",
+              "connect-src 'self' https://softcream-api.mahmoud-zahran20025.workers.dev https://*.cloudflare.com",
+              "frame-ancestors 'self'",
+              "base-uri 'self'",
+              "form-action 'self'"
+            ].join('; ')
+          },
+          // ✅ Permissions Policy (Feature Policy successor)
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(self), payment=(self)'
+          }
         ],
       },
     ];
