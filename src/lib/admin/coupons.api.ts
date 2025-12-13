@@ -126,14 +126,14 @@ export interface CouponStats {
 // ===========================
 
 export async function getCoupons(): Promise<{ data: Coupon[] }> {
-  return apiRequest('/admin/coupons')
+  return apiRequest('/coupons')
 }
 
 export async function createCoupon(data: CreateCouponData): Promise<{
   success: boolean
   data: Coupon
 }> {
-  return apiRequest('/admin/coupons', {
+  return apiRequest('/coupons', {
     method: 'POST',
     body: data
   })
@@ -143,20 +143,20 @@ export async function toggleCoupon(code: string): Promise<{
   success: boolean
   coupon: Coupon
 }> {
-  return apiRequest(`/admin/coupons/${code}/toggle`, {
+  return apiRequest(`/coupons/${code}/toggle`, {
     method: 'PUT'
   })
 }
 
 export async function getCouponStats(code: string): Promise<CouponStats> {
-  return apiRequest(`/admin/coupons/${code}/stats`)
+  return apiRequest(`/coupons/${code}/stats`)
 }
 
 export async function deleteCoupon(code: string): Promise<{
   success: boolean
   message: string
 }> {
-  return apiRequest(`/admin/coupons/${code}`, {
+  return apiRequest(`/coupons/${code}`, {
     method: 'DELETE'
   })
 }
@@ -166,7 +166,7 @@ export async function updateCoupon(code: string, data: Partial<CreateCouponData>
   message: string
   data: Coupon
 }> {
-  return apiRequest(`/admin/coupons/${code}`, {
+  return apiRequest(`/coupons/${code}`, {
     method: 'PUT',
     body: data
   })

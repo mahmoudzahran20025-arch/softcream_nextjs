@@ -1,35 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession, hasPermission } from '@/lib/auth'
+/**
+ * PATCH 01: Fix Admin Proxy Path Prefix
+ * 
+ * File: src/app/api/admin/[...path]/route.ts
+ * 
+ * PROBLEM:
+ * The proxy sends `?path=/orders` but backend expects `?path=/admin/orders`
+ * 
+ * SOLUTION:
+ * Prepend `/admin` to the path before forwarding to backend
+ */
 
-// Allow all methods (GET, POST, PUT, DELETE)
-export const dynamic = 'force-dynamic'
-export const runtime = 'edge'
+// ============================================
+// BEFORE (Line ~50 in handleProxy function)
+// ============================================
+/*
+const apiPath = `/${pathSegments.join('/')}`
+*/
 
-// Define the params type correctly for Next.js 15
-type Props = {
-    params: Promise<{ path: string[] }>
-}
+// ============================================
+// AFTER
+// ============================================
+/*
+const apiPath = `/admin/${pathSegments.join('/')}`
+*/
 
-export async function GET(request: NextRequest, props: Props) {
-    const params = await props.params;
-    return handleProxy(request, params.path)
-}
+// ============================================
+// FULL FIXED handleProxy FUNCTION
+// ============================================
 
-export async function POST(request: NextRequest, props: Props) {
-    const params = await props.params;
-    return handleProxy(request, params.path)
-}
-
-export async function PUT(request: NextRequest, props: Props) {
-    const params = await props.params;
-    return handleProxy(request, params.path)
-}
-
-export async function DELETE(request: NextRequest, props: Props) {
-    const params = await props.params;
-    return handleProxy(request, params.path)
-}
-
+/*
 async function handleProxy(request: NextRequest, pathSegments: string[]) {
     try {
         // 1. Authenticate & Authorize
@@ -38,11 +37,8 @@ async function handleProxy(request: NextRequest, pathSegments: string[]) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // "pathSegments" comes from [...path], e.g. ["orders", "123"] -> "/admin/orders/123"
-        // The backend expects paths starting with /admin/ to route to admin handlers
-        // Frontend calls /api/admin/orders -> pathSegments = ['orders']
-        // We need to prepend /admin to match backend routing: /admin/orders
-        
+        // FIX: Prepend /admin to path for backend routing
+        // pathSegments from [...path], e.g. ["orders", "123"] -> "/admin/orders/123"
         const apiPath = `/admin/${pathSegments.join('/')}`
         const method = request.method
 
@@ -68,7 +64,7 @@ async function handleProxy(request: NextRequest, pathSegments: string[]) {
             return NextResponse.json({ error: 'Server Configuration Error' }, { status: 500 })
         }
 
-        // Construct backend URL
+        // Construct backend URL with /admin prefix
         const backendUrl = `${apiUrl}?path=${apiPath}`
         const queryString = request.nextUrl.searchParams.toString()
         const finalUrl = queryString ? `${backendUrl}&${queryString}` : backendUrl
@@ -76,7 +72,7 @@ async function handleProxy(request: NextRequest, pathSegments: string[]) {
         // Headers
         const headers = new Headers()
         headers.set('Content-Type', 'application/json')
-        headers.set('Authorization', `Bearer ${adminToken}`) // 💉 Inject Master Token
+        headers.set('Authorization', `Bearer ${adminToken}`)
 
         // Body
         const body = ['GET', 'HEAD'].includes(method) ? undefined : await request.text()
@@ -86,16 +82,13 @@ async function handleProxy(request: NextRequest, pathSegments: string[]) {
             method,
             headers,
             body,
-            // Important: backend might use self-signed certs or other quirks, usually fine for worker->worker
         })
 
         // 4. Return Response
-        // We need to parse JSON to return a proper NextResponse, or stream it
         try {
             const data = await response.json()
             return NextResponse.json(data, { status: response.status })
         } catch (e) {
-            // If backend returns non-JSON (void, empty, text)
             return new NextResponse(null, { status: response.status })
         }
 
@@ -104,3 +97,6 @@ async function handleProxy(request: NextRequest, pathSegments: string[]) {
         return NextResponse.json({ error: 'Proxy Error', details: String(error) }, { status: 500 })
     }
 }
+*/
+
+export {}

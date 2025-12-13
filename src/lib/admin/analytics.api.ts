@@ -64,23 +64,23 @@ export interface TodayStats {
 // ===========================
 
 export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
-  return apiRequest('/admin/dashboard')
+  return apiRequest('/dashboard')
 }
 
 export async function getSalesByPeriod(period: 'day' | 'week' | 'month'): Promise<{
   labels: string[]
   data: number[]
 }> {
-  return apiRequest(`/admin/analytics/sales?period=${period}`)
+  return apiRequest(`/analytics/sales?period=${period}`)
 }
 
 export async function getTodayStats(): Promise<TodayStats> {
-  return apiRequest('/admin/stats/today')
+  return apiRequest('/stats/today')
 }
 
 export async function getTrackingStatistics(): Promise<{
   success: boolean
   data: TrackingStatistics
 }> {
-  return apiRequest('/admin/tracking/statistics')
+  return apiRequest('/tracking/statistics')
 }

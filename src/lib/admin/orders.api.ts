@@ -106,7 +106,7 @@ export async function getOrders(params?: {
   offset?: number
 }): Promise<OrdersListResponse> {
   const queryParams = new URLSearchParams()
-  
+
   if (params?.status) queryParams.append('status', params.status)
   if (params?.date) queryParams.append('date', params.date)
   if (params?.branchId) queryParams.append('branchId', params.branchId)
@@ -114,8 +114,8 @@ export async function getOrders(params?: {
   if (params?.offset) queryParams.append('offset', params.offset.toString())
 
   const queryString = queryParams.toString()
-  const endpoint = `/admin/orders${queryString ? `?${queryString}` : ''}`
-  
+  const endpoint = `/orders${queryString ? `?${queryString}` : ''}`
+
   return apiRequest<OrdersListResponse>(endpoint)
 }
 
@@ -129,10 +129,10 @@ export async function getOrdersWithTracking(params?: {
 }): Promise<OrdersListResponse> {
   // Dynamic import to avoid circular dependency
   const { smartPolling } = await import('./polling')
-  
+
   return smartPolling.executeRequest(async () => {
     const queryParams = new URLSearchParams()
-    
+
     if (params?.status) queryParams.append('status', params.status)
     if (params?.date) queryParams.append('date', params.date)
     if (params?.branchId) queryParams.append('branchId', params.branchId)
@@ -141,21 +141,32 @@ export async function getOrdersWithTracking(params?: {
     if (params?.includeTracking) queryParams.append('includeTracking', 'true')
 
     const queryString = queryParams.toString()
-    const endpoint = `/admin/orders${queryString ? `?${queryString}` : ''}`
-    
+    const endpoint = `/orders${queryString ? `?${queryString}` : ''}`
+
     const response = await apiRequest<OrdersListResponse>(endpoint)
-    
+
     const hasOrders = response.data.orders.length > 0
     smartPolling.updateActivity('orders', hasOrders)
-    
+
     return response
   })
 }
 
 export async function getOrderById(orderId: string): Promise<{ data: Order }> {
-  return apiRequest<{ data: Order }>(`/orders/status?id=${orderId}`, {
-    requiresAuth: false
-  })
+  // Use tracking endpoint which returns order data
+  const response = await apiRequest<{
+    success: boolean
+    data: {
+      order: Order
+      tracking: unknown
+    }
+  }>(`/orders/${orderId}/tracking`)
+  
+  if (!response.success || !response.data?.order) {
+    throw new Error('Order not found')
+  }
+  
+  return { data: response.data.order }
 }
 
 export async function getOrderTracking(orderId: string): Promise<{
@@ -179,14 +190,16 @@ export async function getOrderTracking(orderId: string): Promise<{
   }
   error?: string
 }> {
-  return apiRequest(`/admin/order/${orderId}/tracking`)
+  // Fixed: Use plural /orders/ to match backend route
+  return apiRequest(`/orders/${orderId}/tracking`)
 }
 
 export async function updateOrderStatus(
   orderId: string,
   newStatus: string
 ): Promise<{ success: boolean; message: string }> {
-  return apiRequest(`/admin/orders/${orderId}/status`, {
+  // Fixed: Backend expects PUT /orders/:id (without /status suffix)
+  return apiRequest(`/orders/${orderId}`, {
     method: 'PUT',
     body: { status: newStatus }
   })
@@ -199,7 +212,7 @@ export async function updateOrderStatusWithTracking(
     progress_percentage?: number
     updated_by?: string
   }
-): Promise<{ 
+): Promise<{
   success: boolean
   message: string
   data?: {
@@ -209,7 +222,7 @@ export async function updateOrderStatusWithTracking(
     last_updated_by: string
   }
 }> {
-  return apiRequest(`/admin/order/${orderId}/status`, {
+  return apiRequest(`/order/${orderId}/status`, {
     method: 'POST',
     body: {
       status,
@@ -236,7 +249,7 @@ export async function overrideOrderStatus(
     }
   }
 }> {
-  return apiRequest(`/admin/orders/${orderId}/override-status`, {
+  return apiRequest(`/orders/${orderId}/override-status`, {
     method: 'POST',
     body: request
   })
@@ -254,7 +267,7 @@ export async function batchUpdateTracking(): Promise<{
     }>
   }
 }> {
-  return apiRequest('/admin/orders/batch-update-tracking', {
+  return apiRequest('/orders/batch-update-tracking', {
     method: 'POST'
   })
 }

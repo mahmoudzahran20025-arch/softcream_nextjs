@@ -166,7 +166,7 @@ export async function updateProductAvailability(
   productId: string,
   available: boolean
 ): Promise<{ success: boolean }> {
-  return apiRequest(`/admin/products/${productId}/availability`, {
+  return apiRequest(`/products/${productId}/availability`, {
     method: 'PUT',
     body: { available: available ? 1 : 0 }
   })
@@ -176,7 +176,7 @@ export async function createProduct(data: Partial<Product>): Promise<{
   success: boolean
   message: string
 }> {
-  return apiRequest('/admin/products', {
+  return apiRequest('/products', {
     method: 'POST',
     body: data
   })
@@ -186,7 +186,7 @@ export async function updateProduct(productId: string, data: Partial<Product>): 
   success: boolean
   message: string
 }> {
-  return apiRequest(`/admin/products/${productId}`, {
+  return apiRequest(`/products/${productId}`, {
     method: 'PUT',
     body: data
   })
@@ -196,7 +196,7 @@ export async function deleteProduct(productId: string): Promise<{
   success: boolean
   message: string
 }> {
-  return apiRequest(`/admin/products/${productId}`, {
+  return apiRequest(`/products/${productId}`, {
     method: 'DELETE'
   })
 }
@@ -205,7 +205,7 @@ export async function getProductConfiguration(productId: string): Promise<{
   success: boolean
   data: ProductConfiguration
 }> {
-  return apiRequest(`/admin/products/${productId}/configuration`)
+  return apiRequest(`/products/${productId}/configuration`)
 }
 
 /**
@@ -213,7 +213,7 @@ export async function getProductConfiguration(productId: string): Promise<{
  * Used for editing products in the unified form
  */
 export async function getProductFull(productId: string): Promise<ProductFullResponse> {
-  return apiRequest(`/admin/products/${productId}/full`)
+  return apiRequest(`/products/${productId}/full`)
 }
 
 // CustomizationRule is imported from @/types/products
@@ -242,7 +242,7 @@ export async function updateProductCustomization(
   success: boolean
   message: string
 }> {
-  return apiRequest(`/admin/products/${productId}/customization`, {
+  return apiRequest(`/products/${productId}/customization`, {
     method: 'PUT',
     body: data
   })
@@ -253,7 +253,7 @@ export async function updateProductCustomization(
 // ===========================
 
 export async function getBYOOptions(): Promise<{ success: boolean; data: BYOOptionGroup[] }> {
-  return apiRequest('/admin/option-groups')
+  return apiRequest('/option-groups')
 }
 
 
@@ -261,7 +261,7 @@ export async function createBYOOption(data: Partial<BYOOption> & { id: string })
   success: boolean
   message: string
 }> {
-  return apiRequest('/admin/options', {
+  return apiRequest('/options', {
     method: 'POST',
     body: data
   })
@@ -271,7 +271,7 @@ export async function updateBYOOption(optionId: string, data: Partial<BYOOption>
   success: boolean
   message: string
 }> {
-  return apiRequest(`/admin/options/${optionId}`, {
+  return apiRequest(`/options/${optionId}`, {
     method: 'PUT',
     body: data
   })
@@ -281,7 +281,7 @@ export async function deleteBYOOption(optionId: string): Promise<{
   success: boolean
   message: string
 }> {
-  return apiRequest(`/admin/options/${optionId}`, {
+  return apiRequest(`/options/${optionId}`, {
     method: 'DELETE'
   })
 }
@@ -359,7 +359,7 @@ export interface CreateProductUnifiedResponse {
 export async function createProductUnified(
   data: CreateProductUnifiedRequest
 ): Promise<CreateProductUnifiedResponse> {
-  return apiRequest('/admin/products', {
+  return apiRequest('/products', {
     method: 'POST',
     body: data
   })
@@ -377,7 +377,7 @@ export async function updateProductUnified(
   productId: string,
   data: CreateProductUnifiedRequest
 ): Promise<CreateProductUnifiedResponse> {
-  return apiRequest(`/admin/products/${productId}/unified`, {
+  return apiRequest(`/products/${productId}/unified`, {
     method: 'PUT',
     body: data
   })
@@ -430,7 +430,7 @@ export interface BulkAssignOptionGroupResponse {
 export async function bulkAssignOptionGroup(
   data: BulkAssignOptionGroupRequest
 ): Promise<BulkAssignOptionGroupResponse> {
-  return apiRequest('/admin/products/bulk/assign-option-group', {
+  return apiRequest('/products/bulk/assign-option-group', {
     method: 'POST',
     body: data
   })
@@ -447,7 +447,7 @@ export async function bulkRemoveOptionGroup(
   productIds: string[],
   groupId: string
 ): Promise<BulkAssignOptionGroupResponse> {
-  return apiRequest('/admin/products/bulk/remove-option-group', {
+  return apiRequest('/products/bulk/remove-option-group', {
     method: 'POST',
     body: { productIds, groupId }
   })

@@ -135,7 +135,7 @@ const FALLBACK_TEMPLATES: ProductTemplate[] = [
  */
 export async function getTemplates(): Promise<TemplatesResponse> {
   try {
-    const response = await apiRequest<TemplatesResponse>('/admin/templates');
+    const response = await apiRequest<TemplatesResponse>('/templates');
     return response;
   } catch (error) {
     // Fallback to static templates when API is unavailable
@@ -155,7 +155,7 @@ export async function getTemplates(): Promise<TemplatesResponse> {
  * @returns Promise with template data
  */
 export async function getTemplateById(templateId: string): Promise<TemplateResponse> {
-  return apiRequest(`/admin/templates/${templateId}`);
+  return apiRequest(`/templates/${templateId}`);
 }
 
 /**
@@ -199,13 +199,13 @@ export function checkTemplateCompatibility(
       message: `هذا القالب يتطلب ${template.option_groups_min} مجموعات خيارات على الأقل`
     };
   }
-  
+
   if (optionGroupCount > template.option_groups_max) {
     return {
       compatible: false,
       message: `هذا القالب يدعم ${template.option_groups_max} مجموعات خيارات كحد أقصى`
     };
   }
-  
+
   return { compatible: true };
 }

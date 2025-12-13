@@ -123,18 +123,30 @@ type PermissionRule = {
 
 const PERMISSION_MATRIX: Record<string, PermissionRule> = {
     // Read-only access for Operators
-    '/orders': { roles: ['superadmin', 'admin', 'operator'], methods: ['GET'] },
-    '/orders/stats': { roles: ['superadmin', 'admin', 'operator'], methods: ['GET'] },
-    '/stats': { roles: ['superadmin', 'admin', 'operator'], methods: ['GET'] },
+    '/admin/orders': { roles: ['superadmin', 'admin', 'operator'], methods: ['GET'] },
+    '/admin/orders/stats': { roles: ['superadmin', 'admin', 'operator'], methods: ['GET'] },
+    '/admin/stats': { roles: ['superadmin', 'admin', 'operator'], methods: ['GET'] },
+    '/admin/tracking': { roles: ['superadmin', 'admin', 'operator'], methods: ['GET'] },
+    '/admin/dashboard': { roles: ['superadmin', 'admin', 'operator'], methods: ['GET'] },
+    '/admin/analytics': { roles: ['superadmin', 'admin', 'operator'], methods: ['GET'] },
+    '/admin/templates': { roles: ['superadmin', 'admin', 'operator'], methods: ['GET'] },
+    '/admin/batch': { roles: ['superadmin', 'admin', 'operator'], methods: ['POST'] },
 
     // Write access for Admins
-    '/orders/:id': { roles: ['superadmin', 'admin'], methods: ['PUT', 'POST', 'DELETE'] },
-    '/products': { roles: ['superadmin', 'admin'], methods: ['*'] },
-    '/coupons': { roles: ['superadmin', 'admin'], methods: ['*'] },
+    '/admin/orders/:id': { roles: ['superadmin', 'admin'], methods: ['PUT', 'POST', 'DELETE'] },
+    '/admin/order': { roles: ['superadmin', 'admin'], methods: ['POST'] },
+    '/admin/products': { roles: ['superadmin', 'admin'], methods: ['*'] },
+    '/admin/coupons': { roles: ['superadmin', 'admin'], methods: ['*'] },
+    '/admin/option-groups': { roles: ['superadmin', 'admin'], methods: ['*'] },
+    '/admin/options': { roles: ['superadmin', 'admin'], methods: ['*'] },
+    '/admin/sizes': { roles: ['superadmin', 'admin'], methods: ['*'] },
+    '/admin/containers': { roles: ['superadmin', 'admin'], methods: ['*'] },
+    '/admin/cache': { roles: ['superadmin', 'admin'], methods: ['POST'] },
+    '/admin/telegram': { roles: ['superadmin', 'admin'], methods: ['POST'] },
 
     // SuperAdmin Only
-    '/users': { roles: ['superadmin'], methods: ['*'] },
-    '/settings': { roles: ['superadmin'], methods: ['*'] },
+    '/admin/users': { roles: ['superadmin'], methods: ['*'] },
+    '/admin/settings': { roles: ['superadmin'], methods: ['*'] },
 }
 
 export function hasPermission(role: Role, path: string, method: string): boolean {

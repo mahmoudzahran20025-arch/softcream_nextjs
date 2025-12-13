@@ -20,7 +20,7 @@ import type {
  * Requirements: 1.1
  */
 export async function getOptionGroups(): Promise<OptionGroupsResponse> {
-  return apiRequest('/admin/option-groups');
+  return apiRequest('/option-groups');
 }
 
 
@@ -31,7 +31,7 @@ export async function getOptionGroups(): Promise<OptionGroupsResponse> {
 export async function createOptionGroup(
   data: OptionGroupFormData
 ): Promise<ApiResponse<void>> {
-  return apiRequest('/admin/option-groups', {
+  return apiRequest('/option-groups', {
     method: 'POST',
     body: {
       id: data.id,
@@ -54,7 +54,7 @@ export async function updateOptionGroup(
   groupId: string,
   data: Partial<OptionGroupFormData>
 ): Promise<ApiResponse<void>> {
-  return apiRequest(`/admin/option-groups/${groupId}`, {
+  return apiRequest(`/option-groups/${groupId}`, {
     method: 'PUT',
     body: {
       name_ar: data.name_ar,
@@ -75,7 +75,7 @@ export async function updateOptionGroup(
 export async function deleteOptionGroup(
   groupId: string
 ): Promise<ApiResponse<void>> {
-  return apiRequest(`/admin/option-groups/${groupId}`, {
+  return apiRequest(`/option-groups/${groupId}`, {
     method: 'DELETE',
   });
 }
@@ -113,7 +113,7 @@ export async function reorderOptionGroups(
 export async function createOption(
   data: OptionFormData
 ): Promise<ApiResponse<void>> {
-  return apiRequest('/admin/options', {
+  return apiRequest('/options', {
     method: 'POST',
     body: {
       id: data.id,
@@ -162,7 +162,7 @@ export async function updateOption(
   if (data.sugar !== undefined) body.sugar = data.sugar;
   if (data.fiber !== undefined) body.fiber = data.fiber;
 
-  return apiRequest(`/admin/options/${optionId}`, {
+  return apiRequest(`/options/${optionId}`, {
     method: 'PUT',
     body,
   });
@@ -173,7 +173,7 @@ export async function updateOption(
  * Requirements: 7.2
  */
 export async function deleteOption(optionId: string): Promise<ApiResponse<void>> {
-  return apiRequest(`/admin/options/${optionId}`, {
+  return apiRequest(`/options/${optionId}`, {
     method: 'DELETE',
   });
 }
@@ -187,7 +187,7 @@ export async function toggleOptionAvailability(
   available: boolean
 ): Promise<ApiResponse<void>> {
   try {
-    const result = await apiRequest(`/admin/options/${optionId}`, {
+    const result = await apiRequest(`/options/${optionId}`, {
       method: 'PUT',
       body: {
         available: available ? 1 : 0,
@@ -212,8 +212,8 @@ export async function toggleOptionAvailability(
  */
 export async function getAllOptions(groupId?: string): Promise<any[]> {
   const url = groupId
-    ? `/admin/options?group_id=${groupId}`
-    : '/admin/options';
+    ? `/options?group_id=${groupId}`
+    : '/options';
 
   const result = await apiRequest<{ data?: any[] }>(url);
   return result.data || [];
@@ -226,7 +226,7 @@ export async function updateOptionPrice(
   optionId: string,
   basePrice: number
 ): Promise<any> {
-  return apiRequest(`/admin/options/${optionId}/price`, {
+  return apiRequest(`/options/${optionId}/price`, {
     method: 'PATCH',
     body: { base_price: basePrice },
   });
@@ -252,7 +252,7 @@ export async function updateConditionalRules(
   optionGroupId: string,
   conditionalRules: string | null
 ): Promise<ApiResponse<void>> {
-  return apiRequest(`/admin/products/${productId}/option-groups/${optionGroupId}/conditional-rules`, {
+  return apiRequest(`/products/${productId}/option-groups/${optionGroupId}/conditional-rules`, {
     method: 'PUT',
     body: {
       conditional_max_selections: conditionalRules,
@@ -270,5 +270,5 @@ export async function getConditionalRules(
   productId: string,
   optionGroupId: string
 ): Promise<ApiResponse<{ conditional_max_selections: string | null }>> {
-  return apiRequest(`/admin/products/${productId}/option-groups/${optionGroupId}/conditional-rules`);
+  return apiRequest(`/products/${productId}/option-groups/${optionGroupId}/conditional-rules`);
 }

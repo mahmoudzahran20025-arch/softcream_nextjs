@@ -99,7 +99,7 @@ export async function getUsers(params?: {
   tier?: string;
 }): Promise<UsersListResponse> {
   const queryParams = new URLSearchParams();
-  
+
   if (params?.page) queryParams.set('page', params.page.toString());
   if (params?.limit) queryParams.set('limit', params.limit.toString());
   if (params?.search) queryParams.set('search', params.search);
@@ -108,21 +108,21 @@ export async function getUsers(params?: {
   if (params?.tier) queryParams.set('tier', params.tier);
 
   const query = queryParams.toString();
-  return apiRequest<UsersListResponse>(`/admin/users${query ? `?${query}` : ''}`);
+  return apiRequest<UsersListResponse>(`/users${query ? `?${query}` : ''}`);
 }
 
 /**
  * Get user details by phone
  */
 export async function getUserDetails(phone: string): Promise<UserDetailsResponse> {
-  return apiRequest<UserDetailsResponse>(`/admin/users/${phone}`);
+  return apiRequest<UserDetailsResponse>(`/users/${phone}`);
 }
 
 /**
  * Get users statistics
  */
 export async function getUsersStats(): Promise<UsersStatsResponse> {
-  return apiRequest<UsersStatsResponse>('/admin/users/stats');
+  return apiRequest<UsersStatsResponse>('/users/stats');
 }
 
 /**
@@ -134,7 +134,7 @@ export async function updateUser(phone: string, data: {
   loyalty_tier?: string;
   loyalty_points?: number;
 }): Promise<{ success: boolean; message: string }> {
-  return apiRequest(`/admin/users/${phone}`, {
+  return apiRequest(`/users/${phone}`, {
     method: 'PUT',
     body: data
   });
@@ -149,7 +149,7 @@ export async function addLoyaltyPoints(phone: string, points: number, reason?: s
   newTotal: number;
   newTier: string;
 }> {
-  return apiRequest(`/admin/users/${phone}/add-points`, {
+  return apiRequest(`/users/${phone}/add-points`, {
     method: 'POST',
     body: { points, reason }
   });
