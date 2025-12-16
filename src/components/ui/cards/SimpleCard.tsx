@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, memo, useCallback } from 'react'
 import { ShoppingCart, Check, Flame, Zap, ChevronLeft } from 'lucide-react'
 import Image from 'next/image'
 import { useCart } from '@/providers/CartProvider'
@@ -40,8 +39,9 @@ interface SimpleCardProps {
 /**
  * SimpleCard - بطاقة المنتجات البسيطة (template_1)
  * تصميم موحد ومتماثل مع باقي الكاردات
+ * ✅ Optimized: Removed framer-motion for better swipe performance
  */
-export default function SimpleCard({ product, config, onAddToCart, uiConfig }: SimpleCardProps) {
+function SimpleCard({ product, config, onAddToCart, uiConfig }: SimpleCardProps) {
   const { addToCart } = useCart()
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
@@ -58,7 +58,7 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
   const showImages = uiConfig?.show_images !== false
   const showPrices = uiConfig?.show_prices !== false
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     if (isUnavailable) return
     setIsAdding(true)
@@ -67,17 +67,17 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
     setJustAdded(true)
     setQuantity(1)
     setTimeout(() => { setJustAdded(false); setIsAdding(false) }, 1500)
-  }
+  }, [isUnavailable, onAddToCart, product, quantity, addToCart])
 
-  const handleCardClick = () => {
+  const handleCardClick = useCallback(() => {
     if (!isUnavailable) window.location.href = `/products/${product.id}`
-  }
+  }, [isUnavailable, product.id])
 
   return (
-    <motion.div
-      whileHover={!isUnavailable ? { y: -4 } : undefined}
-      whileTap={!isUnavailable ? { scale: 0.98 } : undefined}
-      className={`relative w-full ${isUnavailable ? 'opacity-60' : 'cursor-pointer'}`}
+    <div
+      className={`relative w-full transform transition-transform duration-200 ${
+        isUnavailable ? 'opacity-60' : 'cursor-pointer hover:-translate-y-1 active:scale-[0.98]'
+      }`}
     >
       <div
         onClick={handleCardClick}
@@ -90,8 +90,10 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
               src={product.image}
               alt={product.name}
               fill
+              loading="lazy"
+              quality={70}
               className="object-cover group-hover:scale-105 transition-transform duration-500"
-              sizes="200px"
+              sizes="(max-width: 640px) 170px, (max-width: 768px) 180px, 200px"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -175,17 +177,16 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
 
           {/* Action Bar */}
           <div className="flex items-center gap-2">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
+            <button
               onClick={handleAddToCart}
               disabled={isAdding || isUnavailable}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${justAdded ? 'bg-emerald-500 text-white' :
+              className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95 ${justAdded ? 'bg-emerald-500 text-white' :
                   isUnavailable ? 'bg-slate-200 text-slate-400' :
                     'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white shadow-sm'
                 }`}
             >
               {justAdded ? <Check size={18} /> : <ShoppingCart size={18} />}
-            </motion.button>
+            </button>
             <div onClick={(e) => e.stopPropagation()} className="flex-1">
               <QuantitySelector
                 quantity={quantity}
@@ -197,6 +198,8 @@ export default function SimpleCard({ product, config, onAddToCart, uiConfig }: S
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
+
+export default memo(SimpleCard)

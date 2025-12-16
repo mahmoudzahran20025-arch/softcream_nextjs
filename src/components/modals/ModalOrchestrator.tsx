@@ -19,6 +19,7 @@ const TrackingModal = dynamic(() => import('@/components/modals/TrackingModal'),
 const Sidebar = dynamic(() => import('@/components/shared/Sidebar'), { ssr: false })
 const MyOrdersModal = dynamic(() => import('@/components/modals/MyOrdersModal'), { ssr: false })
 const EditOrderModal = dynamic(() => import('@/components/modals/EditOrderModal'), { ssr: false })
+const FavoritesModal = dynamic(() => import('@/components/modals/FavoritesModal'), { ssr: false })
 
 interface ModalOrchestratorProps {
   allProducts?: any[]
@@ -84,6 +85,7 @@ export default function ModalOrchestrator({ allProducts = [] }: ModalOrchestrato
           onClose={close}
           onOpenCart={() => open('cart')}
           onOpenMyOrders={() => open('myOrders')}
+          onOpenFavorites={() => open('favorites')}
         />
       )}
 
@@ -112,6 +114,14 @@ export default function ModalOrchestrator({ allProducts = [] }: ModalOrchestrato
           }}
         />
       )}
+      {/* Favorites Modal */}
+      {current === 'favorites' && (
+        <FavoritesModal
+          isOpen={true}
+          onClose={close}
+        />
+      )}
+
     </>
   )
 }

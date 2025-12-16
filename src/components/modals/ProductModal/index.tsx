@@ -85,10 +85,29 @@ export default function ProductModal({ product, isOpen, onClose, allProducts = [
   }, [product, allProducts])
 
   // Handle close modal
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     window.history.pushState({}, '', '/')
     onClose()
-  }
+  }, [onClose])
+
+  // ✅ Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
+      document.body.style.overflow = 'hidden'
+      
+      return () => {
+        document.body.style.position = ''
+        document.body.style.top = ''
+        document.body.style.width = ''
+        document.body.style.overflow = ''
+        window.scrollTo(0, scrollY)
+      }
+    }
+  }, [isOpen])
 
   // Use unified add to cart hook
   // ✅ Simplified: All products now use productConfig (Unified Options System)

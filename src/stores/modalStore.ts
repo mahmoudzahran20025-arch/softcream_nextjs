@@ -7,23 +7,24 @@
 
 import { create } from 'zustand'
 
-export type ModalType = 
-  | 'cart' 
-  | 'checkout' 
-  | 'tracking' 
-  | 'myOrders' 
-  | 'editOrder' 
-  | 'success' 
+export type ModalType =
+  | 'cart'
+  | 'checkout'
+  | 'tracking'
+  | 'myOrders'
+  | 'editOrder'
+  | 'success'
   | 'product'
   | 'nutrition'
   | 'sidebar'
+  | 'favorites'
   | null
 
 interface ModalState {
   current: ModalType
   data: any
   history: ModalType[]
-  
+
   // Actions
   open: (type: ModalType, data?: any) => void
   close: () => void
@@ -36,7 +37,7 @@ export const useModalStore = create<ModalState>((set, get) => ({
   current: null,
   data: null,
   history: [],
-  
+
   open: (type, data) => {
     console.log('🔓 Opening modal:', type, data ? 'with data' : '')
     set((state) => ({
@@ -45,7 +46,7 @@ export const useModalStore = create<ModalState>((set, get) => ({
       history: [...state.history, type]
     }))
   },
-  
+
   close: () => {
     console.log('🔒 Closing modal:', get().current)
     set({
@@ -53,21 +54,21 @@ export const useModalStore = create<ModalState>((set, get) => ({
       data: null
     })
   },
-  
+
   back: () => {
     const state = get()
     const history = [...state.history]
     history.pop() // Remove current
     const previous = history[history.length - 1] || null
-    
+
     console.log('⬅️ Going back to:', previous)
-    
+
     set({
       current: previous,
       history
     })
   },
-  
+
   replace: (type, data) => {
     console.log('🔄 Replacing modal:', get().current, '→', type)
     set({
@@ -75,7 +76,7 @@ export const useModalStore = create<ModalState>((set, get) => ({
       data
     })
   },
-  
+
   clearHistory: () => {
     set({ history: [] })
   }

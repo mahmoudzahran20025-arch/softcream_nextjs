@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo, memo } from 'react'
 import { Search, Filter, X, Brain, Activity, Zap, Grid } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useProductsData } from '@/providers/ProductsProvider'
 import { useCategoryTracking } from '@/providers/CategoryTrackingProvider'
 import { getCategoryIcon, getCategoryColor } from '@/config/categoryIcons'
@@ -26,7 +25,7 @@ interface FilterBarProps {
   onClearFilters?: () => void
 }
 
-export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBarProps) {
+function FilterBar({ onFiltersChange, onClearFilters }: FilterBarProps) {
   const { applyFilters, filteredProducts } = useProductsData()
   const { activeCategory, scrollToCategory, isUserInteracting } = useCategoryTracking()
   const [searchQuery, setSearchQuery] = useState('')
@@ -191,16 +190,40 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
   }
 
   // Track scroll position for smooth sticky behavior
+  // ✅ Optimized: Using requestAnimationFrame to batch updates
   const [isScrolled, setIsScrolled] = useState(false)
+  const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
+    let lastScrollY = window.scrollY
+    
     const handleScroll = () => {
-      // Check if scrolled past the initial position (e.g., 100px)
-      setIsScrolled(window.scrollY > 100)
+      // Cancel any pending RAF
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
+      
+      // Batch state update with RAF
+      rafRef.current = requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY
+        // Only update if threshold crossed (reduces re-renders)
+        const wasScrolled = lastScrollY > 100
+        const nowScrolled = currentScrollY > 100
+        
+        if (wasScrolled !== nowScrolled) {
+          setIsScrolled(nowScrolled)
+        }
+        lastScrollY = currentScrollY
+      })
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
+    }
   }, [])
 
   // Cleanup timeout on unmount
@@ -272,16 +295,12 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
         </div>
       </div>
 
-      {/* ✅ Desktop: Advanced Filters Panel - Slides Down */}
-      <AnimatePresence>
-        {showAdvanced && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="hidden lg:block sticky top-[140px] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden"
-          >
+      {/* ✅ Desktop: Advanced Filters Panel - CSS Transitions (no framer-motion) */}
+      <div
+        className={`hidden lg:block sticky top-[140px] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden transition-all duration-300 ${
+          showAdvanced ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
             <div className="container mx-auto px-4 py-6">
               {/* Search Bar - Prominent */}
               <div className="mb-6">
@@ -368,31 +387,23 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
                 </button>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
 
-      {/* ✅ Mobile: Bottom Drawer for Advanced Filters */}
-      <AnimatePresence>
-        {showAdvanced && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAdvanced(false)}
-              className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-            />
+      {/* ✅ Mobile: Bottom Drawer for Advanced Filters - CSS Transitions */}
+      {/* Backdrop */}
+      <div
+        onClick={() => setShowAdvanced(false)}
+        className={`lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-300 ${
+          showAdvanced ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      />
 
-            {/* Drawer */}
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto"
-            >
+      {/* Drawer */}
+      <div
+        className={`lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto transition-transform duration-300 ease-out ${
+          showAdvanced ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
               {/* Handle Bar */}
               <div className="flex justify-center pt-4 pb-2">
                 <div className="w-16 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
@@ -502,10 +513,9 @@ export default function FilterBar({ onFiltersChange, onClearFilters }: FilterBar
 
               {/* Safe area for iOS */}
               <div className="h-8" />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            </div>
     </>
   )
 }
+
+export default memo(FilterBar)

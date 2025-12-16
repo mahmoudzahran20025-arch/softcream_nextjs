@@ -5,9 +5,18 @@ import ProductsGrid from '@/components/shared/ProductsGrid'
 import Footer from '@/components/server/Footer'
 import HomePageClient from '@/components/home/HomePageClient'
 import ProductsProvider from '@/providers/ProductsProvider'
+import { CategoryTrackingProvider } from '@/providers/CategoryTrackingProvider'
 import StorytellingHero from '@/components/StorytellingHero'
 import ScrollProgressButton from '@/components/ui/ScrollProgressButton'
 import type { Product } from '@/lib/api'
+import dynamic from 'next/dynamic'
+
+// Lazy load storytelling components to keep initial load fast
+const ProductShowcaseGrid = dynamic(() => import('@/components/products-page/ProductShowcaseGrid'), { ssr: true })
+const BrandValuesGrid = dynamic(() => import('@/components/products-page/BrandValuesGrid'), { ssr: true })
+const NutritionShowcase = dynamic(() => import('@/components/products-page/NutritionShowcase'), { ssr: true })
+const BYOShowcase = dynamic(() => import('@/components/products-page/BYOShowcase'), { ssr: true })
+const CategoryRail = dynamic(() => import('@/components/home/CategoryRail'), { ssr: false })
 
 interface PageContentProps {
   initialProducts: Product[]
@@ -22,6 +31,16 @@ export default function HomePageContent({ initialProducts }: PageContentProps) {
         </Suspense>
       </HomePageClient>
       <main className="min-h-screen bg-white dark:bg-slate-950">
+
+        {/* Brand Story & Values - Moved from Products Page for better Discovery */}
+        <Suspense fallback={<div className="h-96 animate-pulse bg-slate-100 dark:bg-slate-900" />}>
+          <div className="space-y-16 py-12">
+            <ProductShowcaseGrid />
+            <BrandValuesGrid />
+            <BYOShowcase />
+            <NutritionShowcase />
+          </div>
+        </Suspense>
 
         {/* Products Grid */}
         <Suspense fallback={<div className="container mx-auto px-4 py-12">

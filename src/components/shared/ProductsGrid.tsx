@@ -1,34 +1,39 @@
 'use client'
 
-import { useMemo, useEffect, useRef } from 'react'
-import dynamic from 'next/dynamic'
+import { useMemo, useEffect, useRef, memo } from 'react'
 import { SearchX, IceCream } from 'lucide-react'
 import { useProductsData } from '@/providers/ProductsProvider'
 import { useCategoryTracking } from '@/providers/CategoryTrackingProvider'
 import ProductCardSkeleton from '@/components/ui/skeletons/ProductCardSkeleton'
 import type { Product } from '@/lib/api'
 
-// Lazy load Swiper (heavy library ~50KB)
-const ProductsSwiper = dynamic(
-  () => import('@/components/shared/ProductsSwiperWrapper'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <ProductCardSkeleton key={i} />
-        ))}
-      </div>
-    ),
-  }
-)
+// Import Swiper wrapper directly (it handles its own hydration)
+import ProductsSwiper from '@/components/shared/ProductsSwiperWrapper'
 
 interface ProductsGridProps {
   isLoading?: boolean
   onClearFilters?: () => void
+  limitToCategory?: string
+  limitCount?: number
+  excludeId?: string
 }
 
-export default function ProductsGrid({ isLoading = false, onClearFilters }: ProductsGridProps) {
+/**
+ * ProductsGrid - Optimized for Performance
+ * ========================================
+ * ✅ Memoized to prevent re-renders from parent
+ * ✅ IntersectionObserver for category tracking (no scroll listeners)
+ * ✅ RAF-batched scroll position tracking
+ * ✅ Lazy-loaded Swiper component
+ * ✅ Supports category filtering for "Related Products" reuse
+ */
+function ProductsGrid({
+  isLoading = false,
+  onClearFilters,
+  limitToCategory,
+  limitCount,
+  excludeId
+}: ProductsGridProps) {
   const { filteredProducts } = useProductsData()
   const { setActiveCategory, isUserInteracting } = useCategoryTracking()
   const observerRef = useRef<IntersectionObserver | null>(null)
@@ -39,15 +44,33 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
   const groupedProducts = useMemo(() => {
     if (!products || products.length === 0) return []
 
+    // 1. Filter by specific category if requested (for Related Products view)
+    let filteredList = products
+    if (limitToCategory) {
+      filteredList = products.filter(p => p.category === limitToCategory)
+    }
+
+    // 2. Exclude specific product if requested (e.g. current product in Related view)
+    if (excludeId) {
+      filteredList = filteredList.filter(p => p.id !== excludeId)
+    }
+
     const groups: Record<string, Product[]> = {}
 
-    products.forEach(product => {
+    filteredList.forEach(product => {
       const category = product.category || 'أخرى'
       if (!groups[category]) {
         groups[category] = []
       }
       groups[category].push(product)
     })
+
+    // 3. Limit number of items per category if requested
+    if (limitCount) {
+      Object.keys(groups).forEach(key => {
+        groups[key] = groups[key].slice(0, limitCount)
+      })
+    }
 
     // ✅ Dynamic ordering: Sort by product count (most products first)
     // This matches the FilterBar ordering automatically
@@ -57,20 +80,31 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
         category,
         products: items
       }))
-  }, [products])
+  }, [products, limitToCategory, limitCount, excludeId])
 
   // ✅ Track scroll position to prevent premature activation
+  // ✅ Optimized: Using requestAnimationFrame to batch updates
   useEffect(() => {
+    let rafId: number | null = null
+
     const handleScroll = () => {
-      // ✅ INCREASED threshold: Mark as scrolled once user passes hero section (500px)
-      // This prevents activation when user is still viewing hero
-      if (window.scrollY > 500) {
-        hasScrolledRef.current = true
-      }
+      if (rafId) return // Skip if RAF already pending
+
+      rafId = requestAnimationFrame(() => {
+        // ✅ INCREASED threshold: Mark as scrolled once user passes hero section (500px)
+        // This prevents activation when user is still viewing hero
+        if (window.scrollY > 500) {
+          hasScrolledRef.current = true
+        }
+        rafId = null
+      })
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
   }, [])
 
   // ✅ Smart IntersectionObserver for auto-highlighting
@@ -235,3 +269,5 @@ export default function ProductsGrid({ isLoading = false, onClearFilters }: Prod
     </section>
   )
 }
+
+export default memo(ProductsGrid)

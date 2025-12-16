@@ -21,10 +21,10 @@ interface HealthInsightCardProps {
  * - Emoji icon matching the insight category
  * - Max 3 lines of Arabic text
  */
-export default function HealthInsightCard({ 
-  insight, 
+export default function HealthInsightCard({
+  insight,
   onDismiss,
-  delay = 0.5 
+  delay = 0.5
 }: HealthInsightCardProps) {
   const [isDismissed, setIsDismissed] = useState(false)
 
@@ -38,64 +38,59 @@ export default function HealthInsightCard({
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ 
-          duration: 0.4, 
-          delay,
-          ease: 'easeOut' 
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+        transition={{
+          type: 'spring',
+          damping: 25,
+          stiffness: 300,
+          delay
         }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 shadow-sm border border-green-100/50 dark:border-green-800/30"
+        className="relative overflow-hidden rounded-2xl p-[1px] group"
       >
-        {/* Background decoration */}
-        <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
-          <div className="absolute -top-4 -right-4 w-24 h-24 bg-green-400 rounded-full blur-2xl" />
-          <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-blue-400 rounded-full blur-2xl" />
-        </div>
+        {/* Animated Gradient Border using CSS */}
+        <div className="absolute inset-0 bg-gradient-to-r from-green-300 via-emerald-200 to-green-300 opacity-30 group-hover:opacity-60 transition-opacity duration-1000 animate-gradient-xy" />
 
-        {/* Content */}
-        <div className="relative z-10">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl" role="img" aria-label={insight.id}>
-                {insight.message.emoji}
-              </span>
-              <div>
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1">
+        <div className="relative bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl p-4 h-full border border-white/50 dark:border-white/5 shadow-sm">
+          {/* Decorative Orb */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-green-200/20 dark:bg-green-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex gap-4">
+            {/* Emoji Container */}
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 flex items-center justify-center text-2xl shadow-inner border border-green-100 dark:border-green-800/50 flex-shrink-0">
+              {insight.message.emoji}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-1">
                   {insight.message.title}
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
                 </h3>
+                <button
+                  onClick={handleDismiss}
+                  className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700/50 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                  aria-label="إغلاق"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                {insight.message.lines.slice(0, 3).map((line, index) => (
+                  <motion.p
+                    key={index}
+                    initial={{ opacity: 0, x: -5 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: delay + 0.2 + (index * 0.1) }}
+                    className="text-xs font-medium text-slate-600 dark:text-slate-300 leading-tight"
+                  >
+                    {line}
+                  </motion.p>
+                ))}
               </div>
             </div>
-            
-            {/* Dismiss button */}
-            <button
-              onClick={handleDismiss}
-              className="w-6 h-6 rounded-full bg-white/60 dark:bg-slate-700/60 hover:bg-white dark:hover:bg-slate-600 flex items-center justify-center transition-colors"
-              aria-label="إغلاق"
-            >
-              <X className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-            </button>
-          </div>
-
-          {/* Message lines (max 3) */}
-          <div className="space-y-1.5">
-            {insight.message.lines.slice(0, 3).map((line, index) => (
-              <motion.p
-                key={index}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ 
-                  duration: 0.3, 
-                  delay: delay + 0.1 + (index * 0.1) 
-                }}
-                className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed"
-              >
-                {line}
-              </motion.p>
-            ))}
           </div>
         </div>
       </motion.div>
@@ -106,7 +101,7 @@ export default function HealthInsightCard({
 /**
  * Lazy-loaded version for performance optimization
  */
-export const LazyHealthInsightCard = lazy(() => 
+export const LazyHealthInsightCard = lazy(() =>
   Promise.resolve({ default: HealthInsightCard })
 )
 

@@ -100,145 +100,112 @@ export default function CartItem({ item, product, addons = [], customizationOpti
   }, [product, item.selections, customizationOptions])
 
   return (
-    <div className="flex gap-4 p-4 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-700 dark:to-slate-600 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-      {/* Product Image */}
-      {product.image && (
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-20 h-20 object-cover rounded-xl flex-shrink-0"
-          loading="lazy"
-        />
+    <div className="relative group p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl hover:border-pink-200 dark:hover:border-pink-800 transition-all shadow-sm">
+      <div className="flex gap-3">
+        {/* Product Image */}
+        {product.image && (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-20 h-20 object-cover rounded-xl bg-slate-100 dark:bg-slate-700 flex-shrink-0"
+            loading="lazy"
+          />
+        )}
+
+        {/* Product Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-start gap-2">
+            <div>
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-2">
+                {product.name}
+              </h3>
+              {/* Base Price */}
+              <div className="mt-0.5">
+                <PriceDisplay
+                  price={hasCalculatedPrice ? calculatedPrice : product.price}
+                  size="sm"
+                  className="text-slate-500 font-medium"
+                />
+              </div>
+            </div>
+            {/* Item Total (Top Right) */}
+            <div className="flex-shrink-0">
+              <PriceDisplay price={itemTotal} size="sm" className="font-black text-pink-500" />
+            </div>
+          </div>
+
+          {/* Selections (Container/Size) */}
+          {(containerInfo || sizeInfo) && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {containerInfo && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-bold border border-blue-100 flex items-center gap-1">
+                  <span>🥤</span> {containerInfo[1]}
+                </span>
+              )}
+              {sizeInfo && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-bold border border-amber-100 flex items-center gap-1">
+                  <span>📏</span> {sizeInfo[1]}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Customizations & Addons (Full Width below) */}
+      {(customSelections.length > 0 || (!isCustomizable && item.selectedAddons && item.selectedAddons.length > 0)) && (
+        <div className="mt-2.5 pt-2.5 border-t border-slate-50 dark:border-slate-700/50 flex flex-wrap gap-1">
+          {customSelections.flatMap(([, values]) => values).map((optionId) => {
+            const option = customizationOptions.find(o => o.id === optionId)
+            if (!option) return null
+            return (
+              <span key={optionId} className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                {option.name}
+              </span>
+            )
+          })}
+          {!isCustomizable && item.selectedAddons?.map(addonId => {
+            const addon = addons.find(a => a.id === addonId)
+            if (!addon) return null
+            return (
+              <span key={addonId} className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                +{addon.name}
+              </span>
+            )
+          })}
+        </div>
       )}
 
-      {/* Product Info */}
-      <div className="flex-1 min-w-0">
-        <h3 className="font-bold text-slate-900 dark:text-white truncate">
-          {product.name}
-        </h3>
-        {/* ✅ FIX: Show calculated price for BYO products, or base price for regular products */}
-        <div className="mt-1">
-          <PriceDisplay 
-            price={hasCalculatedPrice ? calculatedPrice : product.price} 
-            size="sm" 
-          />
-        </div>
-
-        {/* Show container and size info */}
-        {(containerInfo || sizeInfo) && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {containerInfo && (
-              <span className="text-xs px-2 py-1 rounded-full border font-medium flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700">
-                <span>🥤</span>
-                <span>{containerInfo[1]}</span>
-                {containerPrice > 0 && <span className="text-[10px] opacity-75">(+{containerPrice} ج.م)</span>}
-              </span>
-            )}
-            {sizeInfo && (
-              <span className="text-xs px-2 py-1 rounded-full border font-medium flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700">
-                <span>📏</span>
-                <span>{sizeInfo[1]}</span>
-                {sizePrice > 0 && <span className="text-[10px] opacity-75">({sizePrice} ج.م)</span>}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Show BYO customization selections */}
-        {customSelections.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {customSelections.flatMap(([, values]) => values).map((optionId) => {
-              const option = customizationOptions.find(o => o.id === optionId)
-              if (!option) return null
-
-              const isFree = option.price === 0
-
-              return (
-                <span
-                  key={optionId}
-                  className={`text-xs px-2 py-1 rounded-full border font-medium flex items-center gap-1 ${isFree
-                      ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700'
-                      : 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700'
-                    }`}
-                >
-                  {option.groupIcon && <span>{option.groupIcon}</span>}
-                  <span>{option.name}</span>
-                  {!isFree && (
-                    <span className="text-[10px] opacity-75">(+{option.price} ج.م)</span>
-                  )}
-                </span>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Show legacy addons (for non-customizable products) */}
-        {!isCustomizable && item.selectedAddons && item.selectedAddons.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {item.selectedAddons.map((addonId) => {
-              const addon = addons.find(a => a.id === addonId)
-              if (!addon) return null
-
-              return (
-                <span
-                  key={addonId}
-                  className="text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full border border-purple-200 dark:border-purple-700 font-medium flex items-center gap-1"
-                >
-                  <span>+{addon.name}</span>
-                  <span className="text-[10px] opacity-75">({addon.price} ج.م)</span>
-                </span>
-              )
-            })}
-          </div>
-        )}
-
-        {/* ✅ Nutrition Badges & Info */}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {/* High Protein Badge */}
-          {itemNutrition.protein >= 15 && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] font-bold border border-blue-100 dark:border-blue-800">
-              <Dumbbell className="w-3 h-3" />
-              <span>عالي البروتين</span>
-            </span>
-          )}
-
-          {/* Low Sugar Badge */}
-          {itemNutrition.sugar <= 10 && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-[10px] font-bold border border-green-100 dark:border-green-800">
-              <Leaf className="w-3 h-3" />
-              <span>سكر قليل</span>
-            </span>
-          )}
-
-          {/* Calories */}
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 text-[10px] font-medium border border-orange-100 dark:border-orange-800">
-            <Flame className="w-3 h-3" />
-            <span>{Math.round(itemNutrition.calories)} سعرة</span>
-          </span>
-        </div>
-
-        {/* Quantity Controls */}
-        <div className="flex items-center gap-3 mt-3">
+      {/* Bottom Row: Quantity & Remove (Left) -- Nutrition (Right) */}
+      <div className="flex items-center justify-between mt-3 gap-2">
+        <div className="flex items-center gap-2">
           <QuantitySelector
             quantity={item.quantity}
             onIncrease={() => onUpdateQuantity(item.productId, item.quantity + 1, item.selectedAddons, item.selections)}
             onDecrease={() => onUpdateQuantity(item.productId, item.quantity - 1, item.selectedAddons, item.selections)}
             size="sm"
           />
-
           <button
             onClick={() => onRemove(item.productId, item.selectedAddons, item.selections)}
-            className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-colors"
-            aria-label="حذف المنتج"
+            className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
-      </div>
 
-      {/* Item Total */}
-      <div className="text-right flex-shrink-0">
-        <PriceDisplay price={itemTotal} size="md" className="font-extrabold" />
+        {/* Nutrition Mini Badges (Stacked: Protein Top, Calories Bottom) */}
+        <div className="flex flex-col items-end gap-1">
+          {itemNutrition.protein > 0 && (
+            <span className="flex items-center gap-1 text-[10px] text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded-md border border-blue-100">
+              <Dumbbell className="w-3 h-3" /> {Math.round(itemNutrition.protein)}g
+            </span>
+          )}
+          {itemNutrition.calories > 0 && (
+            <span className="flex items-center gap-1 text-[10px] text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded-md border border-orange-100">
+              <Flame className="w-3 h-3" /> {Math.round(itemNutrition.calories)}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )

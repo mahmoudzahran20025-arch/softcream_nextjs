@@ -18,13 +18,13 @@ import ProductsProvider from '@/providers/ProductsProvider'
 import { CategoryTrackingProvider } from '@/providers/CategoryTrackingProvider'
 import { useModalStore } from '@/stores/modalStore'
 import Header from '@/components/ui/Header'
-import FilterBar from '@/components/home/FilterBar'
 import ProductsGrid from '@/components/shared/ProductsGrid'
 import Footer from '@/components/server/Footer'
 import ToastContainer from '@/components/ui/ToastContainer'
 import ScrollProgressButton from '@/components/ui/ScrollProgressButton'
 import ScrollDownSection from '@/components/ui/ScrollDownSection'
 import ModalOrchestrator from '@/components/modals/ModalOrchestrator'
+import ProductActionBar from './ProductActionBar'
 
 // Lazy load remaining components
 const OrdersBadge = dynamic(() => import('@/components/ui/OrdersBadge'), { ssr: false })
@@ -106,9 +106,27 @@ function RichProductPageContent({ product, allProducts }: Props) {
   }, [product?.id])
 
   const { open } = useModalStore()
-  const [showFilterBar] = useState(true)
+  // FilterBar removed for distraction-free decision making
   const productHeroRef = useRef<HTMLDivElement>(null)
   const { showHeader } = useSmartScroll()
+  const [shouldShowActionBar, setShouldShowActionBar] = useState(false)
+
+  // Track scroll to toggle Action Bar
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!productHeroRef.current) return
+
+      // Show Action Bar when user scrolls past the Hero section (approx 600px)
+      const heroBottom = productHeroRef.current.offsetHeight
+      const scrollY = window.scrollY
+
+      // Threshold: When 70% of hero is scrolled past
+      setShouldShowActionBar(scrollY > (heroBottom * 0.7))
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const {
     displayProduct,
@@ -153,21 +171,24 @@ function RichProductPageContent({ product, allProducts }: Props) {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
-      {/* Smart Header - Hides on scroll down, shows on scroll up/stop */}
+      {/* 1. Main Header - Always Sticky */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <Header
+          onOpenCart={() => open('cart')}
+          onOpenSidebar={() => open('sidebar')}
+        />
+      </div>
+
+      {/* 2. Product Action Bar - Slides in BELOW header */}
       <AnimatePresence>
-        {showHeader && (
-          <motion.div
-            initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -100, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed top-0 left-0 right-0 z-50"
-          >
-            <Header
-              onOpenCart={() => open('cart')}
-              onOpenSidebar={() => open('sidebar')}
-            />
-          </motion.div>
+        {shouldShowActionBar && (
+          <ProductActionBar
+            key="action-bar"
+            product={displayProduct}
+            price={productConfig.totalPrice}
+            onAdd={handleAddToCart}
+            disabled={!productConfig.validationResult.isValid}
+          />
         )}
       </AnimatePresence>
 
@@ -267,28 +288,10 @@ function RichProductPageContent({ product, allProducts }: Props) {
       </section>
 
       {/* Scroll Down Section - Professional Design */}
-      <ScrollDownSection
-        title="اكتشف المزيد"
-        subtitle="تصفح منتجاتنا المميزة واختر ما يناسبك"
-        variant="gradient"
-      />
 
-      {/* Filter Bar - Sticky with hide/show animation */}
+
+      {/* Filter Bar - REMOVED for focus */}
       <div data-scroll-target></div>
-      <AnimatePresence>
-        {showFilterBar && (
-          <motion.div
-            initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -100, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`sticky z-40 ${showHeader ? 'top-[72px]' : 'top-0'}`}
-            style={{ transition: 'top 0.3s ease' }}
-          >
-            <FilterBar />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Products Grid - Related Products */}
       <section className="container mx-auto px-4 pt-8 md:pt-12 pb-0">
@@ -299,11 +302,15 @@ function RichProductPageContent({ product, allProducts }: Props) {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-3">
-              منتجات مشابهة
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-pink-50 dark:bg-pink-900/20 text-pink-500 text-sm font-medium mb-4">
+              <span className="text-lg">✨</span>
+              <span>مختارات لك</span>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-pink-600 to-slate-900 dark:from-white dark:via-pink-400 dark:to-white mb-3">
+              أشخاص أحبوا هذا أيضاً
             </h2>
             <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              اكتشف المزيد من المنتجات التي قد تعجبك
+              تشكيلة مميزة من المنتجات التي نالت إعجاب زبائننا
             </p>
             <div className="mt-4 flex justify-center">
               <div className="w-20 h-1 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] rounded-full"></div>
@@ -311,7 +318,11 @@ function RichProductPageContent({ product, allProducts }: Props) {
           </motion.div>
         </div>
 
-        <ProductsGrid />
+        <ProductsGrid
+          limitToCategory={displayProduct.category}
+          limitCount={4}
+          excludeId={displayProduct.id}
+        />
       </section>
 
       {/* Footer */}

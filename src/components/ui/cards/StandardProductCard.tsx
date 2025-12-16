@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, memo, useCallback } from 'react'
 import { ShoppingCart, Check, Flame, Zap, Brain, Activity, ChevronLeft } from 'lucide-react'
 import Image from 'next/image'
 import { useCart } from '@/providers/CartProvider'
@@ -44,8 +43,9 @@ interface StandardProductCardProps {
 /**
  * StandardProductCard - بطاقة المنتجات المتوسطة (template_2)
  * تصميم موحد ومتماثل مع باقي الكاردات
+ * ✅ Optimized: Removed framer-motion for better swipe performance
  */
-export default function StandardProductCard({ product, config, onAddToCart, uiConfig }: StandardProductCardProps) {
+function StandardProductCard({ product, config, onAddToCart, uiConfig }: StandardProductCardProps) {
   const { addToCart } = useCart()
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
@@ -75,7 +75,7 @@ export default function StandardProductCard({ product, config, onAddToCart, uiCo
   const featuredOptions: Array<{ id: string; name: string; image?: string }> = product.options_preview?.featured_options?.slice(0, 3) || []
   const remainingCount = (product.options_preview?.total_options || 0) - 3
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     if (isUnavailable) return
     setIsAdding(true)
@@ -84,17 +84,17 @@ export default function StandardProductCard({ product, config, onAddToCart, uiCo
     setJustAdded(true)
     setQuantity(1)
     setTimeout(() => { setJustAdded(false); setIsAdding(false) }, 1500)
-  }
+  }, [isUnavailable, onAddToCart, product, quantity, addToCart])
 
-  const handleCardClick = () => {
+  const handleCardClick = useCallback(() => {
     if (!isUnavailable) window.location.href = `/products/${product.id}`
-  }
+  }, [isUnavailable, product.id])
 
   return (
-    <motion.div
-      whileHover={!isUnavailable ? { y: -4 } : undefined}
-      whileTap={!isUnavailable ? { scale: 0.98 } : undefined}
-      className={`relative w-full ${isUnavailable ? 'opacity-60' : 'cursor-pointer'}`}
+    <div
+      className={`relative w-full transform transition-transform duration-200 ${
+        isUnavailable ? 'opacity-60' : 'cursor-pointer hover:-translate-y-1 active:scale-[0.98]'
+      }`}
     >
       <div
         onClick={handleCardClick}
@@ -107,8 +107,10 @@ export default function StandardProductCard({ product, config, onAddToCart, uiCo
               src={product.image}
               alt={product.name}
               fill
+              loading="lazy"
+              quality={70}
               className="object-cover group-hover:scale-105 transition-transform duration-500"
-              sizes="200px"
+              sizes="(max-width: 640px) 170px, (max-width: 768px) 180px, 200px"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -168,7 +170,7 @@ export default function StandardProductCard({ product, config, onAddToCart, uiCo
             <div className="flex -space-x-1.5 space-x-reverse mb-1">
               {featuredOptions.map((opt) => (
                 <div key={opt.id} className="w-5 h-5 rounded-full border border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 overflow-hidden" title={opt.name}>
-                  {opt.image ? <Image src={opt.image} alt={opt.name} fill className="object-cover" sizes="20px" /> : <span className="text-[6px]">🍦</span>}
+                  {opt.image ? <Image src={opt.image} alt={opt.name} fill loading="lazy" quality={60} className="object-cover" sizes="20px" /> : <span className="text-[6px]">🍦</span>}
                 </div>
               ))}
               {remainingCount > 0 && (
@@ -209,17 +211,16 @@ export default function StandardProductCard({ product, config, onAddToCart, uiCo
 
           {/* Action Bar */}
           <div className="flex items-center gap-2">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
+            <button
               onClick={handleAddToCart}
               disabled={isAdding || isUnavailable}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${justAdded ? 'bg-emerald-500 text-white' :
+              className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95 ${justAdded ? 'bg-emerald-500 text-white' :
                 isUnavailable ? 'bg-slate-200 text-slate-400' :
                   'bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white shadow-sm'
                 }`}
             >
               {justAdded ? <Check size={18} /> : <ShoppingCart size={18} />}
-            </motion.button>
+            </button>
             <div onClick={(e) => e.stopPropagation()} className="flex-1">
               <QuantitySelector
                 quantity={quantity}
@@ -231,6 +232,8 @@ export default function StandardProductCard({ product, config, onAddToCart, uiCo
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
+
+export default memo(StandardProductCard)

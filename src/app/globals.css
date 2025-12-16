@@ -201,3 +201,33 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background: #ff4979 !important;
   opacity: 1 !important;
 }
+
+/* ============================================
+   SWIPER PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+/* Disable pointer-events on cards during swipe to prevent hover lag */
+.products-swiper.is-swiping .swiper-slide {
+  pointer-events: none;
+}
+
+/* Ensure smooth GPU-accelerated transforms */
+.products-swiper .swiper-slide {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Disable hover effects during swipe */
+.products-swiper.is-swiping [class*="hover:"] {
+  pointer-events: none;
+}
+
+/* Optimize card transitions */
+.products-swiper .swiper-slide > div {
+  transition: transform 0.2s ease-out;
+}
+
+/* Prevent layout shifts in swiper */
+.products-swiper {
+  contain: layout style;
+}

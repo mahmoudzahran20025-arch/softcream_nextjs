@@ -31,7 +31,8 @@ export const STORAGE_KEYS = {
   DEVICE_ID: 'deviceId',
   USER_ORDERS: 'userOrders',
   CUSTOMER_PROFILE: 'customerProfile',
-  CHECKOUT_FORM: 'checkoutFormData'
+  CHECKOUT_FORM: 'checkoutFormData',
+  FAVORITES: 'userFavorites'
 } as const
 
 // Order Statuses

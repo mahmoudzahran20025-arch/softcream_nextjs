@@ -47,6 +47,8 @@ const nextConfig = {
     // ✅ Optimize image loading
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: false,
+    // ✅ Configure allowed quality values (required for Next.js 16+)
+    qualities: [60, 70, 75, 85, 100],
   },
 
   // Environment variables
@@ -100,7 +102,7 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
               "connect-src 'self' https://softcream-api.mahmoud-zahran20025.workers.dev https://*.cloudflare.com",
               "frame-ancestors 'self'",

@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '@/providers/CartProvider'
 import { useTheme } from '@/providers/ThemeProvider'
 import { useLanguage } from '@/providers/LanguageProvider'
 import { useWindowEvent } from '@/hooks/useWindowEvent'
 import { storage } from '@/lib/storage.client'
+import { useFavorites } from '@/hooks/useFavorites'
 import {
-  X, ShoppingCart, Package, Moon, Sun, Globe, Phone, Clock, Sparkles,
-  ShoppingBag, User, ChevronRight, Utensils, Heart
+  X, ShoppingCart, Moon, Sun, Globe, Phone, Clock, Sparkles,
+  ShoppingBag, User, Heart, Home
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -17,9 +19,10 @@ interface SidebarProps {
   onClose: () => void
   onOpenCart?: () => void
   onOpenMyOrders?: () => void
+  onOpenFavorites?: () => void
 }
 
-export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders, onOpenFavorites }: SidebarProps) {
   const { getCartCount } = useCart()
   const { theme, toggleTheme } = useTheme()
   const { language, toggleLanguage, t } = useLanguage()
@@ -28,370 +31,277 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders }:
   const [activeOrdersCount, setActiveOrdersCount] = useState(0)
   const [customerProfile, setCustomerProfile] = useState<any>(null)
 
+  // ✅ Hook for Favorites
+  const { favoritesCount } = useFavorites()
+
   const cartCount = getCartCount()
 
-  // Load user data, customer profile, and orders count
+  // Define update functions primarily to avoid 'used before declaration'
+  const updateUserData = () => {
+    if (typeof window !== 'undefined') setUserData(storage.getUserData())
+  }
+
+  const updateCustomerProfile = () => {
+    if (typeof window !== 'undefined') setCustomerProfile(storage.getCustomerProfile())
+  }
+
+  const updateOrdersCount = () => {
+    if (typeof window !== 'undefined') {
+      const allOrders = storage.getOrders()
+      setActiveOrdersCount(allOrders.length)
+    }
+  }
+
+  // Load user data
   useEffect(() => {
     updateUserData()
     updateCustomerProfile()
     updateOrdersCount()
   }, [])
 
-  // Listen for orders updates
-  useWindowEvent('ordersUpdated', (event) => {
-    console.log('📢 Sidebar: ordersUpdated event received:', event?.detail)
+  useWindowEvent('ordersUpdated', () => {
     updateOrdersCount()
-    updateCustomerProfile() // ✅ Update profile when orders change
-  }, [])
+    updateCustomerProfile()
+  })
 
-  // Listen for user data updates
-  useWindowEvent('userDataUpdated', () => {
-    updateUserData()
-  }, [])
-
-  const updateUserData = () => {
-    if (typeof window !== 'undefined') {
-      const data = storage.getUserData()
-      setUserData(data)
-    }
-  }
-
-  // ✅ NEW: Load customer profile for personalized greeting
-  const updateCustomerProfile = () => {
-    if (typeof window !== 'undefined') {
-      const profile = storage.getCustomerProfile()
-      setCustomerProfile(profile)
-      console.log('👤 Customer profile loaded in sidebar:', profile?.name || 'Guest')
-    }
-  }
-
-  const updateOrdersCount = () => {
-    if (typeof window !== 'undefined') {
-      // ✅ Show ALL orders, not just active ones
-      const allOrders = storage.getOrders()
-      const count = allOrders.length
-      console.log('📊 Sidebar: Updating orders count:', count)
-      setActiveOrdersCount(count)
-    }
-  }
-
-  const handleCartClick = () => {
-    if (onOpenCart) {
-      onOpenCart()
-    }
-  }
-
-  const handleOrdersClick = () => {
-    if (onOpenMyOrders) {
-      onOpenMyOrders()
-    }
-  }
-
-  // Lock scroll when sidebar is open
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-    }
-
-    if (isOpen && typeof window !== 'undefined') {
-      document.addEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'hidden'
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        document.removeEventListener('keydown', handleEscape)
-        document.body.style.overflow = ''
-      }
-    }
-  }, [isOpen, onClose])
-
-  const handleNavClick = (sectionId: string) => {
-    onClose()
-
-    setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        const element = document.getElementById(sectionId)
-        if (element) {
-          element.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          })
-        }
-      }
-    }, 300)
-  }
+  useWindowEvent('userDataUpdated', updateUserData)
 
   const isRTL = language === 'ar'
 
-  const navItems = [
-    {
-      icon: Package,
-      label: language === 'ar' ? 'الرئيسية' : 'Home',
-      id: 'home',
-      href: '/',
-      onClick: () => {
-        onClose()
-      }
-    },
-    {
-      icon: Sparkles,
-      label: language === 'ar' ? 'المنتجات' : 'Products',
-      id: 'products',
-      href: '/products',
-      highlight: true,
-      onClick: () => {
-        onClose()
-      }
-    },
-    {
-      icon: Package,
-      label: t('navMenu') || 'المنيو',
-      id: 'menu',
-      onClick: () => {
-        onClose()
-        // ✅ Scroll to first category section
-        setTimeout(() => {
-          if (typeof window !== 'undefined') {
-            // Find first category section
-            const firstCategory = document.querySelector('[data-category]')
-            if (firstCategory) {
-              const headerOffset = 200 // Header + FilterBar
-              const elementPosition = firstCategory.getBoundingClientRect().top
-              const offsetPosition = elementPosition + window.pageYOffset - headerOffset
-
-              window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
-              })
-            }
-          }
-        }, 300)
-      }
-    },
-    {
-      icon: ShoppingCart,
-      label: t('navCart') || 'السلة',
-      id: 'cart',
-      badge: cartCount,
-      onClick: handleCartClick
-    },
-    {
-      icon: ShoppingBag,
-      label: language === 'ar' ? 'طلباتي' : 'My Orders',
-      id: 'orders',
-      badge: activeOrdersCount,
-      badgeColor: 'bg-green-500',
-      onClick: handleOrdersClick
-    },
-    {
-      icon: Utensils,
-      label: language === 'ar' ? 'خدمة الكاتيرينج' : 'Catering Service',
-      id: 'catering',
-      onClick: () => handleNavClick('catering')
-    },
-    {
-      icon: Clock,
-      label: t('footerNavHours') || 'ساعات العمل',
-      id: 'footer-hours',
-      onClick: () => handleNavClick('footer-hours')
-    },
-    {
-      icon: Phone,
-      label: t('footerNavContact') || 'تواصل معنا',
-      id: 'footer-contact',
-      onClick: () => handleNavClick('footer-contact')
+  // Animation variants
+  const sidebarVariants: any = {
+    closed: { x: isRTL ? '100%' : '-100%', opacity: 0 },
+    open: {
+      x: 0,
+      opacity: 1,
+      transition: { type: 'spring', damping: 25, stiffness: 300, staggerChildren: 0.05, delayChildren: 0.1 }
     }
-  ]
+  }
 
-  if (!isOpen) return null
+  const itemVariants: any = {
+    closed: { x: isRTL ? 20 : -20, opacity: 0 },
+    open: { x: 0, opacity: 1 }
+  }
+
+  const handleNavClick = (action: () => void) => {
+    onClose()
+    setTimeout(action, 300)
+  }
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
-    <>
-      {/* Overlay */}
-      <div
-        onClick={onClose}
-        className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-200"
-        aria-hidden="true"
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
+          />
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-72 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : isRTL ? 'translate-x-full' : '-translate-x-full'
-          }`}
-        style={{ fontFamily: 'Cairo, sans-serif' }}
-        role="dialog"
-        aria-modal="true"
-      >
-
-        {/* Header */}
-        <div className="flex-shrink-0 p-5 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={onClose}
-              className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
-              aria-label="Close sidebar"
-            >
-              <X className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            </button>
-
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <img
-                src="/asset/softcreamlogo.jpg"
-                alt="Logo"
-                className="w-10 h-10 object-contain rounded-full"
-              />
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <h2 className="text-base font-black bg-gradient-to-r from-[#A3164D] to-purple-600 bg-clip-text text-transparent">
-                  SOFTCREAM
-                </h2>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">
-                  {language === 'ar' ? 'أطيب آيس كريم' : 'Best Ice Cream'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Welcome Section - ✅ ENHANCED with Customer Profile */}
-          <div className="rounded-2xl bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-blue-900/20 p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#A3164D] to-purple-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
-                {(userData?.name || customerProfile?.name) ? (
-                  <User className="w-6 h-6 text-white" />
-                ) : (
-                  <Heart className="w-6 h-6 text-white" />
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                {/* ✅ Priority: userData > customerProfile > generic greeting */}
-                {userData?.name ? (
-                  <>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                      {language === 'ar' ? 'مرحباً،' : 'Welcome,'}
-                    </p>
-                    <p className="text-sm font-black text-gray-900 dark:text-white truncate">
-                      {userData.name}
-                    </p>
-                  </>
-                ) : customerProfile?.name ? (
-                  <>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                      {language === 'ar' ? 'مرحباً،' : 'Hi,'}
-                    </p>
-                    <p className="text-sm font-black text-gray-900 dark:text-white truncate">
-                      {customerProfile.name} 👋
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                    {language === 'ar' ? '👋 أهلاً بك في SOFTCREAM' : '👋 Welcome to SOFTCREAM'}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1 min-h-[300px]">
-          {navItems.map((item) => {
-            const content = (
-              <>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${item.highlight
-                    ? 'bg-gradient-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/30'
-                    : 'bg-gradient-to-br from-pink-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 group-hover:from-[#FF6B9D] group-hover:to-[#A3164D] group-hover:shadow-md'
-                  }`}>
-                  <item.icon className={`w-5 h-5 transition-colors ${item.highlight
-                      ? 'text-white'
-                      : 'text-[#A3164D] dark:text-pink-300 group-hover:text-white'
-                    }`} />
+          {/* Sidebar */}
+          <motion.aside
+            variants={sidebarVariants}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-[300px] z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-l border-white/20 shadow-2xl flex flex-col`}
+            style={{ fontFamily: 'Cairo, sans-serif' }}
+          >
+            {/* Header Area */}
+            <div className="p-6 pb-2">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white/50 shadow-lg">
+                    <img src="/asset/softcreamlogo.jpg" alt="Logo" className="object-cover w-full h-full" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-pink-500">
+                      SOFTCREAM
+                    </h2>
+                  </div>
                 </div>
-
-                <span className={`text-sm font-bold flex-1 ${isRTL ? 'text-right' : 'text-left'} ${item.highlight
-                    ? 'text-pink-900 dark:text-pink-200'
-                    : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'
-                  }`}>
-                  {item.label}
-                </span>
-
-                {item.badge && item.badge > 0 && (
-                  <span className={`${item.badgeColor || 'bg-gradient-to-r from-[#FF6B9D] to-[#A3164D]'} text-white text-xs font-bold rounded-full min-w-[22px] h-5 px-2 flex items-center justify-center shadow-md`}>
-                    {item.badge}
-                  </span>
-                )}
-
-                <ChevronRight className={`w-4 h-4 text-pink-300 dark:text-pink-400 transition-all flex-shrink-0 ${isRTL ? 'rotate-180' : ''
-                  } group-hover:text-[#FF6B9D] ${isRTL ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
-              </>
-            )
-
-            const className = `w-full flex items-center gap-3 p-3.5 rounded-2xl transition-colors duration-150 group relative ${item.highlight
-                ? 'bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 border border-pink-200 dark:border-pink-700'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`
-
-            // If item has href, use Link
-            if ('href' in item && item.href) {
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  onClick={item.onClick}
-                  className={className}
+                <button
+                  onClick={onClose}
+                  className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full hover:rotate-90 transition-transform duration-300"
                 >
-                  {content}
-                </Link>
-              )
-            }
+                  <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                </button>
+              </div>
 
-            // Otherwise use button
-            return (
-              <button
-                key={item.id}
-                onClick={item.onClick}
-                className={className}
+              {/* User Greeting Card */}
+              <motion.div
+                variants={itemVariants}
+                className="bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-500/20 dark:to-purple-500/20 p-4 rounded-2xl flex items-center gap-4 mb-4"
               >
-                {content}
-              </button>
-            )
-          })}
-        </nav>
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                  {(userData?.name || customerProfile?.name) ? <User className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                    {language === 'ar' ? 'مرحباً بك' : 'Welcome back'}
+                  </p>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white line-clamp-1">
+                    {userData?.name || customerProfile?.name || (language === 'ar' ? 'ضيفنا العزيز' : 'Guest')}
+                  </h3>
+                </div>
+              </motion.div>
+            </div>
 
-        {/* Footer - Settings */}
-        <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-          <div className="flex gap-2">
-            {/* Language Toggle */}
-            <button
-              onClick={toggleLanguage}
-              className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 hover:from-blue-200 hover:to-cyan-200 dark:hover:from-blue-800/40 dark:hover:to-cyan-800/40 transition-colors shadow-sm"
-            >
-              <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-bold text-blue-900 dark:text-blue-200">
-                {language === 'ar' ? 'EN' : 'AR'}
-              </span>
-            </button>
+            {/* Navigation Scroll Area */}
+            <div className="flex-1 overflow-y-auto px-4 py-2 space-y-6">
 
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 hover:from-purple-200 hover:to-pink-200 dark:hover:from-purple-800/40 dark:hover:to-pink-800/40 transition-colors shadow-sm"
-            >
-              {theme === 'light' ? (
-                <Moon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              ) : (
-                <Sun className="w-4 h-4 text-yellow-500" />
-              )}
-              <span className="text-sm font-bold text-purple-900 dark:text-purple-200">
-                {theme === 'light' ? (language === 'ar' ? 'داكن' : 'Dark') : (language === 'ar' ? 'فاتح' : 'Light')}
-              </span>
-            </button>
-          </div>
-        </div>
-      </aside>
-    </>
+              {/* Section: Discover */}
+              <div className="space-y-2">
+                <p className="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest opacity-80">
+                  {language === 'ar' ? 'اكتشف' : 'Discover'}
+                </p>
+                <NavItem
+                  icon={Home}
+                  label={language === 'ar' ? 'الرئيسية' : 'Home'}
+                  href="/"
+                  onClick={onClose}
+                  isRTL={isRTL}
+                  variants={itemVariants}
+                />
+                <NavItem
+                  icon={Sparkles}
+                  label={language === 'ar' ? 'المنتجات' : 'Products'}
+                  href="/products"
+                  onClick={onClose}
+                  isRTL={isRTL}
+                  active
+                  variants={itemVariants}
+                />
+                <NavItem
+                  icon={Heart}
+                  label={language === 'ar' ? 'المفضلة' : 'Favorites'}
+                  onClick={() => handleNavClick(() => onOpenFavorites?.())}
+                  isRTL={isRTL}
+                  variants={itemVariants}
+                  badge={favoritesCount}
+                  badgeColor="bg-red-500"
+                />
+              </div>
+
+              {/* Section: Personal */}
+              <div className="space-y-2">
+                <p className="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest opacity-80">
+                  {language === 'ar' ? 'حسابي' : 'Personal'}
+                </p>
+                <NavItem
+                  icon={ShoppingCart}
+                  label={t('navCart') || 'السلة'}
+                  onClick={() => handleNavClick(() => onOpenCart?.())}
+                  badge={cartCount}
+                  isRTL={isRTL}
+                  variants={itemVariants}
+                />
+                <NavItem
+                  icon={ShoppingBag}
+                  label={language === 'ar' ? 'طلباتي' : 'My Orders'}
+                  onClick={() => handleNavClick(() => onOpenMyOrders?.())}
+                  badge={activeOrdersCount}
+                  badgeColor="bg-green-500"
+                  isRTL={isRTL}
+                  variants={itemVariants}
+                />
+              </div>
+
+              {/* Section: Support */}
+              <div className="space-y-2">
+                <p className="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest opacity-80">
+                  {language === 'ar' ? 'دعم' : 'Support'}
+                </p>
+                <NavItem
+                  icon={Phone}
+                  label={t('footerNavContact') || 'تواصل معنا'}
+                  onClick={() => handleNavClick(() => scrollTo('footer-contact'))}
+                  isRTL={isRTL}
+                  variants={itemVariants}
+                />
+                <NavItem
+                  icon={UtcClock}
+                  label={t('footerNavHours') || 'ساعات العمل'}
+                  onClick={() => handleNavClick(() => scrollTo('footer-hours'))}
+                  isRTL={isRTL}
+                  variants={itemVariants}
+                />
+              </div>
+
+            </div>
+
+            {/* Footer: Settings */}
+            <motion.div variants={itemVariants} className="p-4 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-md border-t border-slate-200 dark:border-slate-800">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center justify-center gap-2 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  {theme === 'dark' ? <Moon className="w-4 h-4 text-purple-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
+                  <span className="text-xs font-bold font-sans">
+                    {theme === 'dark' ? 'Dark' : 'Light'}
+                  </span>
+                </button>
+                <button
+                  onClick={toggleLanguage}
+                  className="flex items-center justify-center gap-2 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <Globe className="w-4 h-4 text-blue-500" />
+                  <span className="text-xs font-bold font-sans">
+                    {language === 'ar' ? 'English' : 'العربية'}
+                  </span>
+                </button>
+              </div>
+            </motion.div>
+
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
   )
 }
+
+// Sub-component for clean rendering
+function NavItem({ icon: Icon, label, href, onClick, badge, badgeColor, isRTL, active, variants }: any) {
+  const content = (
+    <div className={`flex items-center gap-3 w-full p-2.5 rounded-xl transition-all duration-200 group ${active ? 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}>
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${active ? 'bg-pink-100 dark:bg-pink-900/40 text-pink-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <span className="flex-1 font-bold text-sm">
+        {label}
+      </span>
+      {badge !== undefined && badge > 0 && (
+        <span className={`${badgeColor || 'bg-pink-500'} text-white text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center shadow-sm`}>
+          {badge}
+        </span>
+      )}
+    </div>
+  )
+
+  if (href) {
+    return (
+      <motion.div variants={variants}>
+        <Link href={href} onClick={onClick} className="block">
+          {content}
+        </Link>
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.button variants={variants} onClick={onClick} className="block w-full text-start">
+      {content}
+    </motion.button>
+  )
+}
+
+const UtcClock = Clock // Alias for cleaner usage in array

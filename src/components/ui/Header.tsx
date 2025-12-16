@@ -4,7 +4,7 @@ import { ShoppingCart, Menu, Sun, Moon, Globe } from 'lucide-react'
 import { useTheme } from '@/providers/ThemeProvider'
 import { useLanguage } from '@/providers/LanguageProvider'
 import { useCart } from '@/providers/CartProvider'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo, useCallback } from 'react'
 
 interface HeaderProps {
   onOpenSidebar?: () => void
@@ -12,7 +12,14 @@ interface HeaderProps {
   onOpenCart?: () => void
 }
 
-export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: HeaderProps) {
+/**
+ * Header Component - Optimized for Performance
+ * ============================================
+ * ✅ Memoized to prevent re-renders from parent
+ * ✅ No scroll listeners (sticky via CSS only)
+ * ✅ Fixed height to prevent CLS
+ */
+function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: HeaderProps) {
   const { toggleTheme, isDark } = useTheme()
   const { language, toggleLanguage, isRTL } = useLanguage()
   const { getCartCount } = useCart()
@@ -26,6 +33,10 @@ export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: Hea
     setDisplayCount(getCartCount())
   }, [getCartCount])
 
+  // Memoized handlers to prevent re-renders
+  const handleOpenSidebar = useCallback(() => onOpenSidebar?.(), [onOpenSidebar])
+  const handleOpenCart = useCallback(() => onOpenCart?.(), [onOpenCart])
+
 
 
   return (
@@ -35,7 +46,7 @@ export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: Hea
 
           {/* Menu Button - Toggle Sidebar */}
           <button
-            onClick={onOpenSidebar}
+            onClick={handleOpenSidebar}
             className="p-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-lg border border-pink-100 dark:border-gray-700 hover:border-pink-300 group"
             aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
           >
@@ -104,7 +115,7 @@ export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: Hea
 
             {/* Cart Button - Brand Pink */}
             <button
-              onClick={onOpenCart}
+              onClick={handleOpenCart}
               className="relative p-3 bg-gradient-to-r from-[#FF6B9D] to-[#FF5A8E] text-white rounded-full hover:from-[#FF5A8E] hover:to-[#FF4979] transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
               aria-label="Open cart"
             >
@@ -121,4 +132,6 @@ export default function Header({ onOpenSidebar, isSidebarOpen, onOpenCart }: Hea
     </header>
   )
 }
+
+export default memo(Header)
 
