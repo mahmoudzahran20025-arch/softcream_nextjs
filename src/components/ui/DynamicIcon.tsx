@@ -4,6 +4,32 @@ import { motion } from 'framer-motion'
 import type { IconConfig } from '@/lib/uiConfig'
 import * as LucideIcons from 'lucide-react'
 
+/**
+ * Icon name mapping for common invalid/legacy icon names
+ * Maps invalid icon names to valid Lucide icon names
+ * This handles data that was entered before icon validation was added
+ */
+const ICON_NAME_MAPPING: Record<string, string> = {
+    // Common invalid icons → valid alternatives
+    'Cup': 'Coffee',           // Cup doesn't exist, use Coffee
+    'Dessert': 'Cake',         // Dessert doesn't exist, use Cake
+    'Food': 'UtensilsCrossed', // Food doesn't exist
+    'Drink': 'GlassWater',     // Drink doesn't exist
+    'Bowl': 'Soup',            // Bowl doesn't exist
+    'Glass': 'Wine',           // Glass doesn't exist
+    'Mug': 'Coffee',           // Mug doesn't exist
+    'Plate': 'UtensilsCrossed',// Plate doesn't exist
+    'Spoon': 'Utensils',       // Spoon doesn't exist
+    'Fork': 'Utensils',        // Fork doesn't exist
+};
+
+/**
+ * Normalize icon name - applies mapping for invalid icons
+ */
+function normalizeIconName(iconName: string): string {
+    return ICON_NAME_MAPPING[iconName] || iconName;
+}
+
 interface DynamicIconProps {
     config: IconConfig
     size?: number
@@ -27,26 +53,32 @@ export function isValidLucideIcon(iconName: string): boolean {
  * Requirements: 2.4, 2.5
  * 
  * Fallback order:
- * 1. Primary icon (config.value)
- * 2. Fallback icon (config.fallback)
+ * 1. Normalized primary icon (config.value with mapping applied)
+ * 2. Normalized fallback icon (config.fallback with mapping applied)
  * 3. Circle (ultimate fallback)
  */
 export function getLucideIconComponent(config: IconConfig): LucideIcons.LucideIcon {
-    // Try primary icon
-    if (isValidLucideIcon(config.value)) {
-        return (LucideIcons as any)[config.value];
+    // Normalize icon names (apply mapping for invalid icons)
+    const normalizedValue = normalizeIconName(config.value);
+    const normalizedFallback = config.fallback ? normalizeIconName(config.fallback) : undefined;
+    
+    // Try normalized primary icon
+    if (isValidLucideIcon(normalizedValue)) {
+        return (LucideIcons as any)[normalizedValue];
     }
     
-    // Log warning for invalid primary icon
-    console.warn(`Invalid Lucide icon: "${config.value}", attempting fallback`);
+    // Log warning for invalid primary icon (only if mapping didn't help)
+    if (normalizedValue === config.value) {
+        console.warn(`Invalid Lucide icon: "${config.value}", attempting fallback`);
+    }
     
-    // Try fallback icon
-    if (config.fallback && isValidLucideIcon(config.fallback)) {
-        return (LucideIcons as any)[config.fallback];
+    // Try normalized fallback icon
+    if (normalizedFallback && isValidLucideIcon(normalizedFallback)) {
+        return (LucideIcons as any)[normalizedFallback];
     }
     
     // Log warning if fallback also invalid
-    if (config.fallback) {
+    if (config.fallback && normalizedFallback === config.fallback) {
         console.warn(`Fallback icon "${config.fallback}" also invalid, using Circle`);
     }
     

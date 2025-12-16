@@ -250,17 +250,14 @@ export default function UnifiedProductRenderer({ product: _product, engine }: Un
     const {
         isLoading,
         templateId,
-        uiConfig,
         optionGroups,
         selections,
         selectedOptions,
         customizationTotal,
-        nutrition,
-        energyType,
-        energyScore,
         hasCustomization,
         actions
     } = engine
+    // Note: uiConfig, nutrition, energyType, energyScore removed - NutritionInfo handles nutrition display
 
     // Loading state
     if (isLoading) {
@@ -312,14 +309,8 @@ export default function UnifiedProductRenderer({ product: _product, engine }: Un
             transition={{ delay: 0.2 }}
             className="space-y-4"
         >
-            {/* Nutrition Badge (Conditional) */}
-            {uiConfig.show_macros && (
-                <NutritionBadge
-                    nutrition={nutrition}
-                    energyType={energyType}
-                    energyScore={energyScore}
-                />
-            )}
+            {/* ✅ NutritionBadge removed - NutritionInfo in ProductModal/index.tsx handles this
+                to avoid duplicate display of nutrition information */}
 
             {/* ✅ FIX: Removed separate Containers/Sizes selectors
                 Containers and Sizes now come ONLY from option_groups via customizationRules

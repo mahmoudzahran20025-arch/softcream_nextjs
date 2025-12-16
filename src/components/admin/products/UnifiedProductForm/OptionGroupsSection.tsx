@@ -13,13 +13,9 @@
 'use client';
 
 import React from 'react';
-import { Plus, Trash2, AlertCircle, AlertTriangle, GripVertical, Palette } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, AlertTriangle, GripVertical } from 'lucide-react';
 import type { OptionGroupsSectionProps, OptionGroupAssignment, OptionGroupInfo } from './types';
 import ConditionalRulesEditor from '../ConditionalRulesEditor';
-import AdvancedStyleEditor from './AdvancedStyleEditor';
-import { updateOptionGroup } from '@/lib/admin/options.api';
-import { parseUIConfig } from '@/lib/uiConfig';
-import type { UIConfig } from '@/lib/uiConfig';
 
 const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
   assignments,
@@ -29,7 +25,7 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
   warnings = [],
   productId,
 }) => {
-  const [editingVisualsGroupId, setEditingVisualsGroupId] = React.useState<string | null>(null);
+  // Note: AdvancedStyleEditor removed - styling is now managed only from Options tab
 
   // Filter out groups with invalid IDs to prevent React key warnings
   const validGroups = availableGroups.filter(group => group.id != null && group.id !== '');
@@ -166,24 +162,14 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditingVisualsGroupId(assignment.groupId)}
-                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                      title="تخصيص المظهر (Visual Style)"
-                    >
-                      <Palette size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveGroup(assignment.groupId)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                      title="إزالة المجموعة"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveGroup(assignment.groupId)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    title="إزالة المجموعة"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
 
                 {/* Configuration */}
@@ -383,41 +369,7 @@ const OptionGroupsSection: React.FC<OptionGroupsSectionProps> = ({
         </div>
       )}
 
-      {/* Advanced Style Editor Modal */}
-      {editingVisualsGroupId && (() => {
-        const group = getGroupInfo(editingVisualsGroupId);
-        if (!group) return null;
-
-        return (
-          <AdvancedStyleEditor
-            group={group}
-            config={parseUIConfig(group.ui_config)}
-            onChange={async (newConfig: UIConfig) => {
-              // 1. Call API to save
-              try {
-                // Requirements: 3.3. Update Option Group
-                await updateOptionGroup(group.id, {
-                  ui_config: newConfig
-                });
-
-                // 2. Optimistic Update (Mutate the prop object reference for immediate preview)
-                // Note: In a perfect world we would reload, but this is a "Visual Editor"
-                if (group) {
-                  group.ui_config = newConfig;
-                  // Force re-render of badge if needed by creating a dummy state update or relying on parent
-                }
-
-                // Close editor
-                setEditingVisualsGroupId(null);
-              } catch (e) {
-                console.error("Failed to save visual config", e);
-                alert("Failed to save changes. Please try again.");
-              }
-            }}
-            onClose={() => setEditingVisualsGroupId(null)}
-          />
-        );
-      })()}
+      {/* Note: AdvancedStyleEditor removed - styling is now managed only from Options tab */}
     </div>
   );
 };

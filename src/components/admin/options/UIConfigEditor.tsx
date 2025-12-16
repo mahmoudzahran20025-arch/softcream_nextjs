@@ -35,12 +35,14 @@ import {
   Flame,
   Apple,
   Beef,
-  Droplet
+  Droplet,
+  FileText // For Content section
 } from 'lucide-react';
 import type { UIConfig, IconConfig, DisplayMode, FallbackStyle, NutritionDisplayConfig } from '@/lib/uiConfig';
 import { DEFAULT_UI_CONFIG, mergeUIConfig } from '@/lib/uiConfig';
 import DynamicIcon from '@/components/ui/DynamicIcon';
-import OptionRenderer, { type OptionData } from '@/components/shared/OptionRenderer';
+import OptionGroupRenderer from '@/components/shared/OptionGroupRenderer';
+import type { OptionData } from '@/components/shared/OptionRenderer';
 
 // ===========================
 // Types
@@ -297,6 +299,7 @@ const UIConfigEditor: React.FC<UIConfigEditorProps> = ({
     fallbackStyle: true,
     nutrition: false,
     layout: false,
+    content: false, // Requirement 5.1: Separate Content section
     icon: false,
     colors: false,
     preview: true,
@@ -323,9 +326,24 @@ const UIConfigEditor: React.FC<UIConfigEditorProps> = ({
     updateConfig({ nutrition: newNutrition });
   }, [config.nutrition, updateConfig]);
 
-  // Requirement 9.5: Reset to defaults
+  // Requirement 9.5, 5.5: Reset to defaults - restores ALL fields to DEFAULT_UI_CONFIG values
   const handleResetToDefaults = useCallback(() => {
-    onChange({ ...DEFAULT_UI_CONFIG });
+    // Create a fresh copy of DEFAULT_UI_CONFIG to ensure all fields are reset
+    const resetConfig: UIConfig = {
+      display_mode: DEFAULT_UI_CONFIG.display_mode,
+      fallback_style: DEFAULT_UI_CONFIG.fallback_style,
+      columns: DEFAULT_UI_CONFIG.columns,
+      card_size: DEFAULT_UI_CONFIG.card_size,
+      spacing: DEFAULT_UI_CONFIG.spacing,
+      show_images: DEFAULT_UI_CONFIG.show_images,
+      show_prices: DEFAULT_UI_CONFIG.show_prices,
+      show_descriptions: DEFAULT_UI_CONFIG.show_descriptions,
+      show_group_description: DEFAULT_UI_CONFIG.show_group_description,
+      nutrition: { ...DEFAULT_UI_CONFIG.nutrition! },
+      icon: { ...DEFAULT_UI_CONFIG.icon! },
+      accent_color: DEFAULT_UI_CONFIG.accent_color,
+    };
+    onChange(resetConfig);
   }, [onChange]);
 
   const handleDisplayModeChange = (mode: DisplayMode) => {
@@ -470,44 +488,47 @@ const UIConfigEditor: React.FC<UIConfigEditorProps> = ({
         )}
       </div>
 
-      {/* Fallback Style Section - Requirement 5.1 */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden">
-        {renderSectionHeader(
-          'النمط الاحتياطي',
-          'fallbackStyle',
-          <LayoutGrid size={16} className="text-purple-500 sm:w-[18px] sm:h-[18px]" />,
-          config.fallback_style
-        )}
+      {/* Fallback Style Section - Requirement 5.1, 5.2: Conditional rendering */}
+      {/* Show fallback options only when display_mode is not 'default' */}
+      {config.display_mode !== 'default' && (
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+          {renderSectionHeader(
+            'النمط الاحتياطي',
+            'fallbackStyle',
+            <LayoutGrid size={16} className="text-purple-500 sm:w-[18px] sm:h-[18px]" />,
+            config.fallback_style
+          )}
 
-        {expandedSections.fallbackStyle && (
-          <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-            <p className="text-xs text-gray-500 mb-2">
-              يُستخدم عندما لا يتمكن النمط الرئيسي من العرض (مثلاً: Hero Flavor بدون صور)
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {FALLBACK_STYLE_OPTIONS.map((option) => {
-                const Icon = option.icon;
-                const isSelected = config.fallback_style === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleFallbackStyleChange(option.value)}
-                    className={`p-2.5 sm:p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1.5 ${
-                      isSelected
-                        ? 'border-purple-500 bg-purple-50 text-purple-700'
-                        : 'border-gray-200 hover:border-purple-300 text-gray-600'
-                    }`}
-                  >
-                    <Icon size={18} className={isSelected ? 'text-purple-500' : 'text-gray-400'} />
-                    <span className="text-xs font-medium">{option.label}</span>
-                  </button>
-                );
-              })}
+          {expandedSections.fallbackStyle && (
+            <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+              <p className="text-xs text-gray-500 mb-2">
+                يُستخدم عندما لا يتمكن النمط الرئيسي من العرض (مثلاً: Hero Flavor بدون صور)
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {FALLBACK_STYLE_OPTIONS.map((option) => {
+                  const Icon = option.icon;
+                  const isSelected = config.fallback_style === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleFallbackStyleChange(option.value)}
+                      className={`p-2.5 sm:p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1.5 ${
+                        isSelected
+                          ? 'border-purple-500 bg-purple-50 text-purple-700'
+                          : 'border-gray-200 hover:border-purple-300 text-gray-600'
+                      }`}
+                    >
+                      <Icon size={18} className={isSelected ? 'text-purple-500' : 'text-gray-400'} />
+                      <span className="text-xs font-medium">{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Nutrition Section - Requirement 3.2 */}
       <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -684,35 +705,113 @@ const UIConfigEditor: React.FC<UIConfigEditorProps> = ({
                 ))}
               </div>
             </div>
+          </div>
+        )}
+      </div>
 
+      {/* Content Section - Requirement 5.1: Separate Content section */}
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        {renderSectionHeader(
+          'المحتوى المعروض',
+          'content',
+          <FileText size={16} className="text-teal-500 sm:w-[18px] sm:h-[18px]" />
+        )}
+
+        {expandedSections.content && (
+          <div className="p-3 sm:p-4 space-y-4">
+            <p className="text-xs text-gray-500 mb-2">
+              تحكم في العناصر التي تظهر في كل خيار
+            </p>
+            
             {/* Content Toggles */}
-            <div className="flex flex-wrap gap-3 sm:gap-4 pt-2 border-t border-gray-100">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.show_images ?? true}
-                  onChange={(e) => updateConfig({ show_images: e.target.checked })}
-                  className="w-4 h-4 accent-blue-500 rounded"
-                />
-                <span className="text-xs sm:text-sm text-gray-600">عرض الصور</span>
+            <div className="space-y-3">
+              <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-2">
+                  <ImageIcon size={16} className="text-gray-400" />
+                  <span className="text-sm text-gray-700">عرض الصور</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={config.show_images ?? true}
+                    onChange={(e) => updateConfig({ show_images: e.target.checked })}
+                    className="sr-only"
+                  />
+                  <div className={`w-11 h-6 rounded-full transition-colors ${
+                    config.show_images ?? true ? 'bg-teal-500' : 'bg-gray-300'
+                  }`}>
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                      config.show_images ?? true ? 'translate-x-5' : 'translate-x-0.5'
+                    }`} />
+                  </div>
+                </div>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.show_prices ?? true}
-                  onChange={(e) => updateConfig({ show_prices: e.target.checked })}
-                  className="w-4 h-4 accent-blue-500 rounded"
-                />
-                <span className="text-xs sm:text-sm text-gray-600">عرض الأسعار</span>
+
+              <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm font-bold">﷼</span>
+                  <span className="text-sm text-gray-700">عرض الأسعار</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={config.show_prices ?? true}
+                    onChange={(e) => updateConfig({ show_prices: e.target.checked })}
+                    className="sr-only"
+                  />
+                  <div className={`w-11 h-6 rounded-full transition-colors ${
+                    config.show_prices ?? true ? 'bg-teal-500' : 'bg-gray-300'
+                  }`}>
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                      config.show_prices ?? true ? 'translate-x-5' : 'translate-x-0.5'
+                    }`} />
+                  </div>
+                </div>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.show_descriptions ?? false}
-                  onChange={(e) => updateConfig({ show_descriptions: e.target.checked })}
-                  className="w-4 h-4 accent-blue-500 rounded"
-                />
-                <span className="text-xs sm:text-sm text-gray-600">عرض الوصف</span>
+
+              <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-2">
+                  <FileText size={16} className="text-gray-400" />
+                  <span className="text-sm text-gray-700">عرض وصف الخيار</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={config.show_descriptions ?? false}
+                    onChange={(e) => updateConfig({ show_descriptions: e.target.checked })}
+                    className="sr-only"
+                  />
+                  <div className={`w-11 h-6 rounded-full transition-colors ${
+                    config.show_descriptions ? 'bg-teal-500' : 'bg-gray-300'
+                  }`}>
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                      config.show_descriptions ? 'translate-x-5' : 'translate-x-0.5'
+                    }`} />
+                  </div>
+                </div>
+              </label>
+
+              {/* Requirements 5.6, 7.1, 7.2, 7.3: Toggle for group description visibility */}
+              <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-2">
+                  <List size={16} className="text-gray-400" />
+                  <span className="text-sm text-gray-700">عرض وصف المجموعة</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={config.show_group_description ?? true}
+                    onChange={(e) => updateConfig({ show_group_description: e.target.checked })}
+                    className="sr-only"
+                  />
+                  <div className={`w-11 h-6 rounded-full transition-colors ${
+                    config.show_group_description ?? true ? 'bg-teal-500' : 'bg-gray-300'
+                  }`}>
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                      config.show_group_description ?? true ? 'translate-x-5' : 'translate-x-0.5'
+                    }`} />
+                  </div>
+                </div>
               </label>
             </div>
           </div>
@@ -908,7 +1007,7 @@ const UIConfigEditor: React.FC<UIConfigEditorProps> = ({
         )}
       </div>
 
-      {/* Live Preview Section - Requirements 9.2, 9.3 */}
+      {/* Live Preview Section - Requirements 4.1, 4.2, 4.3 */}
       {showPreview && (
         <div className="border border-gray-200 rounded-xl overflow-hidden">
           {renderSectionHeader(
@@ -920,35 +1019,38 @@ const UIConfigEditor: React.FC<UIConfigEditorProps> = ({
           {expandedSections.preview && (
             <div className="p-3 sm:p-4">
               <p className="text-xs text-gray-500 mb-3">
-                معاينة كيف ستظهر الخيارات بالإعدادات الحالية
+                معاينة كيف ستظهر الخيارات بالإعدادات الحالية (مع header وأيقونة ووصف)
               </p>
               
-              {/* Preview Container */}
+              {/* Preview Container - Task 5.1, 5.2, 5.3 */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 min-h-[200px]">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {sampleOptions.map((option) => {
-                    const isSelected = previewSelectedIds.includes(option.id);
-                    return (
-                      <OptionRenderer
-                        key={option.id}
-                        option={option}
-                        style={config.fallback_style || 'cards'}
-                        uiConfig={config}
-                        isSelected={isSelected}
-                        canSelect={!isSelected}
-                        onSelect={() => {
-                          if (isSelected) {
-                            setPreviewSelectedIds(prev => prev.filter(id => id !== option.id));
-                          } else {
-                            setPreviewSelectedIds(prev => [...prev, option.id]);
-                          }
-                        }}
-                        language="ar"
-                        accentColor={(config.accent_color as 'pink' | 'amber' | 'purple' | 'cyan' | 'emerald') || 'pink'}
-                      />
-                    );
-                  })}
-                </div>
+                {/* 
+                  Task 5.1: Use OptionGroupRenderer instead of OptionRenderer
+                  Task 5.2: canRenderMode fallback logic is handled internally by OptionGroupRenderer
+                  Task 5.3: Header with icon and description is shown by OptionGroupRenderer
+                */}
+                <OptionGroupRenderer
+                  group={{
+                    // Mock group object for preview
+                    id: 'preview-group',
+                    groupName: 'معاينة المجموعة',
+                    name_ar: 'معاينة المجموعة',
+                    name_en: 'Preview Group',
+                    description_ar: 'هذه معاينة لكيفية ظهور الخيارات للعملاء',
+                    description_en: 'This is a preview of how options will appear to customers',
+                    groupIcon: config.icon?.value,
+                    icon: config.icon?.value,
+                    ui_config: config,
+                    options: sampleOptions,
+                    maxSelections: 3,
+                    minSelections: 0,
+                    max_selections: 3,
+                    min_selections: 0,
+                  }}
+                  selections={previewSelectedIds}
+                  onSelectionChange={setPreviewSelectedIds}
+                  language="ar"
+                />
               </div>
 
               {/* Preview Info */}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Trash2, Flame, Dumbbell, Leaf } from 'lucide-react'
+import { Trash2, Flame, Dumbbell } from 'lucide-react'
 import QuantitySelector from '@/components/ui/common/QuantitySelector'
 import PriceDisplay from '@/components/ui/common/PriceDisplay'
 

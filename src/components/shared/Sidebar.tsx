@@ -168,7 +168,6 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders, o
                   label={language === 'ar' ? 'الرئيسية' : 'Home'}
                   href="/"
                   onClick={onClose}
-                  isRTL={isRTL}
                   variants={itemVariants}
                 />
                 <NavItem
@@ -176,7 +175,6 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders, o
                   label={language === 'ar' ? 'المنتجات' : 'Products'}
                   href="/products"
                   onClick={onClose}
-                  isRTL={isRTL}
                   active
                   variants={itemVariants}
                 />
@@ -184,7 +182,6 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders, o
                   icon={Heart}
                   label={language === 'ar' ? 'المفضلة' : 'Favorites'}
                   onClick={() => handleNavClick(() => onOpenFavorites?.())}
-                  isRTL={isRTL}
                   variants={itemVariants}
                   badge={favoritesCount}
                   badgeColor="bg-red-500"
@@ -201,7 +198,6 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders, o
                   label={t('navCart') || 'السلة'}
                   onClick={() => handleNavClick(() => onOpenCart?.())}
                   badge={cartCount}
-                  isRTL={isRTL}
                   variants={itemVariants}
                 />
                 <NavItem
@@ -210,7 +206,6 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders, o
                   onClick={() => handleNavClick(() => onOpenMyOrders?.())}
                   badge={activeOrdersCount}
                   badgeColor="bg-green-500"
-                  isRTL={isRTL}
                   variants={itemVariants}
                 />
               </div>
@@ -224,14 +219,12 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders, o
                   icon={Phone}
                   label={t('footerNavContact') || 'تواصل معنا'}
                   onClick={() => handleNavClick(() => scrollTo('footer-contact'))}
-                  isRTL={isRTL}
                   variants={itemVariants}
                 />
                 <NavItem
                   icon={UtcClock}
                   label={t('footerNavHours') || 'ساعات العمل'}
                   onClick={() => handleNavClick(() => scrollTo('footer-hours'))}
-                  isRTL={isRTL}
                   variants={itemVariants}
                 />
               </div>
@@ -270,7 +263,7 @@ export default function Sidebar({ isOpen, onClose, onOpenCart, onOpenMyOrders, o
 }
 
 // Sub-component for clean rendering
-function NavItem({ icon: Icon, label, href, onClick, badge, badgeColor, isRTL, active, variants }: any) {
+function NavItem({ icon: Icon, label, href, onClick, badge, badgeColor, active, variants }: any) {
   const content = (
     <div className={`flex items-center gap-3 w-full p-2.5 rounded-xl transition-all duration-200 group ${active ? 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}>
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${active ? 'bg-pink-100 dark:bg-pink-900/40 text-pink-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white'}`}>

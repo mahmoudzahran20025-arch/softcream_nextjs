@@ -61,27 +61,7 @@ export default function ProductHeader({ product, displayPrice }: ProductHeaderPr
             </motion.span>
           )}
 
-          {/* Template Badge - Shows product type */}
-          {product.template_id && (
-            <motion.span
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.05 }}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${
-                product.template_id === 'template_1' ? 'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400' :
-                product.template_id === 'template_2' ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400' :
-                product.template_id === 'template_3' ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400' :
-                product.template_id === 'template_lifestyle' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
-                'bg-gray-50 text-gray-700 dark:bg-gray-950/30 dark:text-gray-400'
-              }`}
-            >
-              {product.template_id === 'template_1' && '🎯 بسيط'}
-              {product.template_id === 'template_2' && '📦 متوسط'}
-              {product.template_id === 'template_3' && '🎨 ويزارد'}
-              {product.template_id === 'template_lifestyle' && '🥗 صحي'}
-              {!['template_1', 'template_2', 'template_3', 'template_lifestyle'].includes(product.template_id) && '📋 عادي'}
-            </motion.span>
-          )}
+          {/* Template Badge removed - internal implementation detail, not useful for customers */}
         </div>
 
         {/* Rating */}

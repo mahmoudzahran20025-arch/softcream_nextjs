@@ -12,7 +12,7 @@ import { selectHealthInsight, parseHealthKeywords, type CartItemWithKeywords } f
 
 import CartItem from './CartItem'
 import CartSummary from './CartSummary'
-import HealthyMeter from './HealthyMeter'
+// HealthyMeter available for future use
 
 const HealthInsightCard = lazy(() => import('./HealthInsightCard'))
 

@@ -184,65 +184,115 @@ const ProductDetailsSection: React.FC<ProductDetailsSectionProps> = ({
         </div>
       </div>
 
-      {/* Template Selection */}
+      {/* Template Selection - Requirements 6.2, 6.4: Visual previews and clear descriptions */}
       <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl p-5 border-2 border-indigo-200">
         <h3 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent mb-3 flex items-center gap-2">
           <span>🎨</span> اختر قالب العرض
         </h3>
         <p className="text-sm text-gray-600 mb-4">
-          القالب يحدد كيف سيظهر المنتج للعملاء وطريقة التخصيص
+          القالب يحدد نوع البطاقة التي ستظهر للعملاء. كل قالب يستخدم مكون بطاقة مختلف.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {TEMPLATES.map(template => (
-            <button
-              key={template.id}
-              type="button"
-              onClick={(e) => {
-                e.preventDefault(); // ✅ FIX: Prevent any form submission
-                e.stopPropagation(); // ✅ FIX: Stop event bubbling
-                console.log('🎨 Template button clicked:', template.id);
-                handleChange('template_id', template.id);
-              }}
-              className={`p-4 rounded-xl border-2 text-right transition-all ${formData.template_id === template.id
-                ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                : 'border-gray-200 bg-white hover:border-indigo-300'
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {TEMPLATES.map(template => {
+            const isSelected = formData.template_id === template.id;
+            // Theme colors based on template
+            const themeColors = {
+              amber: { border: 'border-amber-400', bg: 'bg-amber-50', badge: 'bg-amber-100 text-amber-700' },
+              pink: { border: 'border-pink-400', bg: 'bg-pink-50', badge: 'bg-pink-100 text-pink-700' },
+              purple: { border: 'border-purple-400', bg: 'bg-purple-50', badge: 'bg-purple-100 text-purple-700' },
+              emerald: { border: 'border-emerald-400', bg: 'bg-emerald-50', badge: 'bg-emerald-100 text-emerald-700' },
+            };
+            const colors = themeColors[template.themeColor as keyof typeof themeColors] || themeColors.pink;
+            
+            return (
+              <button
+                key={template.id}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('🎨 Template button clicked:', template.id);
+                  handleChange('template_id', template.id);
+                }}
+                className={`p-4 rounded-xl border-2 text-right transition-all relative overflow-hidden ${
+                  isSelected
+                    ? `${colors.border} ${colors.bg} shadow-lg ring-2 ring-offset-2 ring-indigo-300`
+                    : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md'
                 }`}
-            >
-              <div className="flex items-start gap-3 mb-2">
-                <span className="text-3xl">{template.icon}</span>
-                <div className="flex-1">
-                  <div className="font-bold text-gray-800">{template.name}</div>
-                  <div className="text-xs text-gray-500">{template.nameEn}</div>
+              >
+                {/* Card Type Badge - Requirements 6.1 */}
+                <div className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-medium ${colors.badge}`}>
+                  {template.cardComponent}
                 </div>
-                {formData.template_id === template.id && (
-                  <span className="text-green-500 text-xl">✓</span>
+                
+                {/* Selection indicator */}
+                {isSelected && (
+                  <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm">✓</span>
+                  </div>
                 )}
-              </div>
-              <p className="text-xs text-gray-600 mb-2">{template.description}</p>
-              <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                {template.preview}
-              </div>
-            </button>
-          ))}
+                
+                <div className="flex items-start gap-3 mb-3 mt-4">
+                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl ${colors.bg} border ${colors.border}`}>
+                    {template.icon}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-gray-800 text-lg">{template.name}</div>
+                    <div className="text-sm text-gray-500">{template.nameEn}</div>
+                  </div>
+                </div>
+                
+                <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+                
+                {/* Visual Preview Box */}
+                <div className={`p-3 rounded-lg ${colors.bg} border ${colors.border}`}>
+                  <div className="text-xs font-semibold text-gray-700 mb-1">👁️ المعاينة:</div>
+                  <div className="text-sm text-gray-600">{template.preview}</div>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Selected Template Details */}
+        {/* Selected Template Details - Requirements 6.2: Clear descriptions */}
         {formData.template_id && (() => {
           const selectedTemplate = getTemplateById(formData.template_id)
-          return selectedTemplate && (
-            <div className="mt-4 p-4 bg-white rounded-lg border border-indigo-200">
-              <div className="text-sm font-semibold text-indigo-700 mb-2">
+          if (!selectedTemplate) return null;
+          
+          const themeColors = {
+            amber: { border: 'border-amber-200', bg: 'from-amber-50 to-orange-50', text: 'text-amber-700' },
+            pink: { border: 'border-pink-200', bg: 'from-pink-50 to-rose-50', text: 'text-pink-700' },
+            purple: { border: 'border-purple-200', bg: 'from-purple-50 to-violet-50', text: 'text-purple-700' },
+            emerald: { border: 'border-emerald-200', bg: 'from-emerald-50 to-teal-50', text: 'text-emerald-700' },
+          };
+          const colors = themeColors[selectedTemplate.themeColor as keyof typeof themeColors] || themeColors.pink;
+          
+          return (
+            <div className={`mt-4 p-4 bg-gradient-to-br ${colors.bg} rounded-xl border-2 ${colors.border}`}>
+              {/* Card Component Info */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🎴</span>
+                <span className={`font-bold ${colors.text}`}>
+                  يستخدم: {selectedTemplate.cardComponent}
+                </span>
+                <span className="text-xs bg-white px-2 py-0.5 rounded-full text-gray-600">
+                  نوع البطاقة: {selectedTemplate.cardType}
+                </span>
+              </div>
+              
+              <div className="text-sm font-semibold text-gray-700 mb-2">
                 📌 الاستخدام المثالي:
               </div>
               <p className="text-sm text-gray-700 mb-3">{selectedTemplate.usage}</p>
-              <div className="text-sm font-semibold text-indigo-700 mb-2">
+              
+              <div className="text-sm font-semibold text-gray-700 mb-2">
                 ✨ المميزات:
               </div>
               <ul className="text-sm text-gray-700 space-y-1">
                 {selectedTemplate.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="text-indigo-500 mt-0.5">•</span>
+                    <span className={`${colors.text} mt-0.5`}>•</span>
                     <span>{feature}</span>
                   </li>
                 ))}

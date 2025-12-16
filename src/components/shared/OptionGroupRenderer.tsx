@@ -13,7 +13,7 @@
  */
 
 import { motion } from 'framer-motion'
-import { parseUIConfig, type UIConfig } from '@/lib/uiConfig'
+import { parseUIConfig, getEffectiveIcon, type UIConfig } from '@/lib/uiConfig'
 // Note: calculateLayout is used inside DisplayModeRenderer for adaptive layout (Requirements: 6.1, 6.2, 6.3)
 import DynamicIcon from '@/components/ui/DynamicIcon'
 import HeroSelectionRenderer from './HeroSelectionRenderer'
@@ -49,8 +49,17 @@ const normalizeDisplayStyle = (value: string | undefined): DisplayStyle => {
 /**
  * Get group description based on language
  * Requirements: 1.3 - Display group description as subtitle
+ * 
+ * Note: Backend sends `groupDescription` (already localized) from rules.js
+ * But also supports legacy fields: description_ar, descriptionAr
  */
 function getGroupDescription(group: any, language: 'ar' | 'en'): string | undefined {
+    // Priority 1: Pre-localized groupDescription from backend (rules.js)
+    if (group.groupDescription) {
+        return group.groupDescription
+    }
+    
+    // Priority 2: Language-specific fields
     if (language === 'ar') {
         return group.description_ar || group.descriptionAr
     }
@@ -470,9 +479,10 @@ export default function OptionGroupRenderer({
         }
     }
 
-    // ✅ FIX: Show header only for non-grid/cards display styles
-    // OptionsGrid already renders its own header, so we skip it for cards/grid
-    const showHeader = displayStyle !== 'cards' && displayStyle !== 'grid'
+    // ✅ Requirements 7.4: Show header for ALL display styles
+    // The header visibility is controlled by show_group_description in ui_config
+    // Previously skipped for cards/grid, but now we show it for consistency
+    const showHeader = true
     
     return (
         <motion.div
@@ -487,21 +497,19 @@ export default function OptionGroupRenderer({
                 <div className="flex items-center justify-between">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
-                            {/* ✅ Dynamic Icon */}
-                            {uiConfig.icon && (
-                                <DynamicIcon config={uiConfig.icon} size={20} color={accentColor} />
-                            )}
-                            {/* Fallback to group icon */}
-                            {!uiConfig.icon && group.groupIcon && (
-                                <span className="text-xl">{group.groupIcon}</span>
-                            )}
+                            {/* ✅ Requirements 3.2: Use getEffectiveIcon for icon priority */}
+                            {(() => {
+                                const effectiveIcon = getEffectiveIcon(uiConfig, group.groupIcon || group.icon);
+                                return <DynamicIcon config={effectiveIcon} size={20} color={accentColor} />;
+                            })()}
                             <span className="text-lg font-bold">{groupName}</span>
                         </div>
                         
                         {/* ✅ Task 17.4: Display group description as subtitle */}
-                        {/* Requirements: 1.3 - Show description_ar under group title */}
+                        {/* Requirements: 1.3, 7.1, 7.2, 7.3 - Show description_ar under group title */}
+                        {/* Controlled by show_group_description in ui_config (default: true) */}
                         {/* Supports format like "اضف المزيد :: اختر نكهاتك براحتك" */}
-                        {groupDescription && (
+                        {(uiConfig.show_group_description ?? true) && groupDescription && (
                             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 mr-7">
                                 {groupDescription}
                             </p>

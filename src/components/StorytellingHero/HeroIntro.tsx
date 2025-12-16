@@ -1,86 +1,115 @@
 'use client'
 
-import { Zap, ChevronsDown } from 'lucide-react'
-import { useHydrated } from '@/hooks/useHydrated'
-
-const HERO_VIDEO = {
-  src: 'https://res.cloudinary.com/djefdgy41/video/upload/v1762897127/mixkit-lightning-strike-and-thunders-47948-hd-ready_1_ajfuc1.mp4',
-  poster:
-    'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"%3E%3Crect fill="%230f172a" width="1920" height="1080"/%3E%3C/svg%3E',
-}
+import { motion } from 'framer-motion'
+import { ArrowDown, Sparkles, Heart } from 'lucide-react'
 
 export default function HeroIntro() {
-  const isHydrated = useHydrated()
+  const scrollToStories = () => {
+    const storiesSection = document.getElementById('stories-anchor')
+    if (storiesSection) {
+      storiesSection.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
 
   return (
-    <section className="relative isolate flex h-[70vh] w-full flex-col items-center justify-center overflow-hidden bg-slate-950 text-white sm:h-[75vh] md:h-[80vh] lg:h-[70vh]">
-      <div className="absolute inset-0 opacity-40">
-        <video
-          className="h-full w-full object-cover"
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          poster={HERO_VIDEO.poster}
+    <section className="relative h-[85vh] w-full overflow-hidden bg-white flex flex-col items-center justify-center">
+
+      {/* 1. Soft Pastel Mesh Gradient Background */}
+      <div className="absolute inset-0 w-full h-full opacity-60">
+        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_farthest-corner_at_50%_50%,_#fff1f2_0%,_transparent_50%),_radial-gradient(circle_farthest-corner_at_0%_0%,_#fdf2f8_0%,_transparent_50%),_radial-gradient(circle_farthest-corner_at_100%_0%,_#f0f9ff_0%,_transparent_50%),_radial-gradient(circle_farthest-corner_at_100%_100%,_#fff7ed_0%,_transparent_50%),_radial-gradient(circle_farthest-corner_at_0%_100%,_#fdf4ff_0%,_transparent_50%)] animate-gradient-slow" />
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-multiply" />
+
+        {/* Floating Soft Orbs */}
+        <motion.div
+          animate={{ y: [0, -20, 0], opacity: [0.5, 0.8, 0.5] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-pink-200/40 rounded-full blur-[100px]"
+        />
+        <motion.div
+          animate={{ y: [0, 30, 0], opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-[120px]"
+        />
+      </div>
+
+      {/* 2. Content Layer */}
+      <div className="relative z-10 container px-4 flex flex-col items-center text-center">
+
+        {/* Friendly Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="mb-8 inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-pink-100 bg-white/40 backdrop-blur-md shadow-sm hover:shadow-md transition-all cursor-default"
         >
-          <source src={HERO_VIDEO.src} type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/70 to-slate-950/90" />
-      </div>
-
-      <div className="absolute inset-0 opacity-10">
-        <div className="grid-overlay" />
-      </div>
-
-      {/* Delay gradient animation until hydration to reduce CLS */}
-      <div className={`absolute inset-0 opacity-30 ${isHydrated ? 'animate-gradient-shift' : ''}`} />
-
-      <div className="relative z-10 px-4 text-center sm:px-6 md:px-8">
-        <div className="mb-4 sm:mb-6">
-          <Zap className="mx-auto h-16 w-16 text-primary drop-shadow-[0_0_30px_rgba(163,22,77,1)] sm:h-20 sm:w-20" aria-hidden />
-        </div>
-        <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
-          الطاقة لها طعم
-          <br />
-          <span className="bg-gradient-to-r from-primary via-purple-500 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(163,22,77,0.5)]">
-            SOFT & ENERGY
+          <Heart className="w-4 h-4 text-pink-500 fill-pink-500 animate-pulse" />
+          <span className="text-sm font-bold tracking-wide text-slate-600">
+            Soft Cream Original
           </span>
-        </h1>
-        <p className="mx-auto mt-4 max-w-3xl text-sm font-light text-gray-200 drop-shadow-lg sm:text-base md:mt-6 md:text-lg lg:text-xl">
-          اكتشف كيف نحول المكونات النقية إلى لحظات تغير مزاجك وتطلق طاقتك
-        </p>
-        <div className="mt-6 flex flex-col items-center justify-center gap-2 text-white/90">
-          <span className="text-sm font-medium sm:text-base">اكتشف رحلة الطاقة</span>
-          <ChevronsDown className={`h-6 w-6 text-primary drop-shadow-[0_0_8px_rgba(163,22,77,0.7)] ${isHydrated ? 'animate-bounce' : ''}`} aria-hidden />
-        </div>
+        </motion.div>
+
+        {/* Main Title - Friendly & Big */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.2, type: "spring" }}
+          className="relative mb-6"
+        >
+          <h1 className="font-black text-6xl md:text-8xl lg:text-9xl tracking-tighter text-slate-900 leading-tight">
+            <span className="block text-transparent bg-clip-text bg-gradient-to-br from-slate-800 to-slate-600 drop-shadow-sm">
+              حلاوة
+            </span>
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 pb-2">
+              اللحظـــة
+            </span>
+          </h1>
+          {/* Decorative Sparkles */}
+          <Sparkles className="absolute -top-8 -right-8 w-12 h-12 text-amber-400 opacity-80 animate-spin-slow" />
+          <Sparkles className="absolute bottom-4 -left-12 w-8 h-8 text-pink-400 opacity-60 animate-bounce" />
+        </motion.div>
+
+        {/* Comforting Subtext */}
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="max-w-2xl text-lg md:text-2xl text-slate-600 font-medium leading-relaxed mb-12"
+        >
+          طعم يأخذك لعالم من السعادة النقية.
+          <br className="hidden md:block" />
+          مكونات طبيعية، وجودة تليق بك.
+        </motion.p>
+
+        {/* Scroll Indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, y: [0, 10, 0] }}
+          transition={{ duration: 2, delay: 1, repeat: Infinity }}
+          className="cursor-pointer"
+          onClick={scrollToStories}
+        >
+          <div className="flex flex-col items-center gap-2 text-slate-400">
+            <span className="text-sm font-medium">اكتشف القصة</span>
+            <ArrowDown className="w-5 h-5 animate-bounce" />
+          </div>
+        </motion.div>
       </div>
 
-      <style jsx>{`
-        .grid-overlay {
-          width: 100%;
-          height: 100%;
-          background-image: linear-gradient(to right, #4f4f4f2e 1px, transparent 1px),
-            linear-gradient(to bottom, #4f4f4f2e 1px, transparent 1px);
-          background-size: 54px 54px;
-          mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, #000 70%, transparent 100%);
+      <style jsx global>{`
+        @keyframes gradient-slow {
+          0% { transform: translate(0, 0) rotate(0deg); }
+          50% { transform: translate(-2%, 2%) rotate(1deg); }
+          100% { transform: translate(0, 0) rotate(0deg); }
         }
-        @keyframes gradient-shift {
-          0% {
-            background: radial-gradient(circle at 20% 50%, rgba(163, 22, 77, 0.35) 0%, transparent 50%);
-          }
-          33% {
-            background: radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.35) 0%, transparent 50%);
-          }
-          66% {
-            background: radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.35) 0%, transparent 50%);
-          }
-          100% {
-            background: radial-gradient(circle at 20% 50%, rgba(163, 22, 77, 0.35) 0%, transparent 50%);
-          }
+        .animate-gradient-slow {
+          animation: gradient-slow 25s ease-in-out infinite;
         }
-        .animate-gradient-shift {
-          animation: gradient-shift 12s linear infinite;
+        .animate-spin-slow {
+            animation: spin 8s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
       `}</style>
     </section>

@@ -5,6 +5,17 @@
 // ================================================================
 // UNIFIED PRODUCT MODEL: All rendering now uses UnifiedProductRenderer
 // All products use the same data-driven rendering path
+// 
+// Requirements 6.1: Template → Card Type Mapping
+// The template_id determines which card component is used:
+// - template_1 → SimpleCard (simple)
+// - template_2 → StandardCard (medium)
+// - template_3 → BYOCard (complex)
+// - template_lifestyle → LifestyleCard (medium with nutrition)
+// 
+// Card type mapping is handled by:
+// - ProductCard.tsx: getCardTypeFromProduct() for product listing
+// - UnifiedProductRenderer: templateId for modal rendering
 // ================================================================
 
 import { motion } from 'framer-motion'

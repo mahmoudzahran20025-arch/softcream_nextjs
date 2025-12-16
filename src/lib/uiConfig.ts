@@ -72,7 +72,8 @@ export interface UIConfig {
   // Content Display
   show_images?: boolean;
   show_prices?: boolean;
-  show_descriptions?: boolean;
+  show_descriptions?: boolean;      // وصف الخيار الفردي
+  show_group_description?: boolean; // وصف المجموعة (تحت العنوان) - Requirements: 7.1, 7.2, 7.3
   show_macros?: boolean; // Legacy field
   
   // Nutrition - Requirements: 3.1, 3.2
@@ -111,6 +112,7 @@ export const DEFAULT_UI_CONFIG: UIConfig = {
   show_images: true,
   show_prices: true,
   show_descriptions: false,
+  show_group_description: true, // Default: show group description - Requirements: 7.3
   show_macros: false,
   nutrition: {
     show: false,
@@ -205,8 +207,29 @@ export function parseUIConfig(uiConfigJSON?: string | object | null): UIConfig {
 }
 
 /**
+ * Legacy field mapping table
+ * Maps old section_type values to new display_mode values
+ */
+const SECTION_TYPE_TO_DISPLAY_MODE: Record<string, DisplayMode> = {
+  'default': 'default',
+  'hero_selection': 'hero_flavor',
+  'compact_addons': 'default',
+  'interactive_meter': 'smart_meter'
+};
+
+/**
+ * Log deprecation warning in development mode
+ */
+function logDeprecationWarning(field: string, newField: string): void {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`[UIConfig] Deprecated field "${field}" detected. Use "${newField}" instead.`);
+  }
+}
+
+/**
  * Normalize legacy config fields to new structure
  * Handles backward compatibility with older config formats
+ * Requirements: 2.1, 2.2, 2.4 - Legacy field mapping with deprecation warnings
  */
 function normalizeLegacyConfig(config: Record<string, any>): Partial<UIConfig> {
   const normalized: Partial<UIConfig> = { ...config };
@@ -231,22 +254,36 @@ function normalizeLegacyConfig(config: Record<string, any>): Partial<UIConfig> {
     normalized.fallback_style = config.display_style as FallbackStyle;
   }
   
-  // Map legacy section_type to display_mode if not set
+  // Requirements 2.1: Map legacy section_type to display_mode
   if (config.section_type && !config.display_mode) {
-    const sectionMap: Record<string, DisplayMode> = {
-      'default': 'default',
-      'hero_selection': 'hero_flavor',
-      'compact_addons': 'default',
-      'interactive_meter': 'smart_meter'
+    logDeprecationWarning('section_type', 'display_mode');
+    normalized.display_mode = SECTION_TYPE_TO_DISPLAY_MODE[config.section_type] || 'default';
+  }
+  
+  // Requirements 2.2: Map legacy show_macros to nutrition.show
+  if (config.show_macros !== undefined && !config.nutrition?.show) {
+    logDeprecationWarning('show_macros', 'nutrition.show');
+    normalized.nutrition = {
+      show: config.show_macros,
+      format: config.nutrition?.format || 'compact',
+      fields: config.nutrition?.fields || ['calories']
     };
-    normalized.display_mode = sectionMap[config.section_type] || 'default';
   }
   
   // Map camelCase to snake_case for common fields
   if (config.cardSize !== undefined) normalized.card_size = config.cardSize;
   if (config.showImages !== undefined) normalized.show_images = config.showImages;
   if (config.showPrices !== undefined) normalized.show_prices = config.showPrices;
-  if (config.showMacros !== undefined) normalized.show_macros = config.showMacros;
+  if (config.showMacros !== undefined) {
+    logDeprecationWarning('showMacros', 'nutrition.show');
+    if (!normalized.nutrition) {
+      normalized.nutrition = {
+        show: config.showMacros,
+        format: 'compact',
+        fields: ['calories']
+      };
+    }
+  }
   if (config.accentColor !== undefined) normalized.accent_color = config.accentColor;
   if (config.showDescriptions !== undefined) normalized.show_descriptions = config.showDescriptions;
   
@@ -283,13 +320,40 @@ export function mergeUIConfig(existing: UIConfig, updates: Partial<UIConfig>): U
 }
 
 /**
+ * Clean legacy fields from config before saving
+ * Requirements: 2.3 - Saved config uses new fields only
+ * 
+ * @param config - UIConfig object (may contain legacy fields)
+ * @returns Clean UIConfig without legacy fields
+ */
+export function cleanLegacyFields(config: UIConfig): UIConfig {
+  const cleaned = { ...config };
+  
+  // Remove legacy fields
+  delete (cleaned as any).section_type;
+  delete (cleaned as any).show_macros;
+  delete (cleaned as any).displayMode;
+  delete (cleaned as any).showMacros;
+  delete (cleaned as any).cardSize;
+  delete (cleaned as any).showImages;
+  delete (cleaned as any).showPrices;
+  delete (cleaned as any).showDescriptions;
+  delete (cleaned as any).accentColor;
+  
+  return cleaned;
+}
+
+/**
  * Stringify UIConfig for database storage
+ * Automatically cleans legacy fields before stringifying
+ * Requirements: 2.3 - Saved config uses new fields only
  * 
  * @param config - UIConfig object
- * @returns JSON string
+ * @returns JSON string without legacy fields
  */
 export function stringifyUIConfig(config: UIConfig): string {
-  return JSON.stringify(config);
+  const cleaned = cleanLegacyFields(config);
+  return JSON.stringify(cleaned);
 }
 
 /**
@@ -307,4 +371,31 @@ export function parseTemplateConfig(templateConfig?: any) {
     console.error('Failed to parse template config:', error);
     return null;
   }
+}
+
+/**
+ * Get effective icon from option group
+ * Requirements: 3.2 - Icon priority: ui_config.icon > group.icon > default
+ * 
+ * @param uiConfig - Parsed UIConfig object
+ * @param legacyIcon - Legacy icon field from option_groups table
+ * @returns IconConfig with proper priority applied
+ */
+export function getEffectiveIcon(uiConfig: UIConfig, legacyIcon?: string): IconConfig {
+  // Priority 1: ui_config.icon
+  if (uiConfig.icon) {
+    return uiConfig.icon;
+  }
+  
+  // Priority 2: Legacy icon field (convert to IconConfig format)
+  if (legacyIcon) {
+    return {
+      type: 'emoji',
+      value: legacyIcon,
+      fallback: 'Circle'
+    };
+  }
+  
+  // Priority 3: Default icon
+  return DEFAULT_UI_CONFIG.icon!;
 }

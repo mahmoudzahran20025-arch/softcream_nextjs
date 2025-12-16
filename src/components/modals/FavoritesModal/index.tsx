@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Heart, ShoppingBag, ArrowRight } from 'lucide-react'
+import { X, Heart, ArrowRight } from 'lucide-react'
 import { useLanguage } from '@/providers/LanguageProvider'
 import { useFavorites } from '@/hooks/useFavorites'
 import { formatCurrency } from '@/lib/utils'
@@ -15,7 +15,7 @@ interface FavoritesModalProps {
 }
 
 export default function FavoritesModal({ isOpen, onClose }: FavoritesModalProps) {
-    const { language, t } = useLanguage()
+    const { language } = useLanguage()
     const { favorites, toggleFavorite } = useFavorites()
     const isRTL = language === 'ar'
 

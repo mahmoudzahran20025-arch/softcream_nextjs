@@ -22,7 +22,7 @@ import ProductsGrid from '@/components/shared/ProductsGrid'
 import Footer from '@/components/server/Footer'
 import ToastContainer from '@/components/ui/ToastContainer'
 import ScrollProgressButton from '@/components/ui/ScrollProgressButton'
-import ScrollDownSection from '@/components/ui/ScrollDownSection'
+// ScrollDownSection removed - not used in this component
 import ModalOrchestrator from '@/components/modals/ModalOrchestrator'
 import ProductActionBar from './ProductActionBar'
 
@@ -108,7 +108,8 @@ function RichProductPageContent({ product, allProducts }: Props) {
   const { open } = useModalStore()
   // FilterBar removed for distraction-free decision making
   const productHeroRef = useRef<HTMLDivElement>(null)
-  const { showHeader } = useSmartScroll()
+  // useSmartScroll hook available but showHeader not currently used
+  useSmartScroll()
   const [shouldShowActionBar, setShouldShowActionBar] = useState(false)
 
   // Track scroll to toggle Action Bar

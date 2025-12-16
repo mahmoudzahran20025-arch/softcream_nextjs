@@ -5,7 +5,7 @@ import ProductsGrid from '@/components/shared/ProductsGrid'
 import Footer from '@/components/server/Footer'
 import HomePageClient from '@/components/home/HomePageClient'
 import ProductsProvider from '@/providers/ProductsProvider'
-import { CategoryTrackingProvider } from '@/providers/CategoryTrackingProvider'
+// CategoryTrackingProvider available but not used in this component
 import StorytellingHero from '@/components/StorytellingHero'
 import ScrollProgressButton from '@/components/ui/ScrollProgressButton'
 import type { Product } from '@/lib/api'
@@ -16,7 +16,8 @@ const ProductShowcaseGrid = dynamic(() => import('@/components/products-page/Pro
 const BrandValuesGrid = dynamic(() => import('@/components/products-page/BrandValuesGrid'), { ssr: true })
 const NutritionShowcase = dynamic(() => import('@/components/products-page/NutritionShowcase'), { ssr: true })
 const BYOShowcase = dynamic(() => import('@/components/products-page/BYOShowcase'), { ssr: true })
-const CategoryRail = dynamic(() => import('@/components/home/CategoryRail'), { ssr: false })
+// CategoryRail available for future use
+// const CategoryRail = dynamic(() => import('@/components/home/CategoryRail'), { ssr: false })
 
 interface PageContentProps {
   initialProducts: Product[]

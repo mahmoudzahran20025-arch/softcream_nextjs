@@ -254,6 +254,143 @@ describe('UI Config Parser - Property Tests', () => {
   })
 
   // ================================================================
+  // Property Tests for Options UI System Cleanup
+  // Requirements: 2.1, 2.2, 2.3
+  // ================================================================
+
+  describe('Property 1: Legacy section_type mapping', () => {
+    it('maps section_type to display_mode correctly', () => {
+      const sectionTypeMap = {
+        'default': 'default',
+        'hero_selection': 'hero_flavor',
+        'compact_addons': 'default',
+        'interactive_meter': 'smart_meter'
+      };
+
+      fc.assert(
+        fc.property(
+          fc.constantFrom('default', 'hero_selection', 'compact_addons', 'interactive_meter'),
+          (sectionType) => {
+            const config = { section_type: sectionType };
+            const result = parseUIConfig(JSON.stringify(config));
+            
+            // display_mode should be mapped from section_type
+            expect(result.display_mode).toBe(sectionTypeMap[sectionType as keyof typeof sectionTypeMap]);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe('Property 2: Legacy show_macros mapping', () => {
+    it('maps show_macros to nutrition.show correctly', () => {
+      fc.assert(
+        fc.property(fc.boolean(), (showMacros) => {
+          const config = { show_macros: showMacros };
+          const result = parseUIConfig(JSON.stringify(config));
+          
+          // nutrition.show should have the same boolean value
+          expect(result.nutrition?.show).toBe(showMacros);
+        }),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe('Property 3: Saved config uses new fields only', () => {
+    it('stringifyUIConfig removes legacy fields', async () => {
+      const { stringifyUIConfig } = await import('./uiConfig');
+      
+      fc.assert(
+        fc.property(
+          fc.record({
+            display_mode: fc.constantFrom('default', 'hero_flavor', 'smart_meter', 'brand_accent'),
+            fallback_style: fc.constantFrom('cards', 'grid', 'list', 'pills', 'checkbox'),
+            section_type: fc.constantFrom('default', 'hero_selection'), // legacy
+            show_macros: fc.boolean(), // legacy
+          }),
+          (config) => {
+            const result = stringifyUIConfig(config as any);
+            const parsed = JSON.parse(result);
+            
+            // Legacy fields should NOT be in output
+            expect(parsed.section_type).toBeUndefined();
+            expect(parsed.show_macros).toBeUndefined();
+            expect(parsed.displayMode).toBeUndefined();
+            expect(parsed.showMacros).toBeUndefined();
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe('Property 5: Icon priority', () => {
+    it('getEffectiveIcon prioritizes ui_config.icon over legacy icon', async () => {
+      const { getEffectiveIcon, parseUIConfig } = await import('./uiConfig');
+      
+      fc.assert(
+        fc.property(
+          fc.record({
+            icon: fc.record({
+              type: fc.constantFrom('emoji', 'lucide', 'custom'),
+              value: fc.string({ minLength: 1 }),
+            }),
+          }),
+          fc.string({ minLength: 1 }), // legacy icon
+          (config, legacyIcon) => {
+            const uiConfig = parseUIConfig(JSON.stringify(config));
+            const effectiveIcon = getEffectiveIcon(uiConfig, legacyIcon);
+            
+            // ui_config.icon should take priority
+            expect(effectiveIcon.value).toBe(config.icon.value);
+            expect(effectiveIcon.type).toBe(config.icon.type);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it('getEffectiveIcon falls back to legacy icon when ui_config.icon is not set', async () => {
+      const { getEffectiveIcon } = await import('./uiConfig');
+      
+      fc.assert(
+        fc.property(
+          fc.string({ minLength: 1 }), // legacy icon (emoji)
+          (legacyIcon) => {
+            // Create a config without icon
+            const uiConfigWithoutIcon = {
+              display_mode: 'default' as const,
+              fallback_style: 'cards' as const,
+              // No icon field
+            };
+            const effectiveIcon = getEffectiveIcon(uiConfigWithoutIcon as any, legacyIcon);
+            
+            // Should use legacy icon converted to IconConfig format
+            expect(effectiveIcon.value).toBe(legacyIcon);
+            expect(effectiveIcon.type).toBe('emoji');
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it('getEffectiveIcon returns default when no icon is provided', async () => {
+      const { getEffectiveIcon, parseUIConfig, DEFAULT_UI_CONFIG } = await import('./uiConfig');
+      
+      const uiConfig = parseUIConfig('{}');
+      // Remove icon from uiConfig to test default
+      delete (uiConfig as any).icon;
+      const effectiveIcon = getEffectiveIcon(uiConfig, undefined);
+      
+      // Should return default icon
+      expect(effectiveIcon.type).toBe(DEFAULT_UI_CONFIG.icon?.type);
+      expect(effectiveIcon.value).toBe(DEFAULT_UI_CONFIG.icon?.value);
+    });
+  });
+
+  // ================================================================
   // Edge Cases
   // ================================================================
 
